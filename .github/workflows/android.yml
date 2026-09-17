@@ -38,11 +38,8 @@ jobs:
       - name: Create local.properties
         run: touch local.properties
 
-      - name: Decode Keystore
-        env:
-          ENCODED_STRING: ${{ secrets.RELEASE_STORE_BASE64 }}
-        run: |
-          echo $ENCODED_STRING | base64 -di > release.keystore
+      # 汉化版：不依赖仓库 secrets，使用仓库自带的 debug.keystore 签名
+      # （mobile/build.gradle release signingConfig 默认值：../debug.keystore / password / alias_name / password）
 
       # Cache the Robolectric framework jars across runs. Key includes the
       # workflow file hash so a change to the version list invalidates it.
@@ -107,11 +104,7 @@ jobs:
 
       - name: Assemble Release
         run: |
-          ./gradlew build assembleRelease \
-            -DRELEASE_STORE_FILE=../release.keystore \
-            -DRELEASE_STORE_PASSWORD='${{ secrets.RELEASE_STORE_PASSWORD }}' \
-            -DRELEASE_KEY_ALIAS='${{ secrets.RELEASE_KEY_ALIAS }}' \
-            -DRELEASE_KEY_PASSWORD='${{ secrets.RELEASE_KEY_PASSWORD }}'
+          ./gradlew build assembleRelease
 
       - name: Upload release mobile APK
         uses: actions/upload-artifact@v4
