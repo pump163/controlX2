@@ -84,8 +84,8 @@ fun TempRateWindow(
     val durationMinutesFocusRequester = remember { FocusRequester() }
 
     var percentSubtitle by remember { mutableStateOf<String>("%") }
-    var hoursSubtitle by remember { mutableStateOf<String">"时" }
-    var minutesSubtitle by remember { mutableStateOf<String">"分" }
+    var hoursSubtitle by remember { mutableStateOf<String>("时") }
+    var minutesSubtitle by remember { mutableStateOf<String>("分") }
 
     var inputMode by remember { mutableStateOf(TempRateInputMode.PERCENT) }
     var percentHumanEntered by remember { mutableStateOf<Int?>(null) }

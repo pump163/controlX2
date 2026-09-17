@@ -64,7 +64,7 @@ fun PairingCodeEntryScreen() {
                 localError.value = "未输入配对码"
             }
             code.length != PAIRING_CODE_LENGTH || !code.all(Char::isDigit) -> {
-                localError.value = "必须为$PAIRING_CODE_LENGTH位数字"
+                localError.value = "必须为${PAIRING_CODE_LENGTH}位数字"
             }
             else -> {
                 localError.value = null

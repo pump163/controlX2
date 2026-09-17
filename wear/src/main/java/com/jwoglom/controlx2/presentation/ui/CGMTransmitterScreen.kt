@@ -298,7 +298,7 @@ private fun StartG6ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "用TX $txId、代码$sensorCode启动G6探头？",
+                text = "用TX $txId、代码${sensorCode}启动G6探头？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
@@ -332,7 +332,7 @@ private fun PairG7ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "用代码$code配对G7探头？",
+                text = "用代码${code}配对G7探头？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
