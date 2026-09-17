@@ -78,7 +78,7 @@ fun FillCannulaWorkflowScreen(
     }
 
     CartridgeWorkflowScreen(
-        title = "Fill Cannula",
+        title = "充盈插管",
         innerPadding = innerPadding,
         stepInfo = WizardStepInfo(step.stepNumber, 3),
         canCancel = true,
@@ -92,20 +92,20 @@ fun FillCannulaWorkflowScreen(
         body = {
             when (step) {
                 FillCannulaStep.SUSPEND -> {
-                    Text("Important", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("重要提示", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Filling cannula requires suspending insulin delivery. Select the prime amount carefully.",
+                        "充盈插管需要暂停胰岛素输注。请谨慎选择充注量。",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 FillCannulaStep.ENTER_AMOUNT -> {
-                    Text("Step 2: Set Prime Amount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("第 2 步：设置充注量", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Select how much insulin to prime the cannula.", style = MaterialTheme.typography.bodyLarge)
+                    Text("选择充盈插管所需的胰岛素量。", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
                     DecimalOutlinedText(
-                        title = "Prime amount (U)",
+                        title = "充注量（U）",
                         value = primeAmountText,
                         onValueChange = { value ->
                             primeAmountText = value
@@ -117,7 +117,7 @@ fun FillCannulaWorkflowScreen(
                         },
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Prime amount: ${"%.1f".format(primeAmount)}U", style = MaterialTheme.typography.titleMedium)
+                    Text("充注量：${"%.1f".format(primeAmount)}U", style = MaterialTheme.typography.titleMedium)
                     Slider(
                         value = primeAmount.toFloat(),
                         onValueChange = {
@@ -130,9 +130,9 @@ fun FillCannulaWorkflowScreen(
                     )
                 }
                 FillCannulaStep.DONE -> {
-                    Text("Cannula fill complete!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("插管充盈完成！", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("${"%.1f".format(primeAmount)}U primed.", style = MaterialTheme.typography.bodyLarge)
+                    Text("${"%.1f".format(primeAmount)}U 已充注。", style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },
@@ -140,13 +140,13 @@ fun FillCannulaWorkflowScreen(
             when (step) {
                 FillCannulaStep.SUSPEND ->
                     PrimaryActionButton(
-                        text = "Suspend insulin delivery",
+                        text = "暂停胰岛素输注",
                         loading = loadingSuspend,
                         onClick = { showSuspendConfirm = true },
                     )
                 FillCannulaStep.ENTER_AMOUNT ->
                     PrimaryActionButton(
-                        text = "Fill cannula",
+                        text = "充盈插管",
                         loading = loadingFill,
                         onClick = {
                             loadingFill = true
@@ -163,13 +163,13 @@ fun FillCannulaWorkflowScreen(
                             enabled = !loadingResume,
                             modifier = Modifier.weight(1.5f).height(56.dp),
                         ) {
-                            Text(if (loadingResume) "Working..." else "Resume Insulin Delivery")
+                            Text(if (loadingResume) "处理中..." else "恢复胰岛素输注")
                         }
                         Button(
                             onClick = onDone,
                             modifier = Modifier.weight(1f).height(56.dp),
                         ) {
-                            Text("Done")
+                            Text("完成")
                         }
                     }
                 }
@@ -180,11 +180,11 @@ fun FillCannulaWorkflowScreen(
     if (showSuspendConfirm) {
         AlertDialog(
             onDismissRequest = { showSuspendConfirm = false },
-            title = { Text("Suspend insulin delivery?") },
-            text = { Text("This will stop all insulin delivery until you resume.") },
+            title = { Text("暂停胰岛素输注？") },
+            text = { Text("这将停止所有胰岛素输注，直到您恢复。") },
             dismissButton = {
                 TextButton(onClick = { showSuspendConfirm = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             },
             confirmButton = {
@@ -193,7 +193,7 @@ fun FillCannulaWorkflowScreen(
                     loadingSuspend = true
                     onSuspend()
                 }) {
-                    Text("Suspend")
+                    Text("暂停")
                 }
             },
         )
@@ -202,11 +202,11 @@ fun FillCannulaWorkflowScreen(
     if (showResumeConfirm) {
         AlertDialog(
             onDismissRequest = { showResumeConfirm = false },
-            title = { Text("Resume insulin delivery?") },
-            text = { Text("This will restart scheduled basal insulin.") },
+            title = { Text("恢复胰岛素输注？") },
+            text = { Text("这将恢复按计划的基础率胰岛素。") },
             dismissButton = {
                 TextButton(onClick = { showResumeConfirm = false }) {
-                    Text("Not yet")
+                    Text("暂不")
                 }
             },
             confirmButton = {
@@ -215,7 +215,7 @@ fun FillCannulaWorkflowScreen(
                     loadingResume = true
                     onResume()
                 }) {
-                    Text("Resume")
+                    Text("恢复")
                 }
             },
         )
@@ -224,11 +224,11 @@ fun FillCannulaWorkflowScreen(
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
-            title = { Text("Cancel cannula fill?") },
-            text = { Text("The cannula fill is not complete.") },
+            title = { Text("取消充盈插管？") },
+            text = { Text("插管充盈未完成。") },
             dismissButton = {
                 TextButton(onClick = { showCancelConfirm = false }) {
-                    Text("No, continue")
+                    Text("不，继续")
                 }
             },
             confirmButton = {
@@ -236,7 +236,7 @@ fun FillCannulaWorkflowScreen(
                     showCancelConfirm = false
                     onDismiss()
                 }) {
-                    Text("Yes, cancel")
+                    Text("是，取消")
                 }
             },
         )

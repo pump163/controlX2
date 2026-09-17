@@ -95,10 +95,10 @@ fun notifyForUpdate(context: Context, description: String, newVersion: String) {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
     val channel = NotificationChannel(
         notificationChannelId,
-        "Notification channel for app update notifications",
+        "应用更新通知渠道",
         NotificationManager.IMPORTANCE_HIGH
     ).let {
-        it.description = "ControlX2 App Updates"
+        it.description = "ControlX2 应用更新"
         it.setShowBadge(false)
         it.lockscreenVisibility = 1
 
@@ -112,8 +112,8 @@ fun notifyForUpdate(context: Context, description: String, newVersion: String) {
 
     val notif = NotificationCompat.Builder(context, notificationChannelId)
         .setSmallIcon(R.drawable.pump)
-        .setContentTitle("ControlX2 Update Available: $newVersion")
-        .setTicker("ControlX2 Update Available: $newVersion")
+        .setContentTitle("ControlX2 有可用更新：$newVersion")
+        .setTicker("ControlX2 有可用更新：$newVersion")
         .setContentText(description)
         .setContentIntent(pendingIntent)
         .setPriority(NotificationCompat.PRIORITY_HIGH)

@@ -53,10 +53,10 @@ fun NightscoutSettingsScreen() {
         syncStatus = NightscoutSyncStatusStore.load(prefs)
     }
 
-    val editUrlLauncher = rememberRemoteTextInputLauncher(label = "Nightscout URL") { result ->
+    val editUrlLauncher = rememberRemoteTextInputLauncher(label = "Nightscout 网址") { result ->
         if (result != null) saveAndReload(config.copy(nightscoutUrl = result))
     }
-    val editSecretLauncher = rememberRemoteTextInputLauncher(label = "API secret") { result ->
+    val editSecretLauncher = rememberRemoteTextInputLauncher(label = "API 密钥") { result ->
         if (result != null) saveAndReload(config.copy(apiSecret = result))
     }
 
@@ -79,7 +79,7 @@ fun NightscoutSettingsScreen() {
                     when {
                         !enabling -> {
                             NightscoutSyncWorker.stopIfRunning()
-                            Toast.makeText(context, "Nightscout disabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Nightscout 已关闭", Toast.LENGTH_SHORT).show()
                         }
                         pumpSid < 0 -> {
                             // No pump has connected yet this run, so we have no
@@ -88,18 +88,18 @@ fun NightscoutSettingsScreen() {
                             // — the config is already persisted above.
                             Toast.makeText(
                                 context,
-                                "Enabled — will start after pump connects",
+                                "已启用——连接胰岛素泵后开始",
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }
                         else -> {
                             NightscoutSyncWorker.startIfEnabled(context, prefs, pumpSid)
-                            Toast.makeText(context, "Nightscout enabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Nightscout 已启用", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
-                label = { Text(if (config.enabled) "Enabled" else "Disabled", fontSize = 13.sp) },
-                secondaryLabel = { Text("Tap to toggle", fontSize = 10.sp) },
+                label = { Text(if (config.enabled) "已启用" else "已关闭", fontSize = 13.sp) },
+                secondaryLabel = { Text("点击切换", fontSize = 10.sp) },
                 colors = if (config.enabled) ChipDefaults.primaryChipColors()
                     else ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -124,10 +124,10 @@ fun NightscoutSettingsScreen() {
         item {
             Chip(
                 onClick = { editSecretLauncher() },
-                label = { Text("API secret", fontSize = 12.sp) },
+                label = { Text("API 密钥", fontSize = 12.sp) },
                 secondaryLabel = {
                     Text(
-                        text = if (config.apiSecret.isBlank()) "Not set" else "••••••",
+                        text = if (config.apiSecret.isBlank()) "未设置" else "••••••",
                         fontSize = 10.sp,
                     )
                 },
@@ -140,7 +140,7 @@ fun NightscoutSettingsScreen() {
         }
         item {
             Text(
-                text = "Advanced settings (processors, interval, lookback) are configured on the phone.",
+                text = "高级设置（处理器、间隔、回溯）请在手机上配置。",
                 fontSize = 10.sp,
                 modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp),
             )
@@ -157,11 +157,11 @@ private fun LaunchedStatusText(
     val text = remember(syncStatus, tick) {
         val parts = mutableListOf<String>()
         syncStatus.lastSuccessfulSyncMillis?.let {
-            parts += "Last sync ${shortTimeAgo(Instant.ofEpochMilli(it))}"
+            parts += "上次同步 ${shortTimeAgo(Instant.ofEpochMilli(it))}"
         }
         syncStatus.lastError?.let { err ->
             val errTimeAgo = syncStatus.lastErrorMillis?.let { shortTimeAgo(Instant.ofEpochMilli(it)) }
-            parts += if (errTimeAgo != null) "Last error $errTimeAgo: $err" else "Last error: $err"
+            parts += if (errTimeAgo != null) "上次错误 $errTimeAgo：$err" else "上次错误：$err"
         }
         parts.joinToString("\n")
     }
@@ -183,7 +183,7 @@ private fun LaunchedStatusText(
  * without the raw URL spilling into an unreadable multi-line wrap.
  */
 private fun compactUrlLabel(url: String): String {
-    if (url.isBlank()) return "Not set"
+    if (url.isBlank()) return "未设置"
     val trimmed = url.trim().trimEnd('/')
     val afterScheme = trimmed.substringAfter("://", missingDelimiterValue = trimmed)
     val host = afterScheme.substringBefore('/')

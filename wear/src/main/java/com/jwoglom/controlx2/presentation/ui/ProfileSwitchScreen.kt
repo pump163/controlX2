@@ -108,7 +108,7 @@ fun ProfileSwitchScreen(
         when {
             !isComplete -> item {
                 Text(
-                    text = "Loading profiles…",
+                    text = "正在加载配置文件…",
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -116,7 +116,7 @@ fun ProfileSwitchScreen(
             }
             profiles.isEmpty() -> item {
                 Text(
-                    text = "No profiles found.",
+                    text = "未找到配置文件。",
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -125,7 +125,7 @@ fun ProfileSwitchScreen(
             else -> {
                 item {
                     Text(
-                        text = "Active profile",
+                        text = "当前配置文件",
                         fontSize = 11.sp,
                         color = MaterialTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -168,7 +168,7 @@ private fun ProfileChip(
         },
         secondaryLabel = {
             Text(
-                text = if (isActive) "Active" else "Tap to activate",
+                text = if (isActive) "当前" else "点击启用",
                 fontSize = 10.sp,
             )
         },
@@ -187,7 +187,7 @@ private fun ProfileSwitchConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Activate \"${profile.idpSettingsResponse.name}\"?",
+                text = "启用\"${profile.idpSettingsResponse.name}\"？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
@@ -197,7 +197,7 @@ private fun ProfileSwitchConfirmAlert(
                 onClick = onCancel,
                 colors = ButtonDefaults.secondaryButtonColors(),
             ) {
-                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
             }
         },
         positiveButton = {
@@ -205,13 +205,13 @@ private fun ProfileSwitchConfirmAlert(
                 onClick = onConfirm,
                 colors = ButtonDefaults.primaryButtonColors(),
             ) {
-                Icon(imageVector = Icons.Filled.Check, contentDescription = "Activate profile")
+                Icon(imageVector = Icons.Filled.Check, contentDescription = "启用配置文件")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Profile",
+                contentDescription = "配置文件",
                 modifier = Modifier.size(24.dp),
             )
         },

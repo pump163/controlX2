@@ -76,13 +76,13 @@ fun BolusCancelledPhase(
             title = {
                 Text(
                     text = when (bolusCancelResponse.value?.status) {
-                        CancelStatus.SUCCESS -> "The bolus was cancelled."
+                        CancelStatus.SUCCESS -> "大剂量已取消。"
                         CancelStatus.FAILED -> when (bolusInitiateResponse.value) {
-                            null -> "A bolus request was not sent to the pump, so there is nothing to cancel."
-                            else -> "The bolus could not be cancelled: ${snakeCaseToSpace(bolusCancelResponse.value?.reason.toString())}"
+                            null -> "未向胰岛素泵发送大剂量请求，无需取消。"
+                            else -> "大剂量无法取消：${snakeCaseToSpace(bolusCancelResponse.value?.reason.toString())}"
                         }
 
-                        else -> "Please check your pump to confirm whether the bolus was cancelled."
+                        else -> "请查看胰岛素泵确认大剂量是否已取消。"
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -92,11 +92,11 @@ fun BolusCancelledPhase(
                 Text(
                     text = when {
                         matchesBolusId() == true -> lastBolusStatusResponse.value?.deliveredVolume?.let {
-                            if (it == 0L) "A bolus was started and no insulin was delivered." else "${twoDecimalPlaces1000Unit(it)}u was delivered."
+                            if (it == 0L) "大剂量已启动但未输注胰岛素。" else "已输注 ${twoDecimalPlaces1000Unit(it)}u。"
                         } ?: ""
 
-                        matchesBolusId() == false -> "No insulin was delivered."
-                        else -> "Checking if any insulin was delivered..."
+                        matchesBolusId() == false -> "未输注胰岛素。"
+                        else -> "正在检查是否已输注胰岛素…"
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -108,12 +108,12 @@ fun BolusCancelledPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("OK")
+                    Text("确定")
                 }
             },
             positiveButton = {},
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), "大剂量图标", Modifier.size(24.dp))
             },
             scrollState = scrollState,
         )

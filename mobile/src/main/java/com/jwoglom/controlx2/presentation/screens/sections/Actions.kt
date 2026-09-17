@@ -19,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
@@ -211,12 +210,12 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Actions")
+                    HeaderLine("操作")
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Actions are not supported on this device model (${model}). Only remote bolus is supported.")
+                        Line("此设备型号不支持操作（${model}），仅支持远程大剂量。")
                         Line("")
                     }
                 }
@@ -230,16 +229,16 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> "Stop / Start Insulin"
-                                    BasalStatus.PUMP_SUSPENDED -> "Start Insulin"
-                                    else -> "Stop Insulin"
+                                    BasalStatus.UNKNOWN, null -> "停止/启动胰岛素"
+                                    BasalStatus.PUMP_SUSPENDED -> "启动胰岛素"
+                                    else -> "停止胰岛素"
                                 }
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> "Stop or resume insulin deliveries"
-                                    BasalStatus.PUMP_SUSPENDED -> "Resume insulin deliveries"
-                                    else -> "Stop insulin deliveries"
+                                    BasalStatus.UNKNOWN, null -> "停止或恢复胰岛素输送"
+                                    BasalStatus.PUMP_SUSPENDED -> "恢复胰岛素输送"
+                                    else -> "停止胰岛素输送"
                                 }
                             ) },
                             leadingContent = {
@@ -279,7 +278,7 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Resume insulin")
+                                    Text("恢复胰岛素")
                                 },
                                 text = {
                                     Text(resumeGuidance.message)
@@ -292,7 +291,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -316,7 +315,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Resume insulin")
+                                        Text("恢复胰岛素")
                                     }
                                 }
                             )
@@ -332,10 +331,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Stop insulin")
+                                    Text("停止胰岛素")
                                 },
                                 text = {
-                                    Text("Suspend all insulin deliveries?")
+                                    Text("暂停所有胰岛素输送？")
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -344,7 +343,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -364,7 +363,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop insulin")
+                                        Text("停止胰岛素")
                                     }
                                 }
                             )
@@ -390,8 +389,8 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (controlIQMode.value) {
-                                    UserMode.EXERCISE -> "Disable Exercise Mode"
-                                    else -> "Enable Exercise Mode"
+                                    UserMode.EXERCISE -> "关闭运动模式"
+                                    else -> "开启运动模式"
                                 }
                             )},
                             leadingContent = {
@@ -417,7 +416,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Exercise mode cannot be enabled because another user mode is active",
+                                                    "无法开启运动模式，因为其他用户模式正在运行",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -433,7 +432,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Cannot disable Exercise Mode unless it’s currently active",
+                                                    "运动模式当前未运行，无法关闭",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -472,8 +471,8 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (controlIQMode.value) {
-                                    UserMode.SLEEP -> "Disable Sleep Mode"
-                                    else -> "Enable Sleep Mode"
+                                    UserMode.SLEEP -> "关闭睡眠模式"
+                                    else -> "开启睡眠模式"
                                 }
                             )},
                             leadingContent = {
@@ -499,7 +498,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Sleep mode cannot be enabled because another user mode is active",
+                                                    "无法开启睡眠模式，因为其他用户模式正在运行",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -515,7 +514,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Cannot disable Sleep Mode unless it’s currently active",
+                                                    "睡眠模式当前未运行，无法关闭",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -557,13 +556,13 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (tempRateActive.value) {
-                                    true -> "Stop Temp Rate"
-                                    else -> "Start Temp Rate"
+                                    true -> "停止临时基础率"
+                                    else -> "启动临时基础率"
                                 }
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
-                                    true -> Text("Active: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} at ${tempRateDetails.value?.startTimeInstant}")
+                                    true -> Text("进行中：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}")
                                     else -> null
                                 }
                             },
@@ -593,10 +592,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = { showStopTempRateMenu = false },
                                 title = {
-                                    Text("Stop Temp Rate")
+                                    Text("停止临时基础率")
                                 },
                                 text = {
-                                    Text("Stop the active temp rate: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} beginning ${tempRateDetails.value?.startTimeInstant}")
+                                    Text("停止进行中的临时基础率：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}")
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -605,7 +604,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -623,7 +622,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop temp rate")
+                                        Text("停止临时基础率")
                                     }
                                 }
                             )
@@ -644,7 +643,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge Settings"
+                                "储药器设置"
                             )},
                             supportingContent = {
                             },
@@ -666,7 +665,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "CGM Settings"
+                                "CGM 设置"
                             )},
                             supportingContent = {
                             },
@@ -689,7 +688,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Profile Settings"
+                                "配置文件设置"
                             )},
                             supportingContent = {
                             },
@@ -702,7 +701,6 @@ fun Actions(
                         )
                     }
                 }
-
                 item {
                     Box(
                         modifier = Modifier
@@ -711,28 +709,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Quick Bolus Settings"
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Bolt, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS)
-                            }
-                        )
-                    }
-                }
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                "Sound Settings"
+                                "声音设置"
                             )},
                             supportingContent = {
                             },
@@ -754,7 +731,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Control-IQ Settings"
+                                "Control-IQ 设置"
                             )},
                             supportingContent = {
                             },
@@ -776,7 +753,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Safety Limits"
+                                "安全上限"
                             )},
                             supportingContent = {
                             },
@@ -806,61 +783,61 @@ private fun resolveResumeInsulinGuidance(
     if (checking && loadStatus == null) {
         return ResumeInsulinGuidance(
             canResume = false,
-            message = "Checking pump load state...",
+            message = "正在检查胰岛素泵加载状态...",
         )
     }
     if (loadStatus == null) {
         return ResumeInsulinGuidance(
             canResume = false,
-            message = "Couldn't read load state from pump. Try again.",
+            message = "无法读取胰岛素泵加载状态，请重试。",
         )
     }
 
     return when (loadStatus.getLoadState()) {
         LoadStatusResponse.LoadState.CHANGE_CARTRIDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Finish Change Cartridge first.",
+            message = "请先完成更换储药器。",
         )
         LoadStatusResponse.LoadState.LOAD_CARTRIDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Complete Fill Tubing first, then try Resume insulin again.",
+            message = "请先完成充盈导管，然后再试恢复胰岛素。",
         )
         LoadStatusResponse.LoadState.PRIME_TUBING -> {
             val nextAction = when (loadStatus.getPrimeTubingStatus()) {
-                LoadStatusResponse.PrimeTubingStatus.ENTERED_CANNOT_EXIT -> "Hold the pump button to fill tubing, then exit Fill Tubing mode."
-                LoadStatusResponse.PrimeTubingStatus.ENTERED_CAN_EXIT -> "Exit Fill Tubing mode on the pump."
-                LoadStatusResponse.PrimeTubingStatus.SUSPENDED -> "Resume and complete Fill Tubing, then exit the mode."
-                else -> "Complete Fill Tubing and exit Fill Tubing mode."
+                LoadStatusResponse.PrimeTubingStatus.ENTERED_CANNOT_EXIT -> "长按胰岛素泵按钮充盈导管，然后退出充盈导管模式。"
+                LoadStatusResponse.PrimeTubingStatus.ENTERED_CAN_EXIT -> "在胰岛素泵上退出充盈导管模式。"
+                LoadStatusResponse.PrimeTubingStatus.SUSPENDED -> "恢复并完成充盈导管，然后退出该模式。"
+                else -> "完成充盈导管并退出充盈导管模式。"
             }
             ResumeInsulinGuidance(
                 canResume = false,
-                message = "$nextAction Then try Resume insulin again.",
+                message = "$nextAction 然后再试恢复胰岛素。",
             )
         }
         LoadStatusResponse.LoadState.PRIME_NUDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Fill cannula first, then try Resume insulin again.",
+            message = "请先充盈插管，然后再试恢复胰岛素。",
         )
         LoadStatusResponse.LoadState.PRIME_CANNULA -> {
             if (loadStatus.getIsLoadingActive()) {
                 ResumeInsulinGuidance(
                     canResume = false,
-                    message = "Complete Fill Cannula first, then try Resume insulin again.",
+                    message = "请先完成充盈插管，然后再试恢复胰岛素。",
                 )
             } else {
                 ResumeInsulinGuidance(
                     canResume = true,
-                    message = "Resume all insulin deliveries?",
+                    message = "恢复所有胰岛素输送？",
                 )
             }
         }
         LoadStatusResponse.LoadState.INVALID -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Pump load state is invalid. Complete cartridge loading steps on the pump first.",
+            message = "胰岛素泵加载状态无效。请先在胰岛素泵上完成储药器加载步骤。",
         )
         LoadStatusResponse.LoadState.UNKNOWN -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Pump load state is unknown. Complete any pending load steps on the pump first.",
+            message = "胰岛素泵加载状态未知。请先在胰岛素泵上完成所有待处理的加载步骤。",
         )
     }
 }

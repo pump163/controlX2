@@ -72,9 +72,9 @@ fun ServiceDisabledMessage(
                 )
                 Text(buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("The background service is disabled, so ControlX2 cannot connect to the pump. ")
+                        append("后台服务已禁用，ControlX2 无法连接胰岛素泵。")
                     }
-                    append("Press here to re-enable the service.")
+                    append("点击此处重新启用服务。")
                 })
             }
         }
@@ -90,9 +90,9 @@ fun ServiceDisabledMessage(
                 )
                 Text(buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("OnlySnoopBluetooth debug option is enabled, so limited app functionality is available. ")
+                        append("OnlySnoopBluetooth 调试选项已启用，应用功能受限。")
                     }
-                    append("Select 'Debug > Disable Only Snoop Bluetooth' to disable.")
+                    append("选择'调试 > 禁用 Only Snoop Bluetooth'以禁用。")
                 })
             }
         }

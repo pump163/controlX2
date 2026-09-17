@@ -55,7 +55,7 @@ fun AddProfileDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Add New Profile")
+            Text("添加新配置文件")
         },
         text = {
             LazyColumn(
@@ -68,13 +68,13 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = profileName,
                         onValueChange = { profileName = it },
-                        label = { Text("Profile Name") },
+                        label = { Text("配置文件名称") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
                     Text(
-                        "Default Settings for First Segment",
+                        "第一个时段的默认设置",
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -83,8 +83,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
+                        label = { Text("碳水化合物比（g/u）") },
+                        supportingText = { Text("示例：10 = 1:10 比例") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -93,8 +93,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        supportingText = { Text("Example: 1.0") },
+                        label = { Text("基础率（u/hr）") },
+                        supportingText = { Text("示例：1.0") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -103,10 +103,10 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG ($unitAbbrev)") },
+                        label = { Text("目标血糖（$unitAbbrev）") },
                         supportingText = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "Example: 110"
-                            GlucoseUnit.MMOL -> "Example: 6.1"
+                            GlucoseUnit.MGDL -> "示例：110"
+                            GlucoseUnit.MMOL -> "示例：6.1"
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -116,11 +116,11 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF ($unitAbbrev per u)") },
+                        label = { Text("ISF（$unitAbbrev/u）") },
                         supportingText = {
                             Text(when (glucoseUnit) {
-                                GlucoseUnit.MGDL -> "Example: 50 = 1u:50 mg/dL"
-                                GlucoseUnit.MMOL -> "Example: 2.8 = 1u:2.8 mmol/L"
+                                GlucoseUnit.MGDL -> "示例：50 = 1u:50 mg/dL"
+                                GlucoseUnit.MMOL -> "示例：2.8 = 1u:2.8 mmol/L"
                             })
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -131,8 +131,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = insulinDuration,
                         onValueChange = { insulinDuration = it },
-                        label = { Text("Insulin Duration (minutes)") },
-                        supportingText = { Text("Example: 240 = 4 hours") },
+                        label = { Text("胰岛素持续时间（分钟）") },
+                        supportingText = { Text("示例：240 = 4 小时") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -173,14 +173,14 @@ fun AddProfileDialog(
                 },
                 enabled = profileName.isNotBlank()
             ) {
-                Text("Create")
+                Text("创建")
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text("取消")
             }
         }
     )

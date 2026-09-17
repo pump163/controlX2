@@ -16,9 +16,9 @@ fun LandingBolusChip(onClick: () -> Unit) {
     val lastBolusStatus = ds.lastBolusStatus.observeAsState().value
     Chip(
         onClick = onClick,
-        label = { Text("Bolus", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        label = { Text("大剂量", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         secondaryLabel = {
-            Text(lastBolusStatus?.let { "Last: $it" } ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(lastBolusStatus?.let { "上次：$it" } ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         modifier = Modifier.fillMaxWidth()
     )

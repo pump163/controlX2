@@ -30,7 +30,6 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -161,7 +160,6 @@ fun Debug(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
     historyLogViewModel: HistoryLogViewModel? = null,
     navigateToFeatureFlags: () -> Unit = {},
-    navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
@@ -177,7 +175,7 @@ fun Debug(
 
     fun setClipboard(str: String) {
         clipboardManager.setText(AnnotatedString(str))
-        Toast.makeText(context, "Saved to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
     }
 
     fun shareTextContents(str: String, label: String, mimeType: String) {
@@ -190,9 +188,9 @@ fun Debug(
 
     fun clearDebugLog(context: Context) {
         AlertDialog.Builder(context)
-            .setMessage("Are you sure you want to clear the saved debug logs?")
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .setPositiveButton("Delete") { dialog, _ ->
+            .setMessage("确定要清除已保存的调试日志吗？")
+            .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("删除") { dialog, _ ->
                 dialog.dismiss()
                 val filePath = File(context.filesDir, "debugLog-MUA.txt")
                 filePath.delete()
@@ -203,9 +201,9 @@ fun Debug(
 
     fun emptyDatabase(context: Context) {
         AlertDialog.Builder(context)
-            .setMessage("Are you sure you want to empty the database?")
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .setPositiveButton("Delete") { dialog, _ ->
+            .setMessage("确定要清空数据库吗？")
+            .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("删除") { dialog, _ ->
                 dialog.dismiss()
                 coroutineScope.launch {
                     val historyLogDb = HistoryLogDatabase.getDatabase(context)
@@ -224,18 +222,18 @@ fun Debug(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Debug")
+                HeaderLine("调试")
                 Divider()
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
                     ListItem(
-                        headlineContent = { Text("Disable ControlX2 service") },
-                        supportingContent = { Text("Stops the background service and disables it from starting automatically when the app is opened.") },
+                        headlineContent = { Text("禁用 ControlX2 服务") },
+                        supportingContent = { Text("停止后台服务，并禁止其在打开应用时自动启动。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = "Stop icon",
+                                contentDescription = "停止图标",
                             )
                         },
                         modifier = Modifier.clickable {
@@ -256,8 +254,8 @@ fun Debug(
                         .wrapContentSize(Alignment.TopStart)
                 ) {
                     ListItem(
-                        headlineContent = { Text("Send Pump Message") },
-                        supportingContent = { Text("Displays the response message for the given request.") },
+                        headlineContent = { Text("发送胰岛素泵消息") },
+                        supportingContent = { Text("显示给定请求的响应消息。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Build,
@@ -433,8 +431,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View Received Message Cache") },
-                    supportingContent = { Text("Displays recently received pump messages.") },
+                    headlineContent = { Text("查看已接收消息缓存") },
+                    supportingContent = { Text("显示最近接收的胰岛素泵消息。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -473,7 +471,7 @@ fun Debug(
                                                     showMessageCache = false
                                                 }
                                             ) {
-                                                Icon(Icons.Filled.Close, contentDescription = "Close")
+                                                Icon(Icons.Filled.Close, contentDescription = "关闭")
                                             }
                                         }
                                         item {
@@ -487,14 +485,14 @@ fun Debug(
                                                     }
                                                 }
                                             ) {
-                                                Text("Export")
+                                                Text("导出")
                                             }
                                         }
                                     }
                                 }
                                 if (debugMessageCache.value?.isEmpty() == true) {
                                     item {
-                                        Text("No message entries present in cache.")
+                                        Text("缓存中无消息条目。")
                                     }
                                 }
                                 debugMessageCache.value?.sortedBy {
@@ -545,8 +543,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Get History Logs") },
-                    supportingContent = { Text("Fetches history logs within the given range.") },
+                    headlineContent = { Text("获取历史记录") },
+                    supportingContent = { Text("获取给定范围内的历史记录。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -583,8 +581,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View History Log Messages") },
-                    supportingContent = { Text("Displays pump history log messages") },
+                    headlineContent = { Text("查看历史记录消息") },
+                    supportingContent = { Text("显示胰岛素泵历史记录消息") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -627,7 +625,7 @@ fun Debug(
                                                     showHistoryLogs = false
                                                 }
                                             ) {
-                                                Icon(Icons.Filled.Close, contentDescription = "Close")
+                                                Icon(Icons.Filled.Close, contentDescription = "关闭")
                                             }
                                         }
                                         item {
@@ -641,7 +639,7 @@ fun Debug(
                                                     }
                                                 }
                                             ) {
-                                                Text("Export")
+                                                Text("导出")
                                             }
                                         }
                                     }
@@ -662,7 +660,7 @@ fun Debug(
                                     ) {
                                         OutlinedTextField(
                                             value = when (filterToType) {
-                                                null -> "<All>"
+                                                null -> "<全部>"
                                                 else -> "$filterToType"
                                             },
                                             onValueChange = { filterToType = it },
@@ -673,7 +671,7 @@ fun Debug(
                                                     // the DropDown the same width
                                                     textFieldSize = coordinates.size.toSize()
                                                 },
-                                            label = { Text("Filter") },
+                                            label = { Text("筛选") },
                                             trailingIcon = {
                                                 Icon(icon, "contentDescription",
                                                     Modifier.clickable { expanded = !expanded })
@@ -702,7 +700,7 @@ fun Debug(
                                 if (historyLogCache.value?.entries?.isEmpty() == true) {
                                     item {
                                         Text(
-                                            "No history log entries present in cache.",
+                                            "缓存中无历史记录条目。",
                                             modifier = Modifier
                                                 .background(Color.White)
                                                 .fillMaxWidth()
@@ -712,7 +710,7 @@ fun Debug(
                                 } else {
                                     item {
                                         Text(
-                                            "${historyLogCache.value?.size ?: 0} history log entries",
+                                            "${historyLogCache.value?.size ?: 0} 条历史记录",
                                             modifier = Modifier
                                                 .background(Color.White)
                                                 .fillMaxWidth()
@@ -766,12 +764,12 @@ fun Debug(
                 item {
                     if (Prefs(context).onlySnoopBluetoothEnabled()) {
                         ListItem(
-                            headlineContent = { Text("Disable Only Snoop Bluetooth") },
-                            supportingContent = { Text("Re-enables app functionality.") },
+                            headlineContent = { Text("禁用仅监听蓝牙") },
+                            supportingContent = { Text("重新启用应用功能。") },
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Close,
-                                    contentDescription = "Stop icon",
+                                    contentDescription = "停止图标",
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -784,12 +782,12 @@ fun Debug(
                         )
                     } else {
                         ListItem(
-                            headlineContent = { Text("Enable Only Snoop Bluetooth") },
-                            supportingContent = { Text("All app functionality will be disabled, for debugging purposes only.") },
+                            headlineContent = { Text("启用仅监听蓝牙") },
+                            supportingContent = { Text("所有应用功能将被禁用，仅供调试。") },
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Check,
-                                    contentDescription = "Start icon",
+                                    contentDescription = "启动图标",
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -810,8 +808,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View PumpState") },
-                    supportingContent = { Text("Displays the pump MAC, pairing key, and authentication secrets.") },
+                    headlineContent = { Text("查看 PumpState") },
+                    supportingContent = { Text("显示胰岛素泵 MAC、配对密钥和认证密钥。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Info,
@@ -854,7 +852,7 @@ fun Debug(
                                             Button(onClick = {
                                                 setClipboard(exportedPumpState)
                                             }) {
-                                                Text("Save to clipboard")
+                                                Text("保存到剪贴板")
                                             }
                                         }
                                         item {
@@ -864,7 +862,7 @@ fun Debug(
                                             Button(onClick = {
                                                 showPumpState = false
                                             }) {
-                                                Text("Close")
+                                                Text("关闭")
                                             }
                                         }
                                     }
@@ -881,8 +879,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Clear Debug Logs") },
-                    supportingContent = { Text("Clears the saved debug logs.") },
+                    headlineContent = { Text("清除调试日志") },
+                    supportingContent = { Text("清除已保存的调试日志。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Close,
@@ -897,8 +895,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Empty database") },
-                    supportingContent = { Text("Removes all saved history logs in sqlite.") },
+                    headlineContent = { Text("清空数据库") },
+                    supportingContent = { Text("删除 sqlite 中所有已保存的历史记录。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Close,
@@ -918,8 +916,8 @@ fun Debug(
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "Disable Qualifying Event Toasts" else "Enable Qualifying Event Toasts") },
-                    supportingContent = { Text("Show toast notifications when CommService receives qualifying events.") },
+                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件 Toast" else "启用合格事件 Toast") },
+                    supportingContent = { Text("当 CommService 收到合格事件时显示 Toast 通知。") },
                     leadingContent = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -931,7 +929,7 @@ fun Debug(
                         Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
                         Toast.makeText(
                             context,
-                            "Qualifying event toasts ${if (qualifyingEventToastsEnabled) "enabled" else "disabled"}",
+                            "合格事件 Toast 已${if (qualifyingEventToastsEnabled) "启用" else "禁用"}",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -941,8 +939,8 @@ fun Debug(
             item {
                 var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (httpDebugApiEnabled) "Disable HTTP Debug API" else "Enable HTTP Debug API") },
-                    supportingContent = { Text("Toggle the HTTP Debug API on port 18282. Service restart required.") },
+                    headlineContent = { Text(if (httpDebugApiEnabled) "禁用 HTTP 调试 API" else "启用 HTTP 调试 API") },
+                    supportingContent = { Text("切换端口 18282 上的 HTTP 调试 API。需要重启服务。") },
                     leadingContent = {
                         Icon(
                             if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -952,14 +950,14 @@ fun Debug(
                     modifier = Modifier.clickable {
                         httpDebugApiEnabled = !httpDebugApiEnabled
                         Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
-                        Toast.makeText(context, "HTTP Debug API ${if (httpDebugApiEnabled) "enabled" else "disabled"}. Restart service to apply.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "HTTP 调试 API 已${if (httpDebugApiEnabled) "启用" else "禁用"}。重启服务以应用。", Toast.LENGTH_SHORT).show()
                     }
                 )
 
                 if (httpDebugApiEnabled) {
                     var username by remember { mutableStateOf(Prefs(context).httpDebugApiUsername()) }
                     ListItem(
-                        headlineContent = { Text("API Username") },
+                        headlineContent = { Text("API 用户名") },
                         supportingContent = {
                             OutlinedTextField(
                                 value = username,
@@ -967,7 +965,7 @@ fun Debug(
                                     username = it
                                     Prefs(context).setHttpDebugApiUsername(it)
                                 },
-                                label = { Text("Username") },
+                                label = { Text("用户名") },
                                 singleLine = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -985,7 +983,7 @@ fun Debug(
                     var passwordVisible by remember { mutableStateOf(false) }
 
                     ListItem(
-                        headlineContent = { Text("API Password") },
+                        headlineContent = { Text("API 密码") },
                         supportingContent = {
                             OutlinedTextField(
                                 value = password,
@@ -995,14 +993,14 @@ fun Debug(
                                 },
                                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                label = { Text("Password") },
+                                label = { Text("密码") },
                                 trailingIcon = {
                                     val image = if (passwordVisible)
                                         Icons.Filled.Visibility
                                     else Icons.Filled.VisibilityOff
 
                                     // Please provide localized description for accessibility services
-                                    val description = if (passwordVisible) "Hide password" else "Show password"
+                                    val description = if (passwordVisible) "隐藏密码" else "显示密码"
 
                                     IconButton(onClick = {passwordVisible = !passwordVisible}){
                                         Icon(imageVector  = image, description)
@@ -1026,8 +1024,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Feature Flags") },
-                    supportingContent = { Text("Toggle experimental features.") },
+                    headlineContent = { Text("功能开关") },
+                    supportingContent = { Text("切换实验性功能。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Settings,
@@ -1035,14 +1033,6 @@ fun Debug(
                         )
                     },
                     modifier = Modifier.clickable { navigateToFeatureFlags() },
-                )
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text("Back") },
-                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = navigateBack),
                 )
             }
         }
@@ -1055,22 +1045,22 @@ fun triggerIDPSegmentDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter IDP ID")
-    builder.setMessage("Enter the ID for the Insulin Delivery Profile")
+    builder.setTitle("输入 IDP ID")
+    builder.setMessage("输入胰岛素输送配置文件的 ID")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton("确定") { dialog, which ->
         val idpId = input1.text.toString()
         Timber.i("idp id: %s", idpId)
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("Enter segment index")
-        builder2.setMessage("Enter the index for the Insulin Delivery Profile segment")
+        builder2.setTitle("输入时段索引")
+        builder2.setMessage("输入胰岛素输送配置文件时段的索引")
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         builder2.setView(input2)
         builder2.setPositiveButton(
-            "OK"
+            "确定"
         ) { dialog, which ->
             val idpSegment = input2.text.toString()
             Timber.i("idp segment: %s", idpSegment)
@@ -1082,12 +1072,12 @@ fun triggerIDPSegmentDialog(
             )
         }
         builder2.setNegativeButton(
-            "Cancel"
+            "取消"
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     }
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1097,12 +1087,12 @@ fun triggerIDPSettingsDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter IDP ID")
-    builder.setMessage("Enter the ID for the Insulin Delivery Profile")
+    builder.setTitle("输入 IDP ID")
+    builder.setMessage("输入胰岛素输送配置文件的 ID")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton("确定") { dialog, which ->
         val idpId = input1.text.toString()
         Timber.i("idp id: %s", idpId)
         sendPumpCommands(
@@ -1113,7 +1103,7 @@ fun triggerIDPSettingsDialog(
         )
     }
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1124,8 +1114,8 @@ fun triggerHistoryLogRequestDialog(
     historyLogStatus: HistoryLogStatusResponse? = null,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter start log ID")
-    builder.setMessage("Enter the ID of the first history log item to return:\n\n${historyLogStatus ?: ""}")
+    builder.setTitle("输入起始日志 ID")
+    builder.setMessage("输入要返回的第一条历史记录项的 ID：\n\n${historyLogStatus ?: ""}")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_NORMAL
     input1.width = 200
@@ -1146,12 +1136,12 @@ fun triggerHistoryLogRequestDialog(
     }
 
     builder.setView(layout)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton("确定") { dialog, which ->
         val startLog = input1.text.toString()
         Timber.i("startLog id: %s", startLog)
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("Enter number of logs")
-        builder2.setMessage("Enter the max number of logs to return")
+        builder2.setTitle("输入日志数量")
+        builder2.setMessage("输入要返回的最大日志数")
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_NORMAL
         if (historyLogStatus != null) {
@@ -1160,12 +1150,12 @@ fun triggerHistoryLogRequestDialog(
         builder2.setView(input2)
 
         if (historyLogStatus != null) {
-            builder2.setNeutralButton("Get All") { dialog, which ->
+            builder2.setNeutralButton("全部获取") { dialog, which ->
                 triggerHistoryLogRangePrompt(context, sendPumpCommands, startLog.toLong(), historyLogStatus.lastSequenceNum)
             }
         }
         builder2.setPositiveButton(
-            "OK"
+            "确定"
         ) { dialog, which ->
             val maxLogs = input2.text.toString()
             Timber.i("max logs: %s", maxLogs)
@@ -1173,12 +1163,12 @@ fun triggerHistoryLogRequestDialog(
 
         }
         builder2.setNegativeButton(
-            "Cancel"
+            "取消"
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     }
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1203,14 +1193,14 @@ fun triggerHistoryLogRangePrompt(
 
     val chunkCount = ceil(((endLog - startLog) / 255).toDouble())
     AlertDialog.Builder(context)
-        .setTitle("History Log Request")
-        .setMessage("Sequence number range $startLog - $endLog will require $chunkCount chunks. Continue?")
-        .setPositiveButton("OK") { dialog, which ->
+        .setTitle("历史记录请求")
+        .setMessage("序列号范围 $startLog - $endLog 需要 $chunkCount 个分块。是否继续？")
+        .setPositiveButton("确定") { dialog, which ->
             Handler(Looper.getMainLooper()).post {
                 triggerHistoryLogRange(context, sendPumpCommands, startLog, endLog)
             }
         }
-        .setNegativeButton("Cancel") { dialog, which -> dialog.cancel() }
+        .setNegativeButton("取消") { dialog, which -> dialog.cancel() }
         .show()
 }
 
@@ -1236,7 +1226,7 @@ fun triggerHistoryLogRange(
                     HistoryLogRequest(endI, count)
                 )
             )
-            Toast.makeText(context, "${localNum+1}/${totalNums}: Requesting $i to $endI", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "${localNum+1}/${totalNums}：正在请求 $i 到 $endI", Toast.LENGTH_SHORT).show()
         }, localNum.toLong() * 7000)
         num++
         totalNums++
@@ -1248,12 +1238,12 @@ fun triggerInitiateBolusRequestDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter units to deliver bolus")
-    builder.setMessage("Enter the number of units in INTEGER FORM: 1000 = 1 unit, 100 = 0.1 unit, 10 = 0.01 unit. Minimum value is 50 (0.05 unit)")
+    builder.setTitle("输入大剂量单位数")
+    builder.setMessage("输入整数形式的单位数：1000 = 1 单位，100 = 0.1 单位，10 = 0.01 单位。最小值为 50（0.05 单位）")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
         val numUnitsStr = input1.text.toString()
         Timber.i("numUnits: %s", numUnitsStr)
         if ("" == numUnitsStr) {
@@ -1261,12 +1251,12 @@ fun triggerInitiateBolusRequestDialog(
             return@OnClickListener
         }
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("CONFIRM BOLUS!!")
-        builder2.setMessage("Enter the bolus ID from BolusPermissionRequest. THIS WILL ACTUALLY DELIVER THE BOLUS. Enter a blank value to cancel.")
+        builder2.setTitle("确认大剂量！！")
+        builder2.setMessage("输入 BolusPermissionRequest 中的大剂量 ID。这将实际输送大剂量。输入空白值取消。")
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         builder2.setView(input2)
-        builder2.setPositiveButton("OK",
+        builder2.setPositiveButton("确定",
             DialogInterface.OnClickListener { dialog, which ->
                 val bolusIdStr = input2.text.toString()
                 Timber.i("currentIob: %s", bolusIdStr)
@@ -1295,12 +1285,12 @@ fun triggerInitiateBolusRequestDialog(
                 )
             })
         builder2.setNegativeButton(
-            "Cancel"
+            "取消"
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     })
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1311,14 +1301,14 @@ fun triggerCancelBolusRequestDialog(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle("CancelBolusRequest")
-    builder.setMessage("Enter the bolus ID (this can be received from currentStatus.LastBolusStatusV2)")
+    builder.setMessage("输入大剂量 ID（可从 currentStatus.LastBolusStatusV2 获取）")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 //    if (tandemEventCallback.lastBolusId > 0) {
 //        input1.setText(java.lang.String.valueOf(tandemEventCallback.lastBolusId))
 //    }
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
         val bolusIdStr = input1.text.toString()
         Timber.i("bolusId: %s", bolusIdStr)
         if ("" == bolusIdStr) {
@@ -1329,7 +1319,7 @@ fun triggerCancelBolusRequestDialog(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(CancelBolusRequest(bolusId)))
     })
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1341,14 +1331,14 @@ fun triggerMessageWithBolusIdParameter(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle(messageClass.simpleName)
-    builder.setMessage("Enter the bolus ID (this can be received from the in-progress bolus)")
+    builder.setMessage("输入大剂量 ID（可从进行中的大剂量获取）")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 //    if (tandemEventCallback.lastBolusId > 0) {
 //        input1.setText(java.lang.String.valueOf(tandemEventCallback.lastBolusId))
 //    }
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton("确定", DialogInterface.OnClickListener { dialog, which ->
         val bolusIdStr = input1.text.toString()
         Timber.i("bolusId: %s", bolusIdStr)
         if ("" == bolusIdStr) {
@@ -1366,7 +1356,7 @@ fun triggerMessageWithBolusIdParameter(
             }
         if (constructor == null) {
             Timber.e("No constructor with numeric bolus ID parameter found for %s", messageClass.name)
-            Toast.makeText(context, "No bolus ID constructor available for ${messageClass.simpleName}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "${messageClass.simpleName} 无可用的大剂量 ID 构造函数", Toast.LENGTH_SHORT).show()
             return@OnClickListener
         }
         try {
@@ -1386,7 +1376,7 @@ fun triggerMessageWithBolusIdParameter(
         }
     })
     builder.setNegativeButton(
-        "Cancel"
+        "取消"
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1409,7 +1399,7 @@ fun triggerGenericPumpMessageDialog(
 
     if (argumentConstructors.isEmpty()) {
         if (noArgConstructor == null) {
-            Toast.makeText(context, "No usable constructor found for ${messageClass.simpleName}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "${messageClass.simpleName} 未找到可用构造函数", Toast.LENGTH_SHORT).show()
             return
         }
         sendConstructedPumpMessage(context, sendPumpCommands, noArgConstructor, emptyList())
@@ -1419,7 +1409,7 @@ fun triggerGenericPumpMessageDialog(
     val options = mutableListOf<String>()
     val optionConstructors = mutableListOf<Constructor<out Message>?>()
     if (noArgConstructor != null) {
-        options.add("No arguments")
+        options.add("无参数")
         optionConstructors.add(noArgConstructor)
     }
     argumentConstructors.forEach {
@@ -1447,7 +1437,7 @@ fun triggerGenericPumpMessageDialog(
                 triggerConstructorArgumentDialog(context, sendPumpCommands, messageClass, selected)
             }
         }
-        .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        .setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
         .show()
 }
 
@@ -1471,12 +1461,12 @@ fun triggerConstructorArgumentDialog(
     AlertDialog.Builder(context)
         .setTitle(formatDebugConstructorSignature(messageClass, constructor))
         .setView(layout)
-        .setPositiveButton("Send") { dialog, _ ->
+        .setPositiveButton("发送") { dialog, _ ->
             val args = mutableListOf<Any>()
             for ((index, paramType) in constructor.parameterTypes.withIndex()) {
                 val raw = inputs[index].text.toString().trim()
                 if (raw.isBlank()) {
-                    Toast.makeText(context, "Argument ${index + 1} is required", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "参数 ${index + 1} 为必填项", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 try {
@@ -1485,7 +1475,7 @@ fun triggerConstructorArgumentDialog(
                     Timber.e(e)
                     Toast.makeText(
                         context,
-                        "Invalid value for argument ${index + 1} (${debugTypeHint(paramType)})",
+                        "参数 ${index + 1} 的值无效（${debugTypeHint(paramType)}）",
                         Toast.LENGTH_SHORT
                     ).show()
                     return@setPositiveButton
@@ -1494,7 +1484,7 @@ fun triggerConstructorArgumentDialog(
             sendConstructedPumpMessage(context, sendPumpCommands, constructor, args)
             dialog.dismiss()
         }
-        .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        .setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
         .show()
 }
 
@@ -1505,7 +1495,7 @@ fun sendConstructedPumpMessage(
     args: List<Any>,
 ) {
     if (constructor == null) {
-        Toast.makeText(context, "No constructor available", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "无可用构造函数", Toast.LENGTH_SHORT).show()
         return
     }
     try {
@@ -1513,13 +1503,13 @@ fun sendConstructedPumpMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
     } catch (e: IllegalAccessException) {
         Timber.e(e)
-        Toast.makeText(context, "Unable to access constructor", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "无法访问构造函数", Toast.LENGTH_SHORT).show()
     } catch (e: InstantiationException) {
         Timber.e(e)
-        Toast.makeText(context, "Unable to create message", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "无法创建消息", Toast.LENGTH_SHORT).show()
     } catch (e: InvocationTargetException) {
         Timber.e(e)
-        Toast.makeText(context, "Message constructor failed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "消息构造函数失败", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -1550,7 +1540,7 @@ fun isSupportedDebugConstructorType(type: Class<*>): Boolean {
 
 fun debugTypeHint(type: Class<*>): String {
     if (type == Instant::class.java) {
-        return "Instant (epoch seconds or ISO-8601)"
+        return "Instant（纪元秒或 ISO-8601）"
     }
     if (type.isEnum) {
         val values = type.enumConstants
@@ -1616,14 +1606,14 @@ fun triggerRemoteBgEntryRequestMessage(
     layout.orientation = LinearLayout.VERTICAL
     val bgInput = EditText(context)
     val glucoseUnit = dataStore.glucoseUnitPreference.value ?: GlucoseUnit.MGDL
-    bgInput.hint = "BG (${glucoseUnit.abbreviation})"
+    bgInput.hint = "血糖（${glucoseUnit.abbreviation}）"
     bgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val calibrationInput = EditText(context)
-    calibrationInput.hint = "Use for CGM calibration? (true/false/1/0)"
+    calibrationInput.hint = "用于 CGM 校准？（true/false/1/0）"
     val autopopInput = EditText(context)
-    autopopInput.hint = "Is autopop BG? (true/false/1/0)"
+    autopopInput.hint = "是否自动填充血糖？（true/false/1/0）"
     val pumpTimeInput = EditText(context)
-    pumpTimeInput.hint = "Pump time seconds since boot"
+    pumpTimeInput.hint = "胰岛素泵开机后秒数"
     pumpTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val bolusIdInput = EditText(context)
     bolusIdInput.hint = "Bolus ID"
@@ -1632,7 +1622,7 @@ fun triggerRemoteBgEntryRequestMessage(
         layout.addView(it)
     }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = RemoteBgEntryRequest(
             bgInput.text.toString().toInt(),
             parseBoolInput(calibrationInput.text.toString()),
@@ -1643,7 +1633,7 @@ fun triggerRemoteBgEntryRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1656,17 +1646,17 @@ fun triggerRemoteCarbEntryRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val carbsInput = EditText(context)
-    carbsInput.hint = "Carbs (g)"
+    carbsInput.hint = "碳水 (g)"
     carbsInput.inputType = InputType.TYPE_CLASS_NUMBER
     val pumpTimeInput = EditText(context)
-    pumpTimeInput.hint = "Pump time seconds since boot"
+    pumpTimeInput.hint = "泵开机后的秒数"
     pumpTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val bolusIdInput = EditText(context)
     bolusIdInput.hint = "Bolus ID"
     bolusIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(carbsInput, pumpTimeInput, bolusIdInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = RemoteCarbEntryRequest(
             carbsInput.text.toString().toInt(),
             pumpTimeInput.text.toString().toLong(),
@@ -1675,7 +1665,7 @@ fun triggerRemoteCarbEntryRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1686,15 +1676,15 @@ fun triggerSetModesRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetModesRequest")
     val input = EditText(context)
-    input.hint = "Mode bitmap (1-4)"
+    input.hint = "模式位图（1-4）"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val bitmap = input.text.toString().toInt()
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetModesRequest(bitmap)))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1707,16 +1697,16 @@ fun triggerSetSleepScheduleRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val slotInput = EditText(context)
-    slotInput.hint = "Slot"
+    slotInput.hint = "插槽"
     slotInput.inputType = InputType.TYPE_CLASS_NUMBER
     val scheduleInput = EditText(context)
-    scheduleInput.hint = "Schedule bytes (comma-separated)"
+    scheduleInput.hint = "计划字节（逗号分隔）"
     val flagInput = EditText(context)
-    flagInput.hint = "Flag"
+    flagInput.hint = "标志"
     flagInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(slotInput, scheduleInput, flagInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val scheduleBytes = scheduleInput.text.toString()
             .split(',')
             .filter { it.isNotBlank() }
@@ -1730,7 +1720,7 @@ fun triggerSetSleepScheduleRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1743,14 +1733,14 @@ fun triggerSetTempRateRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val minutesInput = EditText(context)
-    minutesInput.hint = "Minutes (>=15)"
+    minutesInput.hint = "分钟（>=15）"
     minutesInput.inputType = InputType.TYPE_CLASS_NUMBER
     val percentInput = EditText(context)
-    percentInput.hint = "Percent (0-250)"
+    percentInput.hint = "百分比（0-250）"
     percentInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(minutesInput, percentInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = SetTempRateRequest(
             minutesInput.text.toString().toInt(),
             percentInput.text.toString().toInt(),
@@ -1758,7 +1748,7 @@ fun triggerSetTempRateRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1771,16 +1761,16 @@ fun triggerChangeControlIQSettingsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Enabled (true/false/1/0)"
+    enabledInput.hint = "已启用（true/false/1/0）"
     val weightInput = EditText(context)
-    weightInput.hint = "Weight lbs"
+    weightInput.hint = "体重 lbs"
     weightInput.inputType = InputType.TYPE_CLASS_NUMBER
     val tdiInput = EditText(context)
-    tdiInput.hint = "Total daily insulin units"
+    tdiInput.hint = "每日总胰岛素单位"
     tdiInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(enabledInput, weightInput, tdiInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = ChangeControlIQSettingsRequest(
             parseBoolInput(enabledInput.text.toString()),
             weightInput.text.toString().toInt(),
@@ -1789,7 +1779,7 @@ fun triggerChangeControlIQSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1802,14 +1792,14 @@ fun triggerSetQuickBolusSettingsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Enabled (true/false/1/0)"
+    enabledInput.hint = "已启用（true/false/1/0）"
     val modeInput = EditText(context)
-    modeInput.hint = "Mode (UNITS or CARBS)"
+    modeInput.hint = "模式（UNITS 或 CARBS）"
     val incrementInput = EditText(context)
-    incrementInput.hint = "Increment enum (e.g., UNITS_0_5)"
+    incrementInput.hint = "增量枚举（如 UNITS_0_5）"
     listOf(enabledInput, modeInput, incrementInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val enabled = parseBoolInput(enabledInput.text.toString())
         val mode = SetQuickBolusSettingsRequest.QuickBolusMode.valueOf(modeInput.text.toString().uppercase())
         val increment = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(
@@ -1819,7 +1809,7 @@ fun triggerSetQuickBolusSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1832,14 +1822,14 @@ fun triggerDismissNotificationRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val notificationIdInput = EditText(context)
-    notificationIdInput.hint = "Notification ID"
+    notificationIdInput.hint = "通知 ID"
     notificationIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val notificationTypeInput = EditText(context)
-    notificationTypeInput.hint = "Notification type (0-3)"
+    notificationTypeInput.hint = "通知类型（0-3）"
     notificationTypeInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(notificationIdInput, notificationTypeInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = DismissNotificationRequest(
             DismissNotificationRequest.NotificationType.fromId(
                 notificationTypeInput.text.toString().toInt()
@@ -1849,7 +1839,7 @@ fun triggerDismissNotificationRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1860,13 +1850,13 @@ fun triggerSetG6TransmitterIdRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetG6TransmitterIdRequest")
     val input = EditText(context)
-    input.hint = "Transmitter ID"
+    input.hint = "发射器 ID"
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetG6TransmitterIdRequest(input.text.toString())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1877,15 +1867,15 @@ fun triggerStartDexcomG6SensorSessionRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("StartDexcomG6SensorSessionRequest")
     val input = EditText(context)
-    input.hint = "Sensor code (0 for no code)"
+    input.hint = "传感器代码（0 表示无代码）"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val code = if (input.text.isNullOrBlank()) 0 else input.text.toString().toInt()
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(StartDexcomG6SensorSessionRequest(code)))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1896,14 +1886,14 @@ fun triggerSetDexcomG7PairingCodeRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetDexcomG7PairingCodeRequest")
     val input = EditText(context)
-    input.hint = "Pairing code"
+    input.hint = "配对码"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetDexcomG7PairingCodeRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1914,14 +1904,14 @@ fun triggerFillCannulaRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("FillCannulaRequest")
     val input = EditText(context)
-    input.hint = "Prime size (milliunits)"
+    input.hint = "充盈量（毫单位）"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(FillCannulaRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1932,14 +1922,14 @@ fun triggerChangeTimeDateRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("ChangeTimeDateRequest")
     val input = EditText(context)
-    input.hint = "Tandem epoch seconds"
+    input.hint = "Tandem 纪元秒"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(ChangeTimeDateRequest(input.text.toString().toLong())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1953,11 +1943,11 @@ fun triggerSetActiveIDPRequestMessage(
     input.hint = "IDP ID"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetActiveIDPRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1970,27 +1960,27 @@ fun triggerCreateIDPRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val nameInput = EditText(context)
-    nameInput.hint = "Profile name"
+    nameInput.hint = "配置文件名"
     val carbRatioInput = EditText(context)
-    carbRatioInput.hint = "First segment carb ratio"
+    carbRatioInput.hint = "首段碳水比例"
     carbRatioInput.inputType = InputType.TYPE_CLASS_NUMBER
     val basalRateInput = EditText(context)
-    basalRateInput.hint = "First segment basal rate"
+    basalRateInput.hint = "首段基础率"
     basalRateInput.inputType = InputType.TYPE_CLASS_NUMBER
     val targetBgInput = EditText(context)
-    targetBgInput.hint = "First segment target BG"
+    targetBgInput.hint = "首段目标血糖"
     targetBgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val isfInput = EditText(context)
-    isfInput.hint = "First segment ISF"
+    isfInput.hint = "首段 ISF"
     isfInput.inputType = InputType.TYPE_CLASS_NUMBER
     val durationInput = EditText(context)
-    durationInput.hint = "Insulin duration"
+    durationInput.hint = "胰岛素持续时间"
     durationInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbEntryInput = EditText(context)
-    carbEntryInput.hint = "Carb entry"
+    carbEntryInput.hint = "碳水输入"
     carbEntryInput.inputType = InputType.TYPE_CLASS_NUMBER
     val sourceIdInput = EditText(context)
-    sourceIdInput.hint = "Source IDP ID (blank for new)"
+    sourceIdInput.hint = "源 IDP ID（留空为新建）"
     listOf(
         nameInput,
         carbRatioInput,
@@ -2002,7 +1992,7 @@ fun triggerCreateIDPRequestMessage(
         sourceIdInput,
     ).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = if (sourceIdInput.text.isNullOrBlank()) {
             CreateIDPRequest(
                 nameInput.text.toString(),
@@ -2022,7 +2012,7 @@ fun triggerCreateIDPRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2038,14 +2028,14 @@ fun triggerRenameIDPRequestMessage(
     idInput.hint = "IDP ID"
     idInput.inputType = InputType.TYPE_CLASS_NUMBER
     val nameInput = EditText(context)
-    nameInput.hint = "New profile name"
+    nameInput.hint = "新配置文件名"
     listOf(idInput, nameInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(RenameIDPRequest(idInput.text.toString().toInt(), nameInput.text.toString())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2059,11 +2049,11 @@ fun triggerDeleteIDPRequestMessage(
     input.hint = "IDP ID"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(DeleteIDPRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2079,16 +2069,16 @@ fun triggerSetIDPSettingsRequestMessage(
     idInput.hint = "IDP ID"
     idInput.inputType = InputType.TYPE_CLASS_NUMBER
     val insulinDurationInput = EditText(context)
-    insulinDurationInput.hint = "Insulin duration"
+    insulinDurationInput.hint = "胰岛素持续时间"
     insulinDurationInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbEntryInput = EditText(context)
-    carbEntryInput.hint = "Carb entry"
+    carbEntryInput.hint = "碳水输入"
     carbEntryInput.inputType = InputType.TYPE_CLASS_NUMBER
     val changeTypeInput = EditText(context)
-    changeTypeInput.hint = "Change type (CHANGE_INSULIN_DURATION or CHANGE_CARB_ENTRY)"
+    changeTypeInput.hint = "更改类型（CHANGE_INSULIN_DURATION 或 CHANGE_CARB_ENTRY）"
     listOf(idInput, insulinDurationInput, carbEntryInput, changeTypeInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val changeType = SetIDPSettingsRequest.ChangeType.valueOf(changeTypeInput.text.toString().uppercase())
         val message = SetIDPSettingsRequest(
             idInput.text.toString().toInt(),
@@ -2099,7 +2089,7 @@ fun triggerSetIDPSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2115,30 +2105,30 @@ fun triggerSetIDPSegmentRequestMessage(
     idpIdInput.hint = "IDP ID"
     idpIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val unknownIdInput = EditText(context)
-    unknownIdInput.hint = "Unknown ID"
+    unknownIdInput.hint = "未知 ID"
     unknownIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val segmentIndexInput = EditText(context)
-    segmentIndexInput.hint = "Segment index"
+    segmentIndexInput.hint = "时段索引"
     segmentIndexInput.inputType = InputType.TYPE_CLASS_NUMBER
     val operationInput = EditText(context)
-    operationInput.hint = "Operation (MODIFY_SEGMENT_ID/CREATE_SEGMENT/DELETE_SEGMENT_ID)"
+    operationInput.hint = "操作（MODIFY_SEGMENT_ID/CREATE_SEGMENT/DELETE_SEGMENT_ID）"
     val startTimeInput = EditText(context)
-    startTimeInput.hint = "Profile start time"
+    startTimeInput.hint = "配置文件开始时间"
     startTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val basalRateInput = EditText(context)
-    basalRateInput.hint = "Profile basal rate"
+    basalRateInput.hint = "配置文件基础率"
     basalRateInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbRatioInput = EditText(context)
-    carbRatioInput.hint = "Profile carb ratio"
+    carbRatioInput.hint = "配置文件碳水比例"
     carbRatioInput.inputType = InputType.TYPE_CLASS_NUMBER
     val targetBgInput = EditText(context)
-    targetBgInput.hint = "Profile target BG"
+    targetBgInput.hint = "配置文件目标血糖"
     targetBgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val isfInput = EditText(context)
-    isfInput.hint = "Profile ISF"
+    isfInput.hint = "配置文件 ISF"
     isfInput.inputType = InputType.TYPE_CLASS_NUMBER
     val statusInput = EditText(context)
-    statusInput.hint = "Status bitmask"
+    statusInput.hint = "状态位掩码"
     statusInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(
         idpIdInput,
@@ -2153,7 +2143,7 @@ fun triggerSetIDPSegmentRequestMessage(
         statusInput,
     ).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = SetIDPSegmentRequest(
             idpIdInput.text.toString().toInt(),
             unknownIdInput.text.toString().toInt(),
@@ -2169,7 +2159,7 @@ fun triggerSetIDPSegmentRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2180,14 +2170,14 @@ fun triggerSetMaxBolusLimitRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetMaxBolusLimitRequest")
     val input = EditText(context)
-    input.hint = "Max bolus (milliunits)"
+    input.hint = "最大大剂量（毫单位）"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetMaxBolusLimitRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2198,14 +2188,14 @@ fun triggerSetMaxBasalLimitRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetMaxBasalLimitRequest")
     val input = EditText(context)
-    input.hint = "Max hourly basal (milliunits)"
+    input.hint = "最大每小时基础率（毫单位）"
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetMaxBasalLimitRequest(input.text.toString().toLong())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2218,28 +2208,28 @@ fun triggerSetPumpSoundsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val quickBolusInput = EditText(context)
-    quickBolusInput.hint = "Quick bolus annunciation"
+    quickBolusInput.hint = "快捷大剂量提示音"
     quickBolusInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val generalInput = EditText(context)
-    generalInput.hint = "General annunciation"
+    generalInput.hint = "常规提示音"
     generalInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val reminderInput = EditText(context)
-    reminderInput.hint = "Reminder annunciation"
+    reminderInput.hint = "提醒提示音"
     reminderInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val alertInput = EditText(context)
-    alertInput.hint = "Alert annunciation"
+    alertInput.hint = "警告提示音"
     alertInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val alarmInput = EditText(context)
-    alarmInput.hint = "Alarm annunciation"
+    alarmInput.hint = "警报提示音"
     alarmInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val cgmAInput = EditText(context)
-    cgmAInput.hint = "CGM alert annunciation A"
+    cgmAInput.hint = "CGM 警告提示音 A"
     cgmAInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val cgmBInput = EditText(context)
-    cgmBInput.hint = "CGM alert annunciation B"
+    cgmBInput.hint = "CGM 警告提示音 B"
     cgmBInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val changeBitmaskInput = EditText(context)
-    changeBitmaskInput.hint = "Change bitmask"
+    changeBitmaskInput.hint = "更改位掩码"
     changeBitmaskInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     listOf(
         quickBolusInput,
@@ -2267,7 +2257,7 @@ fun triggerSetPumpSoundsRequestMessage(
 //        )}
 //        sendPumpCommands(SendType.DEBUG_PROMPT, (-127..128).flatMap { i -> listOf(message(i)) } )
 //    }
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = SetPumpSoundsRequest(
             quickBolusInput.text.toString().toInt(),
             generalInput.text.toString().toInt(),
@@ -2281,7 +2271,7 @@ fun triggerSetPumpSoundsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2294,13 +2284,13 @@ fun triggerSetPumpAlertSnoozeRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Snooze enabled (true/false/1/0)"
+    enabledInput.hint = "贪睡已启用（true/false/1/0）"
     val durationInput = EditText(context)
-    durationInput.hint = "Snooze duration minutes"
+    durationInput.hint = "贪睡时长（分钟）"
     durationInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(enabledInput, durationInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton("发送") { dialog, _ ->
         val message = SetPumpAlertSnoozeRequest(
             parseBoolInput(enabledInput.text.toString()),
             durationInput.text.toString().toInt(),
@@ -2308,7 +2298,7 @@ fun triggerSetPumpAlertSnoozeRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton("取消") { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 

@@ -87,7 +87,7 @@ private fun createSupportBundleZip(context: Context, timestamp: String, debugLog
 fun shareSupportBundle(context: Context) {
     val supportBundleData = getSupportBundleData(context)
     if (supportBundleData == null) {
-        Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "没有可共享的调试日志。", Toast.LENGTH_SHORT).show()
         return
     }
 
@@ -97,7 +97,7 @@ fun shareSupportBundle(context: Context) {
     val bundleFile = createSupportBundleZip(context, filenameTimestamp, supportBundleData.debugLogs)
     Toast.makeText(
         context,
-        "${supportBundleData.summary.debugFileCount} debug logs found",
+        "${supportBundleData.summary.debugFileCount} 条调试日志",
         Toast.LENGTH_SHORT
     ).show()
 
@@ -105,16 +105,16 @@ fun shareSupportBundle(context: Context) {
     val intent = Intent(Intent.ACTION_SEND)
         .setType("application/zip")
         .putExtra(Intent.EXTRA_STREAM, uri)
-        .putExtra(Intent.EXTRA_SUBJECT, "PumpX2 Support Bundle - $subjectTimestamp")
+        .putExtra(Intent.EXTRA_SUBJECT, "PumpX2 支持包 - $subjectTimestamp")
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-    context.startActivity(Intent.createChooser(intent, "Send PumpX2 Support Bundle"))
+    context.startActivity(Intent.createChooser(intent, "发送 PumpX2 支持包"))
 }
 
 fun sendSupportBundleEmail(context: Context) {
     val supportBundleData = getSupportBundleData(context)
     if (supportBundleData == null) {
-        Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "没有可共享的调试日志。", Toast.LENGTH_SHORT).show()
         return
     }
 
@@ -124,7 +124,7 @@ fun sendSupportBundleEmail(context: Context) {
     val bundleFile = createSupportBundleZip(context, filenameTimestamp, supportBundleData.debugLogs)
     Toast.makeText(
         context,
-        "${supportBundleData.summary.debugFileCount} debug logs found",
+        "${supportBundleData.summary.debugFileCount} 条调试日志",
         Toast.LENGTH_SHORT
     ).show()
 
@@ -134,10 +134,10 @@ fun sendSupportBundleEmail(context: Context) {
     val intent = Intent(Intent.ACTION_SEND)
         .setType("application/zip")
         .putExtra(Intent.EXTRA_EMAIL, arrayOf(supportEmail))
-        .putExtra(Intent.EXTRA_SUBJECT, "PumpX2 Support Bundle - $subjectTimestamp")
+        .putExtra(Intent.EXTRA_SUBJECT, "PumpX2 支持包 - $subjectTimestamp")
         .putExtra(Intent.EXTRA_TEXT, "Contains ${summary.debugFileCount} debug files with $totalLogLines total logs from ${summary.rangeStart} - ${summary.rangeEnd}")
         .putExtra(Intent.EXTRA_STREAM, uri)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-    context.startActivity(Intent.createChooser(intent, "Send PumpX2 Support Bundle Email"))
+    context.startActivity(Intent.createChooser(intent, "发送 PumpX2 支持包邮件"))
 }

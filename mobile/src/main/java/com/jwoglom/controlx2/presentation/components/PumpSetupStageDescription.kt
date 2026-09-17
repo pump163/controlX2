@@ -69,11 +69,11 @@ fun PumpSetupStageDescription(
 
     when (setupStage.value) {
         PumpSetupStage.PERMISSIONS_NOT_GRANTED -> {
-            Line("Notification permissions weren't granted, which are needed to make remote boluses.")
+            Line("未授予通知权限，远程大剂量功能需要此权限。")
         }
         PumpSetupStage.WAITING_PUMP_FINDER_INIT -> {
             if (Prefs(context).pumpFinderServiceEnabled()) {
-                Line("Waiting for PumpFinder library initialization...")
+                Line("正在等待 PumpFinder 库初始化...")
             }
         }
         PumpSetupStage.PUMP_FINDER_SEARCHING_FOR_PUMPS, PumpSetupStage.PUMPX2_SEARCHING_FOR_PUMP -> {
@@ -84,12 +84,12 @@ fun PumpSetupStageDescription(
                             fontWeight = FontWeight.Bold
                         )
                     ) {
-                        append("For t:slim X2: ")
+                        append("对于 t:slim X2：")
                     }
-                    append("Open your pump and select:")
+                    append("打开您的胰岛素泵并选择：")
                 })
-                Line("Options > Device Settings > Bluetooth Settings", bold = true)
-                Line("Enable the 'Mobile Connection' option and press 'Pair Device.' If already paired, press 'Unpair Device' first.")
+                Line("选项 > 设备设置 > 蓝牙设置", bold = true)
+                Line("启用'移动连接'选项并点击'配对设备'。如果已配对，请先点击'取消配对'。")
                 Spacer(Modifier.height(16.dp))
                 Line(buildAnnotatedString {
                     withStyle(
@@ -97,31 +97,31 @@ fun PumpSetupStageDescription(
                             fontWeight = FontWeight.Bold
                         )
                     ) {
-                        append("For Mobi: ")
+                        append("对于 Mobi：")
                     }
-                    append("Place the pump on the wireless charger.")
+                    append("将胰岛素泵放在无线充电器上。")
                 })
-                Line("Ensure the Mobi is turned on and charging.")
-                Line("Take the Mobi off the charger and place it back on.")
-                Line("Use a USB-A to USB-C cable.")
+                Line("确保 Mobi 已开机并正在充电。")
+                Line("将 Mobi 从充电器取下再放回。")
+                Line("请使用 USB-A 转 USB-C 线缆。")
             } else {
-                Line("Searching for pump...")
+                Line("正在搜索胰岛素泵...")
                 Line(buildAnnotatedString {
                     withStyle(
                         style = SpanStyle(
                             fontWeight = FontWeight.Bold
                         )
                     ) {
-                        append("For t:slim X2: ")
+                        append("对于 t:slim X2：")
                     }
-                    append("If your pump isn't appearing, open it and select:")
+                    append("如果您的胰岛素泵未显示，请打开它并选择：")
                 })
-                Line("Options > Device Settings > Bluetooth Settings", bold = true)
-                Line("Ensure the 'Mobile Connection' option is enabled.")
+                Line("选项 > 设备设置 > 蓝牙设置", bold = true)
+                Line("确保'移动连接'选项已启用。")
             }
         }
         PumpSetupStage.PUMP_FINDER_SELECT_PUMP -> {
-            Line("Select a pump to connect to:")
+            Line("选择要连接的胰岛素泵：")
             Line("")
             pumpFinderPumps.value?.forEach {
                 Button(
@@ -142,7 +142,7 @@ fun PumpSetupStageDescription(
             Line("")
         }
         PumpSetupStage.PUMP_FINDER_TSLIM_CHOOSE_PAIRING_CODE_TYPE -> {
-            Line("Choose the correct pairing code type:")
+            Line("选择正确的配对码类型：")
             Line("")
             Button(
                 onClick = {
@@ -152,7 +152,7 @@ fun PumpSetupStageDescription(
                         ds.pumpSetupStage.value?.nextStage(PumpSetupStage.PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE)
                 }
             ) {
-                Text("LONG: 16 alphanumeric characters")
+                Text("长码：16 位字母数字字符")
             }
 
             Line("")
@@ -164,7 +164,7 @@ fun PumpSetupStageDescription(
                     ds.pumpSetupStage.value = ds.pumpSetupStage.value?.nextStage(PumpSetupStage.PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE)
                 }
             ) {
-                Text("SHORT: 6 numbers")
+                Text("短码：6 位数字")
             }
 
             Line("")
@@ -176,9 +176,9 @@ fun PumpSetupStageDescription(
                                 fontWeight = FontWeight.Bold
                             )
                         ) {
-                            append("For t:slim X2: ")
+                            append("对于 t:slim X2：")
                         }
-                        append("Open the pairing code generated under Bluetooth Settings > Pairing Code on your pump now.")
+                        append("现在请打开胰岛素泵上蓝牙设置 > 配对码中生成的配对码。")
                     })
                 }
                 else -> {}
@@ -191,11 +191,11 @@ fun PumpSetupStageDescription(
                         fontWeight = FontWeight.Bold
                     )
                 ) {
-                    append("For Mobi: ")
+                    append("对于 Mobi：")
                 }
-                append("Place your Mobi on the charging pad.")
+                append("将您的 Mobi 放在充电板上。")
             })
-            Line("Ensure it is turned on and charging.")
+            Line("确保它已开机并正在充电。")
 
             LaunchedEffect(pumpReadyState.value) {
                 when {
@@ -218,11 +218,11 @@ fun PumpSetupStageDescription(
                         fontWeight = FontWeight.Bold
                     )
                 ) {
-                    append("For Mobi: ")
+                    append("对于 Mobi：")
                 }
-                append("Your pump was detected.")
+                append("已检测到您的胰岛素泵。")
             })
-            Line("Pick up the pump, wait a second, then double-tap the T button.")
+            Line("拿起胰岛素泵，稍等一秒，然后双击 T 按钮。")
 
             LaunchedEffect(pumpReadyState.value) {
                 when {
@@ -253,9 +253,9 @@ fun PumpSetupStageDescription(
                                 fontWeight = FontWeight.Bold
                             )
                         ) {
-                            append("The pairing code was invalid. ")
+                            append("配对码无效。")
                         }
-                        append("The code was either entered incorrectly or timed out. Make sure the 'Pair Device' dialog is open on your pump.")
+                        append("配对码输入错误或已超时。请确保胰岛素泵上的'配对设备'对话框已打开。")
                         if (initialSetup) {
                             withStyle(
                                 style = SpanStyle(
@@ -263,7 +263,7 @@ fun PumpSetupStageDescription(
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
-                                append("\n\nTo resolve the issue, press the Retry button below and enter the correct pairing code.")
+                                append("\n\n要解决此问题，请点击下方的重试按钮并输入正确的配对码。")
                             }
                         } else {
                             withStyle(
@@ -272,37 +272,37 @@ fun PumpSetupStageDescription(
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
-                                append("\n\nTo resolve the issue, you must re-pair the app in Settings > Reconfigure pump.")
+                                append("\n\n要解决此问题，您必须在设置 > 重新配置胰岛素泵中重新配对应用。")
                             }
                         }
                     })
                 } else {
-                    Line("Initial connection made to ${setupDeviceName.value}, attempting to pair...")
+                    Line("已与 ${setupDeviceName.value} 建立初始连接，正在尝试配对...")
                 }
             }
         }
         PumpSetupStage.WAITING_PUMPX2_INIT -> {
             if (Prefs(context).serviceEnabled()) {
-                Line("Waiting for library initialization...")
+                Line("正在等待库初始化...")
             }
         }
         PumpSetupStage.PUMPX2_PUMP_DISCONNECTED -> {
-            Line("Disconnected from '${setupDeviceName.value}', reconnecting...")
+            Line("已断开与'${setupDeviceName.value}'的连接，正在重新连接...")
         }
         PumpSetupStage.PUMPX2_PUMP_DISCOVERED -> {
-            Line("Connecting to ${setupDeviceName.value}")
+            Line("正在连接 ${setupDeviceName.value}")
         }
         PumpSetupStage.PUMPX2_PUMP_MODEL_METADATA -> {
-            Line("Connecting to ${setupDeviceName.value} (${setupDeviceModel.value})")
+            Line("正在连接 ${setupDeviceName.value}（${setupDeviceModel.value}）")
         }
         PumpSetupStage.PUMPX2_INITIAL_PUMP_CONNECTION -> {
-            Line("Initial connection made to ${setupDeviceName.value}")
+            Line("已与 ${setupDeviceName.value} 建立初始连接")
         }
         PumpSetupStage.PUMPX2_PUMP_CONNECTED -> {
             if (initialSetup) {
-                Line("Connected to ${setupDeviceName.value}!", bold = true)
+                Line("已连接到 ${setupDeviceName.value}！", bold = true)
                 Spacer(modifier = Modifier.height(16.dp))
-                Line("Press 'Next' to continue.")
+                Line("点击'下一步'继续。")
             }
         }
         else -> {}
@@ -311,26 +311,26 @@ fun PumpSetupStageDescription(
     if (setupStage.value != PumpSetupStage.PUMPX2_PUMP_CONNECTED) {
         if (pumpConnectionWaitingSeconds > TroubleshootingStepsThresholdSeconds) {
             Spacer(Modifier.height(16.dp))
-            Line("Troubleshooting Steps:", bold = true)
+            Line("故障排除步骤：", bold = true)
             when (setupStage.value) {
                 PumpSetupStage.WAITING_PUMPX2_INIT -> {
                     if (!Prefs(context).serviceEnabled()) {
-                        Line("0. Enable the ControlX2 service (Settings > Enable ControlX2 service)")
+                        Line("0. 启用 ControlX2 服务（设置 > 启用 ControlX2 服务）")
                     }
-                    Line("1. Toggle Bluetooth on and off.")
-                    Line("2. Restart the ControlX2 app: open the app switcher and long-press on the app icon to open the App Info page, then click 'Force Stop' followed by 'Open'")
-                    Line("3. Ensure the ControlX2 app has sufficient permissions: on the App Info page for ControlX2, ensure that Bluetooth/Connected Devices-related permissions have been granted")
-                    Line("4. If everything still isn't working, hit 'Clear Data' on the App Info page which will reset the app's settings")
+                    Line("1. 开关一次蓝牙。")
+                    Line("2. 重启 ControlX2 应用：打开应用切换器，长按应用图标打开应用信息页面，然后点击'强制停止'，再点击'打开'")
+                    Line("3. 确保 ControlX2 应用具有足够权限：在 ControlX2 的应用信息页面，确保蓝牙/已连接设备相关权限已授予")
+                    Line("4. 如果仍然无法工作，请在应用信息页面点击'清除数据'，这将重置应用设置")
                 }
                 else -> {
-                    Line("1. Toggle Bluetooth on and off.")
-                    Line("2. If the t:connect Android application is open, force-stop it: long-press the app, select App Info, then 'Force Stop'")
+                    Line("1. 开关一次蓝牙。")
+                    Line("2. 如果 t:connect Android 应用已打开，请强制停止：长按应用，选择应用信息，然后点击'强制停止'")
                 }
             }
         }
         if (pumpCriticalError.value != null) {
             Spacer(Modifier.height(16.dp))
-            Line("Connection Error${pumpCriticalError.value?.second?.let { " ${shortTimeAgo(it)}" }}:", bold = true)
+            Line("连接错误${pumpCriticalError.value?.second?.let { " ${shortTimeAgo(it)}" }}：", bold = true)
             Line("${pumpCriticalError.value?.first}")
         }
         Spacer(Modifier.height(16.dp))

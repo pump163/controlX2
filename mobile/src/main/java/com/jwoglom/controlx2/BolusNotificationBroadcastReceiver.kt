@@ -71,8 +71,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                         reply(
                             context, notifId, confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Not Enabled",
-                                "A bolus was requested, but actions affecting insulin delivery are not enabled in the phone app settings."
+                                "大剂量未启用",
+                                "已请求大剂量，但手机应用设置中未启用影响胰岛素输注的操作。"
                             )
                         )
                         return
@@ -93,10 +93,10 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                     reply(
                         context, notifId, confirmBolusRequestBaseNotification(
                             context,
-                            "Requesting Bolus",
+                            "正在请求大剂量",
                             "${bolusSummaryText(intentRequest)} " +
-                                    "will be delivered"
-                        ).addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                    "将被输注"
+                        ).addAction(R.drawable.decline, "取消", cancelPendingIntent)
                     )
                 }
             }
@@ -110,8 +110,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                 notifId,
                                 confirmBolusRequestBaseNotification(
                                     context,
-                                    "Bolus Rejected By Pump",
-                                    "The pump reported that it could not initiate the bolus: ${initiateResponse.statusType}"
+                                    "大剂量被泵拒绝",
+                                    "泵报告无法启动大剂量：${initiateResponse.statusType}"
                                 )
                             )
                             resetBolusPrefs(context)
@@ -125,8 +125,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                 notifId,
                                 confirmBolusRequestBaseNotification(
                                     context,
-                                    "Sanity Check Error",
-                                    "Please check your pump to see if the bolus was delivered."
+                                    "校验错误",
+                                    "请检查您的胰岛素泵以确认大剂量是否已输注。"
                                 )
                             )
                             resetBolusPrefs(context)
@@ -148,9 +148,9 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                         reply(
                             context, notifId, confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Requested",
-                                "The ${bolusSummaryText(initiateRequest)} is being prepared."
-                            ).addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                "大剂量已请求",
+                                "${bolusSummaryText(initiateRequest)} 正在准备中。"
+                            ).addAction(R.drawable.decline, "取消", cancelPendingIntent)
                         )
                         
                         // Save initial status and bolusId
@@ -191,17 +191,17 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                             
                             // Determine status text - prioritize completion detection
                             val statusText = when {
-                                bolusCompleted -> "was completed."
-                                currentBolusId == 0 -> "was completed."
-                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> "is being prepared."
-                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> "is being delivered."
-                                else -> "was completed."
+                                bolusCompleted -> "已完成。"
+                                currentBolusId == 0 -> "已完成。"
+                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> "正在准备。"
+                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> "正在输注。"
+                                else -> "已完成。"
                             }
                             
                             // Only show cancel button if bolus is still active
                             val notificationBuilder = confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Initiated",
+                                "大剂量已启动",
                                 "The ${bolusSummaryText(initiateRequest)} $statusText"
                             )
                             
@@ -216,7 +216,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                     dismissIntent,
                                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
                                 )
-                                notificationBuilder.addAction(R.drawable.confirm, "Done", dismissPendingIntent)
+                                notificationBuilder.addAction(R.drawable.confirm, "完成", dismissPendingIntent)
                             } else {
                                 val cancelIntent =
                                     Intent(context, BolusNotificationBroadcastReceiver::class.java).apply {
@@ -229,7 +229,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                     cancelIntent,
                                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
                                 )
-                                notificationBuilder.addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                notificationBuilder.addAction(R.drawable.decline, "取消", cancelPendingIntent)
                             }
                             
                             reply(context, notifId, notificationBuilder)
@@ -260,8 +260,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 reply(
                     context, notifId, confirmBolusRequestBaseNotification(
                         context,
-                        "Bolus Rejected By Phone",
-                        "The bolus will not be completed."
+                        "大剂量被手机拒绝",
+                        "大剂量不会完成。"
                     )
                 )
                 resetBolusPrefs(context)
@@ -296,8 +296,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                     notifId,
                     confirmBolusRequestBaseNotification(
                         context,
-                        "Bolus Receiver Request Invalid",
-                        "The bolus will not be delivered."
+                        "大剂量接收器请求无效",
+                        "大剂量不会输注。"
                     )
                 )
                 resetBolusPrefs(context)
@@ -313,7 +313,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             reply(
                 context,
                 notifId,
-                confirmBolusRequestBaseNotification(context, "Bolus Error", "Invalid intent.")
+                confirmBolusRequestBaseNotification(context, "大剂量错误", "无效的 intent。")
             )
             resetBolusPrefs(context)
             return null
@@ -330,8 +330,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 notifId,
                 confirmBolusRequestBaseNotification(
                     context,
-                    "Bolus Request Expired",
-                    "The bolus request expired ${shortTimeAgo(Instant.now().plusMillis(expired))}. Boluses time out 1 minute after they are requested."
+                    "大剂量请求已过期",
+                    "大剂量请求已于 ${shortTimeAgo(Instant.now().plusMillis(expired))} 过期。大剂量在请求后 1 分钟超时。"
                 )
             )
             resetBolusPrefs(context)
@@ -345,8 +345,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 notifId,
                 confirmBolusRequestBaseNotification(
                     context,
-                    "Bolus Request Invalid",
-                    "The bolus request was invalid: $intentRequest"
+                    "大剂量请求无效",
+                    "大剂量请求无效：$intentRequest"
                 )
             )
             resetBolusPrefs(context)
@@ -358,7 +358,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             reply(
                 context,
                 notifId,
-                confirmBolusRequestBaseNotification(context, "Bolus Error", "Mismatched intent.")
+                confirmBolusRequestBaseNotification(context, "大剂量错误", "Intent 不匹配。")
             )
             resetBolusPrefs(context)
             return null
@@ -373,7 +373,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             twoDecimalPlaces(
                 InsulinUnit.from1000To1(intentRequest.totalVolume)
             )
-        }u bolus"
+        }u 大剂量"
     }
 
     private fun getCurrentBolusToConfirm(context: Context?): InitiateBolusRequest? {

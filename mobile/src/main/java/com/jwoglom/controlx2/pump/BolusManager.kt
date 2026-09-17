@@ -91,16 +91,16 @@ class BolusManager(
 
             val builder = confirmBolusRequestBaseNotification(
                 context,
-                "Bolus Request",
-                if (autoApproveTimeout > 0) "$units units. Auto-approving in ${autoApproveTimeout}s unless canceled."
-                else "$units units. Press Confirm to deliver."
+                "大剂量请求",
+                if (autoApproveTimeout > 0) "$units 单位。将在 ${autoApproveTimeout} 秒后自动批准，除非取消。"
+                else "$units 单位。点击确认进行输注。"
             )
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setVibrate(longArrayOf(500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L))
 
-            builder.addAction(R.drawable.decline, "Reject", getRejectIntent())
+            builder.addAction(R.drawable.decline, "拒绝", getRejectIntent())
 
-            builder.addAction(R.drawable.bolus_icon, "Confirm ${units}u", getConfirmIntent())
+            builder.addAction(R.drawable.bolus_icon, "确认 ${units}u", getConfirmIntent())
 
             val notif = builder.build()
             Timber.i("bolus notification $bolusNotificationId $builder $notif")
@@ -191,10 +191,10 @@ fun confirmBolusRequestBaseNotification(context: Context?, title: String, text: 
     val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channel = NotificationChannel(
         notificationChannelId,
-        "Confirm Bolus",
+        "确认大剂量",
         NotificationManager.IMPORTANCE_HIGH
     ).let {
-        it.description = "Confirm Bolus"
+        it.description = "确认大剂量"
         it
     }
     notificationManager.createNotificationChannel(channel)

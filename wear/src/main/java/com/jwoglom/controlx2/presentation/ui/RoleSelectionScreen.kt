@@ -56,30 +56,30 @@ fun RoleSelectionScreen(
     var showRescueDialog by remember { mutableStateOf(false) }
 
     val roleLabel = when (currentRole) {
-        DeviceRole.PUMP_HOST -> "Watch (pump-host)"
-        DeviceRole.CLIENT -> "Phone (pump-host)"
+        DeviceRole.PUMP_HOST -> "手表（泵主机）"
+        DeviceRole.CLIENT -> "手机（泵主机）"
     }
     val newRole = when (currentRole) {
         DeviceRole.PUMP_HOST -> DeviceRole.CLIENT
         DeviceRole.CLIENT -> DeviceRole.PUMP_HOST
     }
     val newRoleLabel = when (newRole) {
-        DeviceRole.PUMP_HOST -> "Watch (pump-host)"
-        DeviceRole.CLIENT -> "Phone (pump-host)"
+        DeviceRole.PUMP_HOST -> "手表（泵主机）"
+        DeviceRole.CLIENT -> "手机（泵主机）"
     }
 
     val walkthrough = when (newRole) {
         DeviceRole.PUMP_HOST ->
-            "The watch restarts as pump-host and the phone flips to client. Place the Mobi on the charging pad to re-pair."
+            "手表重启为泵主机，手机切换为客户端。请将 Mobi 放在充电座上重新配对。"
         DeviceRole.CLIENT ->
-            "The watch restarts as client and the phone takes over as pump-host. Place the Mobi on the charging pad to re-pair."
+            "手表重启为客户端，手机接管为泵主机。请将 Mobi 放在充电座上重新配对。"
     }
 
     if (showRescueDialog) {
         Alert(
             title = {
                 Text(
-                    text = "Reset & start over?",
+                    text = "重置并重新开始？",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground,
                 )
@@ -89,7 +89,7 @@ fun RoleSelectionScreen(
                     onClick = { showRescueDialog = false },
                     colors = ButtonDefaults.secondaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
                 }
             },
             positiveButton = {
@@ -103,19 +103,19 @@ fun RoleSelectionScreen(
                     },
                     colors = ButtonDefaults.primaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Confirm")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = "确认")
                 }
             },
             icon = {
                 Image(
                     Icons.Filled.Devices,
-                    "Reset",
+                    "重置",
                     Modifier.size(24.dp),
                 )
             },
         ) {
             Text(
-                text = "Forces this watch to pump-host and asks the phone to flip to client. Place the Mobi on the charging pad to re-pair.",
+                text = "强制此手表为泵主机，并要求手机切换为客户端。请将 Mobi 放在充电座上重新配对。",
                 textAlign = TextAlign.Start,
                 style = MaterialTheme.typography.body2,
                 color = MaterialTheme.colors.onBackground,
@@ -125,7 +125,7 @@ fun RoleSelectionScreen(
         Alert(
             title = {
                 Text(
-                    text = "Switch to $newRoleLabel?",
+                    text = "切换为$newRoleLabel？",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground,
                 )
@@ -135,7 +135,7 @@ fun RoleSelectionScreen(
                     onClick = { showConfirmDialog = false },
                     colors = ButtonDefaults.secondaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
                 }
             },
             positiveButton = {
@@ -149,13 +149,13 @@ fun RoleSelectionScreen(
                     },
                     colors = ButtonDefaults.primaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Confirm")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = "确认")
                 }
             },
             icon = {
                 Image(
                     Icons.Filled.Devices,
-                    "Device role",
+                    "设备角色",
                     Modifier.size(24.dp),
                 )
             },
@@ -176,13 +176,13 @@ fun RoleSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Pump-host device",
+                text = "泵主机设备",
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
             Text(
-                text = "Currently: $roleLabel",
+                text = "当前：$roleLabel",
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
@@ -190,13 +190,13 @@ fun RoleSelectionScreen(
             )
             Chip(
                 onClick = { showConfirmDialog = true },
-                label = { Text("Switch to $newRoleLabel", fontSize = 12.sp) },
+                label = { Text("切换为$newRoleLabel", fontSize = 12.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             Chip(
                 onClick = { showRescueDialog = true },
-                label = { Text("Reset & start over", fontSize = 12.sp) },
+                label = { Text("重置并重新开始", fontSize = 12.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -204,7 +204,7 @@ fun RoleSelectionScreen(
             )
             Chip(
                 onClick = onCancel,
-                label = { Text("Cancel", fontSize = 12.sp) },
+                label = { Text("取消", fontSize = 12.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier
                     .fillMaxWidth()

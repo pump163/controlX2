@@ -23,6 +23,6 @@ fun BolusCancellingPhase(
                 onCancelled()
             }
         }
-        IndeterminateProgressIndicator(text = "The bolus is being cancelled..")
+        IndeterminateProgressIndicator(text = "正在取消大剂量…")
     }
 }

@@ -178,12 +178,12 @@ fun CGMActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("CGM Actions")
+                    HeaderLine("CGM 操作")
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("CGM control is not supported on this device model (${model}).")
+                        Line("此设备型号不支持 CGM 控制（${model}）。")
                         Line("")
                     }
                 }
@@ -198,9 +198,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G6: Stop CGM Sensor"
-                                    CGMSessionState.STOPPED -> "Dexcom G6: Start CGM Sensor"
-                                    else -> "Dexcom G6 CGM Sensor State: ${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> "Dexcom G6：停止 CGM 探头"
+                                    CGMSessionState.STOPPED -> "Dexcom G6：启动 CGM 探头"
+                                    else -> "Dexcom G6 CGM 探头状态：${cgmSessionState.value?.str}"
                                 }
                             )},
                             supportingContent = {
@@ -232,7 +232,7 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStartG6CgmSessionMenu = false},
                                 title = {
-                                    Text("Start G6 CGM Session")
+                                    Text("启动 G6 CGM 会话")
                                 },
                                 text = {
                                     LazyColumn(
@@ -244,13 +244,13 @@ fun CGMActions(
                                         content = {
                                             if (startG6CgmSessionInProgressTxId == null) {
                                                 item {
-                                                    Text("To start the CGM session, confirm the transmitter ID and sensor code:")
+                                                    Text("启动 CGM 会话前，请确认发射器 ID 和传感器代码：")
                                                     Text("\n")
                                                 }
 
                                                 item {
                                                     DexcomG6TransmitterCode(
-                                                        title = "Transmitter ID",
+                                                        title = "发射器 ID",
                                                         value = cgmSetupG6TxId.value,
                                                         onValueChange = { it ->
                                                             ds.cgmSetupG6TxId.value = it
@@ -260,13 +260,13 @@ fun CGMActions(
 
                                                 item {
                                                     Text("\n")
-                                                    Text("To connect to an existing G6 CGM session or if no code is available, use '0000'")
+                                                    Text("要连接到已有的 G6 CGM 会话或无代码时，请使用 '0000'")
                                                     Text("\n")
                                                 }
 
                                                 item {
                                                     DexcomG6SensorCode(
-                                                        title = "Sensor Code",
+                                                        title = "传感器代码",
                                                         value = cgmSetupG6SensorCode.value,
                                                         onValueChange = { it ->
                                                             ds.cgmSetupG6SensorCode.value = it
@@ -275,7 +275,7 @@ fun CGMActions(
                                                 }
                                             } else {
                                                 item {
-                                                    Text("Setting Transmitter ID to ${startG6CgmSessionInProgressTxId}...")
+                                                    Text("正在设置发射器 ID 为 ${startG6CgmSessionInProgressTxId}...")
                                                 }
                                             }
                                         }
@@ -288,7 +288,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -327,7 +327,7 @@ fun CGMActions(
                                         enabled = startG6CgmSessionInProgressTxId == null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Start Sensor")
+                                        Text("启动传感器")
                                     }
                                 }
                             )
@@ -343,10 +343,10 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStopG6CgmSessionMenu = false},
                                 title = {
-                                    Text("Stop G6 CGM Session")
+                                    Text("停止 G6 CGM 会话")
                                 },
                                 text = {
-                                    Text("The Dexcom G6 sensor will be stopped.")
+                                    Text("Dexcom G6 传感器将被停止。")
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -355,7 +355,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -378,7 +378,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop Sensor")
+                                        Text("停止传感器")
                                     }
                                 }
                             )
@@ -402,9 +402,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G7: Stop CGM Sensor"
-                                    CGMSessionState.STOPPED -> "Dexcom G7: Start CGM Sensor"
-                                    else -> "Dexcom G7 CGM Sensor State: ${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> "Dexcom G7：停止 CGM 探头"
+                                    CGMSessionState.STOPPED -> "Dexcom G7：启动 CGM 探头"
+                                    else -> "Dexcom G7 CGM 探头状态：${cgmSessionState.value?.str}"
                                 }
                             )},
                             supportingContent = {
@@ -435,7 +435,7 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStartG7CgmSessionMenu = false},
                                 title = {
-                                    Text("Start G7 CGM Session")
+                                    Text("启动 G7 CGM 会话")
                                 },
                                 text = {
                                     LazyColumn(
@@ -446,13 +446,13 @@ fun CGMActions(
                                             .padding(horizontal = 0.dp),
                                         content = {
                                             item {
-                                                Text("To start the CGM session, enter the sensor code:")
+                                                Text("启动 CGM 会话前，请输入传感器代码：")
                                                 Text("\n")
                                             }
 
                                             item {
                                                 DexcomG6SensorCode(
-                                                    title = "Sensor Code",
+                                                    title = "传感器代码",
                                                     value = cgmSetupG7SensorCode.value,
                                                     onValueChange = { it ->
                                                         ds.cgmSetupG7SensorCode.value = it
@@ -469,7 +469,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -504,7 +504,7 @@ fun CGMActions(
                                         enabled = cgmSetupG7SensorCode.value != null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Start Sensor")
+                                        Text("启动传感器")
                                     }
                                 }
                             )
@@ -522,7 +522,7 @@ fun CGMActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Back"
+                                    "返回"
                                 )
                             },
                             supportingContent = {

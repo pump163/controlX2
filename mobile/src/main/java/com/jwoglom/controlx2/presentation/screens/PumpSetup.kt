@@ -112,7 +112,7 @@ fun PumpSetup(
         }
     }
     DialogScreen(
-        "Pump Setup",
+        "胰岛素泵设置",
         actionContent = {
             IconButton(onClick = {
                 showAdvancedPairingSettings = true
@@ -131,7 +131,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "skip_notif_permission".toByteArray())
                         }
                     ) {
-                        Text("Continue Without Permission")
+                        Text("无权限继续")
                     }
                 }
                 else -> {
@@ -169,9 +169,9 @@ fun PumpSetup(
                         }
                     ) {
                         if (ds.pumpSetupStage.value in resettableStages) {
-                            Text("Reset")
+                            Text("重置")
                         } else {
-                            Text("Back")
+                            Text("返回")
                         }
                     }
                 }
@@ -183,7 +183,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "".toByteArray())
                         }
                     ) {
-                        Text("Retry")
+                        Text("重试")
                     }
                 }
                 PumpSetupStage.PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE,
@@ -204,7 +204,7 @@ fun PumpSetup(
                             }
                         }
                     ) {
-                        Text("Pair")
+                        Text("配对")
                     }
                 }
                 PumpSetupStage.PUMPX2_INVALID_PAIRING_CODE -> {
@@ -213,7 +213,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_RESTART_PUMP_FINDER, "".toByteArray())
                         }
                     ) {
-                        Text("Retry")
+                        Text("重试")
                     }
                 }
                 PumpSetupStage.PUMPX2_PUMP_CONNECTED -> {
@@ -223,7 +223,7 @@ fun PumpSetup(
                             Prefs(context).setPumpSetupComplete(true)
                         }
                     ) {
-                        Text("Next")
+                        Text("下一步")
                     }
                 }
                 else -> {
@@ -261,7 +261,7 @@ fun PumpSetup(
                             }
 
                             item {
-                                HeaderLine("Advanced Pairing")
+                                HeaderLine("高级配对")
                             }
 
                             if (pumpStateStatus != null) {
@@ -287,7 +287,7 @@ fun PumpSetup(
                                                 pumpStateJson = it
                                             }
                                         }) {
-                                            Text("Read from clipboard")
+                                            Text("从剪贴板读取")
                                         }
                                     }
                                     item {
@@ -298,17 +298,17 @@ fun PumpSetup(
                                             try {
                                                 PumpState.importState(context, pumpStateJson)
                                                 pumpStateStatus =
-                                                    "Success, application will reload with new state momentarily..."
+                                                    "成功，应用即将以新状态重新加载..."
                                                 coroutineScope.launch {
                                                     delay(1000)
                                                     triggerAppReload(context)
                                                 }
 
                                             } catch (e: Exception) {
-                                                pumpStateStatus = "Error importing state: ${e}"
+                                                pumpStateStatus = "导入状态错误：${e}"
                                             }
                                         }) {
-                                            Text("Apply")
+                                            Text("应用")
                                         }
                                     }
                                     item {
@@ -318,7 +318,7 @@ fun PumpSetup(
                                         Button(onClick = {
                                             showAdvancedPairingSettings = false
                                         }) {
-                                            Text("Cancel")
+                                            Text("取消")
                                         }
                                     }
                                 }
@@ -345,9 +345,9 @@ fun PumpSetup(
                         }
                         Line(buildAnnotatedString {
                             withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
-                                append("The pairing code was invalid. ")
+                                append("配对码无效。")
                             }
-                            append("The code was either entered incorrectly or timed out.")
+                            append("配对码输入错误或已超时。")
                         })
                         Line(buildAnnotatedString {
                             withStyle(
@@ -355,12 +355,12 @@ fun PumpSetup(
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
-                                append("For t:slim X2: ")
+                                append("t:slim X2：")
                             }
-                            append("Make sure the 'Pair Device' dialog is open on your pump.")
+                            append("请确保胰岛素泵上已打开「配对设备」对话框。")
                         })
                     } else {
-                        Line("Connecting to '${setupDeviceName.value}'")
+                        Line("正在连接 '${setupDeviceName.value}'")
                     }
                     Spacer(Modifier.height(16.dp))
                     when (ds.setupDeviceName.value?.let { determinePumpModel(it) }) {
@@ -371,12 +371,12 @@ fun PumpSetup(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append("For t:slim X2: ")
+                                    append("t:slim X2：")
                                 }
 
-                                append("Please enter the pairing code displayed at:")
+                                append("请输入以下位置显示的配对码：")
                             })
-                            Line("Bluetooth Settings > Pair Device", bold = true)
+                            Line("蓝牙设置 > 配对设备", bold = true)
                         }
                         KnownDeviceModel.MOBI -> {
                             Line(buildAnnotatedString {
@@ -385,9 +385,9 @@ fun PumpSetup(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append("For Mobi: ")
+                                    append("Mobi：")
                                 }
-                                append("Enter the pairing PIN located adjacent to the cartridge area.")
+                                append("输入储药器附近的配对 PIN 码。")
                             })
                         }
                         else -> {}
@@ -428,28 +428,28 @@ fun PumpSetup(
 }
 
 enum class PumpSetupStage(val step: Int, val description: String) {
-    PERMISSIONS_NOT_GRANTED(0, "Permissions not granted"),
-    WAITING_PUMP_FINDER_INIT(1, "Waiting for PumpFinder init"),
-    PUMP_FINDER_SEARCHING_FOR_PUMPS(1, "Searching for Tandem pumps"),
-    PUMP_FINDER_SELECT_PUMP(2, "Select a pump to connect to"),
+    PERMISSIONS_NOT_GRANTED(0, "权限未授予"),
+    WAITING_PUMP_FINDER_INIT(1, "等待 PumpFinder 初始化"),
+    PUMP_FINDER_SEARCHING_FOR_PUMPS(1, "正在搜索 Tandem 胰岛素泵"),
+    PUMP_FINDER_SELECT_PUMP(2, "选择要连接的胰岛素泵"),
 
-    PUMP_FINDER_TSLIM_CHOOSE_PAIRING_CODE_TYPE(3, "t:slim X2: choose pairing code type"),
-    PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE(4, "t:slim X2: enter pairing code"),
+    PUMP_FINDER_TSLIM_CHOOSE_PAIRING_CODE_TYPE(3, "t:slim X2：选择配对码类型"),
+    PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE(4, "t:slim X2：输入配对码"),
 
-    PUMP_FINDER_MOBI_PLACE_ON_CHARGING_PAD(3, "Mobi: place pump on charging pad"),
-    PUMP_FINDER_MOBI_PICK_UP_AND_TAP(4, "Mobi: pick up and double-tap"),
-    PUMP_FINDER_MOBI_ENTER_PAIRING_CODE(5, "Mobi: enter pairing PIN"),
-    WAITING_PUMP_FINDER_CLEANUP(5, "Establishing connection: Waiting for PumpFinder to clean up"),
-    WAITING_PUMPX2_INIT(5, "Establishing connection: Waiting for PumpX2 init"),
-    PUMPX2_SEARCHING_FOR_PUMP(5, "Establishing connection: Searching for pump"),
-    PUMPX2_PUMP_DISCONNECTED(5, "Pump disconnected, reconnecting"),
-    PUMPX2_PUMP_DISCOVERED(5, "Establishing connection: Pump discovered, connecting"),
-    PUMPX2_PUMP_MODEL_METADATA(5, "Establishing connection: Initial pump metadata received"),
-    PUMPX2_INITIAL_PUMP_CONNECTION(6, "Establishing connection: Initial connection established"),
-    PUMPX2_WAITING_FOR_PAIRING_CODE(6, "Establishing connection: Waiting to send pairing code"),
-    PUMPX2_SENDING_PAIRING_CODE(6, "Establishing connection: Sending pairing code"),
-    PUMPX2_INVALID_PAIRING_CODE(4, "Invalid pairing code"),
-    PUMPX2_PUMP_CONNECTED(7, "Pairing code accepted"),
+    PUMP_FINDER_MOBI_PLACE_ON_CHARGING_PAD(3, "Mobi：将胰岛素泵放在充电座上"),
+    PUMP_FINDER_MOBI_PICK_UP_AND_TAP(4, "Mobi：拿起并双击"),
+    PUMP_FINDER_MOBI_ENTER_PAIRING_CODE(5, "Mobi：输入配对 PIN 码"),
+    WAITING_PUMP_FINDER_CLEANUP(5, "正在建立连接：等待 PumpFinder 清理"),
+    WAITING_PUMPX2_INIT(5, "正在建立连接：等待 PumpX2 初始化"),
+    PUMPX2_SEARCHING_FOR_PUMP(5, "正在建立连接：正在搜索胰岛素泵"),
+    PUMPX2_PUMP_DISCONNECTED(5, "胰岛素泵已断开，正在重新连接"),
+    PUMPX2_PUMP_DISCOVERED(5, "正在建立连接：已发现胰岛素泵，正在连接"),
+    PUMPX2_PUMP_MODEL_METADATA(5, "正在建立连接：已接收初始胰岛素泵元数据"),
+    PUMPX2_INITIAL_PUMP_CONNECTION(6, "正在建立连接：初始连接已建立"),
+    PUMPX2_WAITING_FOR_PAIRING_CODE(6, "正在建立连接：等待发送配对码"),
+    PUMPX2_SENDING_PAIRING_CODE(6, "正在建立连接：正在发送配对码"),
+    PUMPX2_INVALID_PAIRING_CODE(4, "配对码无效"),
+    PUMPX2_PUMP_CONNECTED(7, "配对码已接受"),
     ;
 
     fun nextStage(stage: PumpSetupStage): PumpSetupStage {

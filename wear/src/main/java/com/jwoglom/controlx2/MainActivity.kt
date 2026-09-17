@@ -414,25 +414,25 @@ class MainActivity : ComponentActivity() {
                 dataStore.cartridgeRemainingUnits.value = message.currentInsulinAmount
             }
             is LastBolusStatusAbstractResponse -> {
-                dataStore.lastBolusStatus.value = "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant))}"
+                dataStore.lastBolusStatus.value = "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u 于 ${shortTime(pumpTimeToLocalTz(message.timestampInstant))}"
                 dataStore.lastBolusStatusResponse.value = message
             }
             is HomeScreenMirrorResponse -> {
                 dataStore.controlIQStatus.value = when (message.apControlStateIcon) {
-                    ApControlStateIcon.STATE_GRAY -> "On"
-                    ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "Suspended"
-                    ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "Increase"
-                    ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "Reduced"
-                    else -> "CIQ Off"
+                    ApControlStateIcon.STATE_GRAY -> "开启"
+                    ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "暂停"
+                    ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "增加"
+                    ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "减少"
+                    else -> "CIQ 关闭"
                 }
                 dataStore.cgmStatusText.value = when (message.cgmAlertIcon) {
-                    CGMAlertIcon.STARTUP_1, CGMAlertIcon.STARTUP_2, CGMAlertIcon.STARTUP_3, CGMAlertIcon.STARTUP_4 -> "Starting up"
-                    CGMAlertIcon.CALIBRATE, CGMAlertIcon.STARTUP_CALIBRATE, CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "Calibration Needed"
-                    CGMAlertIcon.ERROR_HIGH_WEDGE, CGMAlertIcon.ERROR_LOW_WEDGE -> "Error"
-                    CGMAlertIcon.REPLACE_SENSOR -> "Replace Sensor"
-                    CGMAlertIcon.REPLACE_TRANSMITTER -> "Replace Transmitter"
-                    CGMAlertIcon.OUT_OF_RANGE -> "Out Of Range"
-                    CGMAlertIcon.FAILED_SENSOR -> "Sensor Failed"
+                    CGMAlertIcon.STARTUP_1, CGMAlertIcon.STARTUP_2, CGMAlertIcon.STARTUP_3, CGMAlertIcon.STARTUP_4 -> "启动中"
+                    CGMAlertIcon.CALIBRATE, CGMAlertIcon.STARTUP_CALIBRATE, CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "需要校正"
+                    CGMAlertIcon.ERROR_HIGH_WEDGE, CGMAlertIcon.ERROR_LOW_WEDGE -> "错误"
+                    CGMAlertIcon.REPLACE_SENSOR -> "换探头"
+                    CGMAlertIcon.REPLACE_TRANSMITTER -> "更换发射器"
+                    CGMAlertIcon.OUT_OF_RANGE -> "超出范围"
+                    CGMAlertIcon.FAILED_SENSOR -> "探头故障"
                     CGMAlertIcon.TRIPLE_DASHES -> "---"
                     else -> ""
                 }
@@ -474,7 +474,7 @@ class MainActivity : ComponentActivity() {
                     SessionState.SESSION_ACTIVE -> shortTimeAgo(
                         pumpTimeToLocalTz(message.sensorStartedTimestampInstant)
                             .plus(10, ChronoUnit.DAYS),
-                        suffix = "left")
+                        suffix = "剩余")
                     else -> ""
                 }
                 dataStore.cgmSessionExpireExact.value = when (message.sessionState) {
@@ -484,11 +484,11 @@ class MainActivity : ComponentActivity() {
                     else -> ""
                 }
                 dataStore.cgmTransmitterStatus.value = when (message.transmitterBatteryStatus) {
-                    TransmitterBatteryStatus.ERROR -> "Error"
-                    TransmitterBatteryStatus.EXPIRED -> "Expired"
-                    TransmitterBatteryStatus.OK -> "OK"
+                    TransmitterBatteryStatus.ERROR -> "错误"
+                    TransmitterBatteryStatus.EXPIRED -> "已过期"
+                    TransmitterBatteryStatus.OK -> "正常"
                     TransmitterBatteryStatus.OUT_OF_RANGE -> "OOR"
-                    else -> "Unknown"
+                    else -> "未知"
                 }
             }
             is CurrentEGVGuiDataResponse -> {
@@ -549,7 +549,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-phone-connected".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Waiting to find pump"
+                dataStore.connectionStatus.value = "等待查找胰岛素泵"
             }
             MessagePaths.TO_CLIENT_BOLUS_MIN_NOTIFY_THRESHOLD -> {
                 dataStore.bolusMinNotifyThreshold.value = String(data).toDoubleOrNull()
@@ -622,7 +622,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-pump-model".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Connecting to pump"
+                dataStore.connectionStatus.value = "正在连接胰岛素泵"
             }
             MessagePaths.FROM_PUMP_ENTERED_PAIRING_CODE -> {
                 if (inWaitingState()) {
@@ -631,7 +631,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-entered-pairing-code".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Pairing to pump"
+                dataStore.connectionStatus.value = "正在配对胰岛素泵"
             }
             MessagePaths.FROM_PUMP_MISSING_PAIRING_CODE -> {
                 if (StatePrefs(applicationContext).deviceRole() == DeviceRole.PUMP_HOST) {
@@ -657,7 +657,7 @@ class MainActivity : ComponentActivity() {
                         }
                         sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-missing-pairing-code".toByteArray())
                     }
-                    dataStore.connectionStatus.value = "Missing pairing code"
+                    dataStore.connectionStatus.value = "缺少配对码"
                 }
             }
             MessagePaths.FROM_PUMP_PUMP_CONNECTED -> {
@@ -679,16 +679,16 @@ class MainActivity : ComponentActivity() {
                 } else {
                     if (dataStore.connectionStatus.value == "") {
                         runOnUiThread {
-                            Toast.makeText(applicationContext, "Disconnected", Toast.LENGTH_SHORT)
+                            Toast.makeText(applicationContext, "已断开连接", Toast.LENGTH_SHORT)
                                 .show()
                         }
                     }
                 }
-                dataStore.connectionStatus.value = "Reconnecting"
+                dataStore.connectionStatus.value = "正在重新连接"
                 dataStore.pumpConnected.value = false
             }
             MessagePaths.FROM_PUMP_PUMP_CRITICAL_ERROR -> {
-                dataStore.connectionStatus.value = "Error: ${String(data)}"
+                dataStore.connectionStatus.value = "错误：${String(data)}"
             }
             MessagePaths.FROM_PUMP_RECEIVE_QUALIFYING_EVENT -> {
                 uiScope.launch {
@@ -764,7 +764,7 @@ class MainActivity : ComponentActivity() {
                 if (StatePrefs(applicationContext).deviceRole() == DeviceRole.PUMP_HOST) {
                     Timber.w("watch pump-host: invalid pairing code, prompting re-entry")
                     com.jwoglom.pumpx2.pump.PumpState.setPairingCode(applicationContext, "")
-                    dataStore.pumpPairingError.value = "Invalid code, try again"
+                    dataStore.pumpPairingError.value = "配对码无效，请重试"
                     dataStore.pumpSetupStage.value = PumpSetupStage.PUMPX2_INVALID_PAIRING_CODE
                     sendMessage(MessagePaths.TO_SERVER_STOP_COMM, "invalid_pairing_code".toByteArray())
                     runOnUiThread {

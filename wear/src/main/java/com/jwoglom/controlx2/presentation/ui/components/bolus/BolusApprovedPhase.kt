@@ -49,8 +49,8 @@ fun BolusApprovedPhase(
             title = {
                 Text(
                     text = when {
-                        bolusInitiateResponse.value != null -> if (bolusInitiateResponse.value!!.wasBolusInitiated()) "Bolus Initiated" else "Bolus Rejected by Pump"
-                        else -> "Fetching Bolus Status..."
+                        bolusInitiateResponse.value != null -> if (bolusInitiateResponse.value!!.wasBolusInitiated()) "大剂量已启动" else "大剂量被胰岛素泵拒绝"
+                        else -> "正在获取大剂量状态…"
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -62,12 +62,12 @@ fun BolusApprovedPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             },
             positiveButton = {},
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), "大剂量图标", Modifier.size(24.dp))
             },
             scrollState = scrollState,
         ) {
@@ -97,21 +97,21 @@ fun BolusApprovedPhase(
             Text(
                 text = when {
                     bolusInitiateResponse.value != null -> if (bolusInitiateResponse.value!!.wasBolusInitiated()) {
-                        "The ${bolusFinalParameters.value?.let { twoDecimalPlaces(it.units) }}u bolus ${
+                        "${bolusFinalParameters.value?.let { twoDecimalPlaces(it.units) }}u 大剂量${
                             when (bolusCurrentResponse.value) {
-                                null -> "was requested."
+                                null -> "已请求。"
                                 else -> when (bolusCurrentResponse.value!!.status) {
-                                    CurrentBolusStatus.REQUESTING -> "is being prepared."
-                                    CurrentBolusStatus.DELIVERING -> "is being delivered."
-                                    else -> "was completed."
+                                    CurrentBolusStatus.REQUESTING -> "正在准备。"
+                                    CurrentBolusStatus.DELIVERING -> "正在输注。"
+                                    else -> "已完成。"
                                 }
                             }
                         }"
                     } else {
-                        "The bolus could not be delivered: ${bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }}"
+                        "大剂量无法输注：${bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }}"
                     }
 
-                    else -> "The bolus status is unknown. Please check your pump to identify the status of the bolus."
+                    else -> "大剂量状态未知。请查看胰岛素泵确认大剂量状态。"
                 },
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.body2,

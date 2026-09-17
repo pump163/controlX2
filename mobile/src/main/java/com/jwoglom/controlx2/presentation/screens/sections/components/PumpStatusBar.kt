@@ -94,7 +94,7 @@ fun PumpStatusCard(
                 icon = {
                     HorizBatteryIcon(batteryPercent.value)
                 },
-                label = "Battery",
+                label = "电池",
                 value = "${batteryPercent.value ?: "--"}%"
             )
 
@@ -103,13 +103,13 @@ fun PumpStatusCard(
                 icon = {
                     Icon(
                         Icons.Default.Sync,
-                        contentDescription = "Last updated",
+                        contentDescription = "最后更新",
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                label = "Updated",
-                value = "Now"  // TODO: Format last connection time
+                label = "已更新",
+                value = "现在"  // TODO: Format last connection time
             )
 
             // Insulin
@@ -120,7 +120,7 @@ fun PumpStatusCard(
                         cartridgeAmountEstimate = cartridgeRemainingEstimate.value == true
                     )
                 },
-                label = "Insulin",
+                label = "胰岛素",
                 value = "${cartridgeRemainingUnits.value ?: "--"}U"
             )
         }

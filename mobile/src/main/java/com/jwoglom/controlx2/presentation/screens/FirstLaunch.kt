@@ -28,7 +28,7 @@ fun FirstLaunch(
     val context = LocalContext.current
 
     DialogScreen(
-        "Health and Safety Warning",
+        "健康与安全警告",
         buttonContent = {
             Button(
                 onClick = {
@@ -36,7 +36,7 @@ fun FirstLaunch(
                     exitProcess(0)
                 }
             ) {
-                Text("Cancel")
+                Text("取消")
             }
             Button(
                 onClick = {
@@ -47,18 +47,18 @@ fun FirstLaunch(
                     sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "".toByteArray())
                 }
             ) {
-                Text("Agree")
+                Text("同意")
             }
         }
     ) {
         item {
             Text(
                 text = """
-                            This application is for EXPERIMENTAL USE ONLY and can be used to MODIFY ACTIVE INSULIN DELIVERY ON YOUR INSULIN PUMP.
+                            本应用仅供实验用途，可用于修改胰岛素泵的活跃胰岛素输送。
 
-                            It is NOT AFFILIATED WITH OR SUPPORTED by Tandem, Dexcom, or any other manufacturer. It has not been officially approved for use and is provided as a RESEARCH TOOL ONLY.
+                            本应用与 Tandem、Dexcom 或任何其他制造商均无隶属关系，亦未获得其支持。本应用未经过官方批准，仅作为研究工具提供。
 
-                            There is NO WARRANTY IMPLIED OR EXPRESSED DUE TO USE OF THIS SOFTWARE. YOU ASSUME ALL RISK FOR ANY MALFUNCTIONS, BUGS, OR INSULIN DELIVERY ACTIONS. 
+                            使用本软件不承担任何明示或暗示的保证。对于任何故障、错误或胰岛素输送操作，您自行承担全部风险。
                         """.trimIndent(),
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier

@@ -75,7 +75,7 @@ fun AppSetup(
     var showUpdatesWarningDialog by remember { mutableStateOf(false) }
 
     DialogScreen(
-        "App Setup",
+        "应用设置",
         buttonContent = {
             Button(
                 onClick = {
@@ -85,7 +85,7 @@ fun AppSetup(
                     Prefs(context).setAppSetupComplete(false)
                 }
             ) {
-                Text("Back")
+                Text("返回")
             }
             Button(
                 onClick = {
@@ -99,7 +99,7 @@ fun AppSetup(
                     }
                 }
             ) {
-                Text("Continue")
+                Text("继续")
             }
         }
     ) {
@@ -147,10 +147,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Insulin Delivery Actions")
+                    Text("胰岛素输送操作")
                 },
                 supportingContent = {
-                    Text("Allow remote boluses from your phone or watch.")
+                    Text("允许通过手机或手表远程发送大剂量。")
                 },
                 trailingContent = {
                     Switch(
@@ -194,19 +194,19 @@ fun AppSetup(
             if (insulinDeliveryActions || preview) {
                 ListItem(
                     headlineContent = {
-                        Text("Bolus Confirmation Threshold")
+                        Text("大剂量确认阈值")
                     },
                     supportingContent = {
                         Text(
                             bolusConfirmationInsulinThreshold.let {
-                                if (it == 0.0) "Require confirmation for all boluses"
-                                else "Require confirmation for boluses above ${twoDecimalPlaces(it)}u"
+                                if (it == 0.0) "所有大剂量都需要确认"
+                                else "超过 ${twoDecimalPlaces(it)}u 的大剂量需要确认"
                             }
                         )
                     },
                     trailingContent = {
                         Text(
-                            text = bolusConfirmationInsulinThreshold.let { if (it == 0.0) "always" else "${twoDecimalPlaces(it)}u" },
+                            text = bolusConfirmationInsulinThreshold.let { if (it == 0.0) "总是" else "${twoDecimalPlaces(it)}u" },
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
@@ -221,22 +221,22 @@ fun AppSetup(
             if (insulinDeliveryActions || preview) {
                 ListItem(
                     headlineContent = {
-                        Text("Wear Auto-Approve Timeout")
+                        Text("手表自动批准超时")
                     },
                     supportingContent = {
                         Text(
                             when (wearAutoApproveTimeout) {
-                                0 -> "Never auto-approve (require manual confirmation)"
-                                else -> "Auto-approve after ${wearAutoApproveTimeout}s if not canceled"
+                                0 -> "永不自动批准（需要手动确认）"
+                                else -> "如果未取消，${wearAutoApproveTimeout} 秒后自动批准"
                             }
                         )
                     },
                     trailingContent = {
                         Text(
                             text = when (wearAutoApproveTimeout) {
-                                0 -> "never"
-                                60 -> "1 min"
-                                300 -> "5 min"
+                                0 -> "永不"
+                                60 -> "1 分钟"
+                                300 -> "5 分钟"
                                 else -> "${wearAutoApproveTimeout}s"
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -252,10 +252,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Check for Updates")
+                    Text("检查更新")
                 },
                 supportingContent = {
-                    Text("Automatically check for ControlX2 updates")
+                    Text("自动检查 ControlX2 更新")
                 },
                 trailingContent = {
                     Switch(
@@ -284,10 +284,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Auto Fetch History Logs")
+                    Text("自动获取历史记录")
                 },
                 supportingContent = {
-                    Text("Fetching history logs allows for rendering a CGM graph on the dashboard screen.")
+                    Text("获取历史记录可在主屏幕上绘制 CGM 图表。")
                 },
                 trailingContent = {
                     Switch(
@@ -308,14 +308,14 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Glucose Unit")
+                    Text("血糖单位")
                 },
                 supportingContent = {
-                    Text("Choose between mg/dL or mmol/L for glucose values")
+                    Text("血糖值单位选择 mg/dL 或 mmol/L")
                 },
                 trailingContent = {
                     Text(
-                        text = glucoseUnit?.abbreviation ?: "Not Set",
+                        text = glucoseUnit?.abbreviation ?: "未设置",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -331,7 +331,7 @@ fun AppSetup(
     if (showGlucoseUnitDialog) {
         AlertDialog(
             onDismissRequest = { showGlucoseUnitDialog = false },
-            title = { Text("Select Glucose Unit") },
+            title = { Text("选择血糖单位") },
             text = {
                 Column {
                     GlucoseUnit.values().forEach { unit ->
@@ -364,7 +364,7 @@ fun AppSetup(
             },
             confirmButton = {
                 TextButton(onClick = { showGlucoseUnitDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -374,9 +374,9 @@ fun AppSetup(
     if (showInsulinWarningDialog) {
         AlertDialog(
             onDismissRequest = { showInsulinWarningDialog = false },
-            title = { Text("Warning") },
+            title = { Text("警告") },
             text = {
-                Text("WARNING: THIS SOFTWARE IS UNOFFICIAL AND EXPERIMENTAL. ENABLING INSULIN DELIVERY ACTIONS WILL ALLOW YOUR PHONE OR WATCH TO REMOTELY SEND BOLUSES TO YOUR PUMP. BE AWARE OF THE SECURITY AND SAFETY IMPLICATIONS OF ENABLING THIS SETTING. FOR SAFETY, VERIFY BOLUS OPERATIONS ON YOUR PUMP. THE PUMP WILL BEEP WHEN A BOLUS COMMAND IS SENT.")
+                Text("警告：本软件为非官方实验性软件。启用胰岛素输送操作将允许您的手机或手表向胰岛素泵远程发送大剂量。启用此设置前，请充分了解其安全与安全隐患。为安全起见，请在胰岛素泵上确认大剂量操作。发送大剂量命令时，胰岛素泵会发出提示音。")
             },
             confirmButton = {
                 Button(onClick = {
@@ -391,12 +391,12 @@ fun AppSetup(
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
                     }
                 }) {
-                    Text("Enable")
+                    Text("启用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showInsulinWarningDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -406,9 +406,9 @@ fun AppSetup(
     if (showUpdatesWarningDialog) {
         AlertDialog(
             onDismissRequest = { showUpdatesWarningDialog = false },
-            title = { Text("Disable Update Checks") },
+            title = { Text("禁用更新检查") },
             text = {
-                Text("Please regularly check the ControlX2 GitHub page and subscribe to release notifications to ensure you stay up to date. Warning: by disabling this option, you will not be alerted to any new feature, security, or safety updates.")
+                Text("请定期访问 ControlX2 GitHub 页面并订阅发布通知，以确保及时获取更新。警告：禁用此选项后，您将不会收到任何新功能、安全或安全更新的提醒。")
             },
             confirmButton = {
                 Button(onClick = {
@@ -416,12 +416,12 @@ fun AppSetup(
                     Prefs(context).setCheckForUpdates(false)
                     showUpdatesWarningDialog = false
                 }) {
-                    Text("Disable")
+                    Text("禁用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUpdatesWarningDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -430,18 +430,18 @@ fun AppSetup(
     // Wear Auto-Approve Timeout Dialog
     if (showWearAutoApproveDialog) {
         val options = listOf(
-            0 to "Never (require manual confirmation)",
-            30 to "30 seconds",
-            60 to "1 minute",
-            300 to "5 minutes",
+            0 to "永不（需要手动确认）",
+            30 to "30 秒",
+            60 to "1 分钟",
+            300 to "5 分钟",
         )
         AlertDialog(
             onDismissRequest = { showWearAutoApproveDialog = false },
-            title = { Text("Wear Auto-Approve Timeout") },
+            title = { Text("手表自动批准超时") },
             text = {
                 Column {
                     Text(
-                        "When a bolus is requested from the watch, it will be auto-approved after this timeout unless canceled on the phone.",
+                        "从手表请求大剂量后，如未在手机上取消，将在此超时时间后自动批准。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -470,7 +470,7 @@ fun AppSetup(
             },
             confirmButton = {
                 TextButton(onClick = { showWearAutoApproveDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -481,13 +481,13 @@ fun AppSetup(
         var thresholdInput by remember { mutableStateOf(bolusConfirmationInsulinThreshold.let { if (it == 0.0) "" else "$it" }) }
         AlertDialog(
             onDismissRequest = { showBolusThresholdDialog = false },
-            title = { Text("Bolus Confirmation Threshold") },
+            title = { Text("大剂量确认阈值") },
             text = {
                 OutlinedTextField(
                     value = thresholdInput,
                     onValueChange = { thresholdInput = it },
-                    label = { Text("Threshold (units)") },
-                    supportingText = { Text("Enter 0 to always require confirmation") },
+                    label = { Text("阈值（单位）") },
+                    supportingText = { Text("输入 0 表示始终需要确认") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -499,12 +499,12 @@ fun AppSetup(
                     Prefs(context).setBolusConfirmationInsulinThreshold(newValue)
                     showBolusThresholdDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showBolusThresholdDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )

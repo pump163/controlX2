@@ -133,7 +133,7 @@ class PumpIOBComplicationDataSourceService : SuspendingComplicationDataSourceSer
             "complicationData: displayType=$displayType pumpIOB=$pumpIOB duration=${duration.seconds}s iobLabel=$iobLabel iobNum=$iobNum"
         )
 
-        val caseContentDescription = "Pump IOB ($displayType)"
+        val caseContentDescription = "活性胰岛素 ($displayType)"
 
         // Create a content description that includes the value information
         val contentDescription = PlainComplicationText.Builder(

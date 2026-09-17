@@ -56,7 +56,7 @@ fun BolusUnitsChip(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = unitsSubtitle ?: "Units",
+                        text = unitsSubtitle ?: "单位",
                         maxLines = 1,
                         textAlign = TextAlign.Center,
                         fontSize = 10.sp,

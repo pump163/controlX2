@@ -39,7 +39,7 @@ fun LandingBasalRow(
         else -> if (model.basalRate == null) model.basalStatus.str else "${model.basalStatus.str} (${model.basalRate})"
     } ?: "?"
 
-    LineInfoChip("Basal", text, onClick = onClick)
+    LineInfoChip("基础率", text, onClick = onClick)
 }
 
 @Preview

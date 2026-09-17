@@ -49,7 +49,7 @@ fun PumpFinderSelectScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Select pump",
+            text = "选择胰岛素泵",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -61,7 +61,7 @@ fun PumpFinderSelectScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Scanning for pumps...",
+                        text = "正在搜索胰岛素泵…",
                         fontSize = 12.sp,
                         color = MaterialTheme.colors.onBackground,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -71,7 +71,7 @@ fun PumpFinderSelectScreen(
                             // sendPhoneCommand prepends PREFIX_TO_SERVER; suffix only
                             sendPhoneCommand("restart-pump-finder")
                         },
-                        label = { Text("Restart scan", fontSize = 12.sp) },
+                        label = { Text("重新搜索", fontSize = 12.sp) },
                         colors = ChipDefaults.secondaryChipColors(),
                     )
                 }

@@ -24,13 +24,13 @@ fun LandingBuildInfo() {
                 append(BuildConfig.VERSION_NAME)
             }
             append("\n")
-            append("with PumpX2 ")
+            append("基于 PumpX2 ")
             append(com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION)
             append("\n")
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Build: ") }
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("版本：") }
             append(p.get("build_version"))
             append("\n")
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Build time: ") }
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("构建时间：") }
             append(p.get("build_time"))
             append("\n")
         },

@@ -111,7 +111,7 @@ fun BasalDetailScreen(
         when {
             pumpSid < 0 -> item {
                 Text(
-                    text = "History will appear after the first pump connection.",
+                    text = "首次连接胰岛素泵后显示历史记录。",
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -119,7 +119,7 @@ fun BasalDetailScreen(
             }
             recentItems.isEmpty() -> item {
                 Text(
-                    text = "No recent basal changes.",
+                    text = "暂无近期基础率变更。",
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -128,7 +128,7 @@ fun BasalDetailScreen(
             else -> {
                 item {
                     Text(
-                        text = "Recent changes",
+                        text = "近期变更",
                         fontSize = 11.sp,
                         color = MaterialTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -232,15 +232,15 @@ private fun formatBasalRowLabel(item: HistoryLogItem): String {
     val parsed = try {
         item.parse()
     } catch (_: Exception) {
-        return "Raw event #${item.typeId}"
+        return "原始事件 #${item.typeId}"
     }
     return when (parsed) {
         is BasalRateChangeHistoryLog ->
             "→ %.3fU/hr".format(parsed.commandBasalRate.toDouble())
-        is TempRateActivatedHistoryLog -> "Temp basal start"
-        is TempRateCompletedHistoryLog -> "Temp basal end"
-        is PumpingSuspendedHistoryLog -> "Pump suspended"
-        is PumpingResumedHistoryLog -> "Pump resumed"
+        is TempRateActivatedHistoryLog -> "临基开始"
+        is TempRateCompletedHistoryLog -> "临基结束"
+        is PumpingSuspendedHistoryLog -> "胰岛素泵已暂停"
+        is PumpingResumedHistoryLog -> "胰岛素泵已恢复"
         else -> parsed.javaClass.simpleName.removeSuffix("HistoryLog")
     }
 }

@@ -335,10 +335,10 @@ fun BolusScreen(
             }
             dataStore.bolusUnitsDisplayedSubtitle.value = when (bolusUnitsUserInput) {
                 null -> when (dataStore.bolusCurrentParameters.value) {
-                    null -> "Units"
-                    else -> "Calculated"
+                    null -> "单位"
+                    else -> "计算值"
                 }
-                else -> "Override"
+                else -> "手动"
             }
 
             val autofilledBg = dataStore.bolusCalculatorBuilder.value?.glucoseMgdl?.orElse(null)
@@ -348,9 +348,9 @@ fun BolusScreen(
                 else -> "?"
             }
             dataStore.bolusBGDisplayedSubtitle.value = when {
-                bolusBgMgdlUserInput != null -> "Entered ($unitAbbrev)"
-                autofilledBg != null -> "CGM ($unitAbbrev)"
-                else -> "BG ($unitAbbrev)"
+                bolusBgMgdlUserInput != null -> "已输入（$unitAbbrev）"
+                autofilledBg != null -> "CGM（$unitAbbrev）"
+                else -> "血糖（$unitAbbrev）"
             }
         }
 

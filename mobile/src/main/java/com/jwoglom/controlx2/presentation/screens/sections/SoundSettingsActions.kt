@@ -23,7 +23,10 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -67,6 +70,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetPumpAlertSnoozeRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetPumpSoundsRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import kotlinx.coroutines.cancel
@@ -144,6 +148,11 @@ fun SoundSettingsActions(
     LaunchedEffect(refreshing) {
         waitForLoaded()
     }
+
+    // Quick Bolus Settings state
+    var showQuickBolusDialog by remember { mutableStateOf(false) }
+    var quickBolusEnabled by remember { mutableStateOf(false) }
+    var quickBolusIncrement by remember { mutableStateOf(SetQuickBolusSettingsRequest.QuickBolusIncrement.DISABLED) }
 
     // Alert Snooze state
     var showAlertSnoozeDialog by remember { mutableStateOf(false) }
@@ -230,20 +239,20 @@ fun SoundSettingsActions(
             content = {
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text("返回") },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable {
                             navigateBack()
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.White),
                     )
-                    HeaderLine("Sound Settings")
+                    HeaderLine("声音设置")
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading sound settings..." )
+                        LoadSpinner("正在加载声音设置..." )
                     }
                 }
                 
@@ -253,7 +262,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Quick bolus annunciation",
+                        label = "快捷大剂量提示音",
                         value = quickBolusText,
                         onValueChange = { quickBolusText = it },
                         enumValue = annunciationLabel(quickBolusText)
@@ -262,7 +271,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "General annunciation",
+                        label = "常规提示音",
                         value = generalText,
                         onValueChange = { generalText = it },
                         enumValue = annunciationLabel(generalText)
@@ -271,7 +280,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Reminder annunciation",
+                        label = "提醒提示音",
                         value = reminderText,
                         onValueChange = { reminderText = it },
                         enumValue = annunciationLabel(reminderText)
@@ -280,7 +289,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Alert annunciation",
+                        label = "警告提示音",
                         value = alertText,
                         onValueChange = { alertText = it },
                         enumValue = annunciationLabel(alertText)
@@ -289,7 +298,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Alarm annunciation",
+                        label = "警报提示音",
                         value = alarmText,
                         onValueChange = { alarmText = it },
                         enumValue = annunciationLabel(alarmText)
@@ -298,7 +307,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "CGM alert annunciation A",
+                        label = "CGM 警告提示音 A",
                         value = cgmAText,
                         onValueChange = { cgmAText = it },
                         enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
@@ -307,7 +316,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "CGM alert annunciation B",
+                        label = "CGM 警告提示音 B",
                         value = cgmBText,
                         onValueChange = { cgmBText = it },
                         enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
@@ -316,7 +325,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Change bitmask",
+                        label = "更改位掩码",
                         value = changeBitmaskText,
                         onValueChange = { changeBitmaskText = it },
                         enumValue = ""
@@ -325,8 +334,8 @@ fun SoundSettingsActions(
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Apply sound settings") },
-                        supportingContent = { Text("Send SetPumpSoundsRequest with these values") },
+                        headlineContent = { Text("应用声音设置") },
+                        supportingContent = { Text("发送 SetPumpSoundsRequest 并使用这些值") },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         modifier = Modifier.clickable {
                             val message = SetPumpSoundsRequest(
@@ -350,20 +359,41 @@ fun SoundSettingsActions(
                     )
                 }
 
+                // Quick Bolus Settings section
+                item {
+                    Line("\n")
+                    HeaderLine("快捷大剂量设置")
+                    Divider()
+                }
+
+                item {
+                    ListItem(
+                        headlineContent = { Text("快捷大剂量") },
+                        supportingContent = {
+                            Text("配置快捷大剂量模式和增量大小")
+                        },
+                        leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        modifier = Modifier.clickable {
+                            showQuickBolusDialog = true
+                        }
+                    )
+                    Divider()
+                }
+
                 // Alert Snooze section (Mobi only)
                 val model = determinePumpModel(deviceName.value ?: "")
                 if (model == KnownDeviceModel.MOBI) {
                     item {
                         Line("\n")
-                        HeaderLine("Alert Snooze")
+                        HeaderLine("警告贪睡")
                         Divider()
                     }
 
                     item {
                         ListItem(
-                            headlineContent = { Text("Button Snooze") },
+                            headlineContent = { Text("按键贪睡") },
                             supportingContent = {
-                                Text("Configure triple-press button to snooze alerts")
+                                Text("配置三击按钮以贪睡警告")
                             },
                             leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             modifier = Modifier.clickable {
@@ -376,8 +406,80 @@ fun SoundSettingsActions(
 
                 item {
                     TextButton(onClick = navigateBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Back to ${LandingSection.ACTIONS.label}")
+                        Text("返回 ${LandingSection.ACTIONS.label}")
                     }
+                }
+            }
+        )
+    }
+
+    // Quick Bolus Settings Dialog
+    if (showQuickBolusDialog) {
+        var expanded by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showQuickBolusDialog = false },
+            title = { Text("快捷大剂量设置") },
+            text = {
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("启用", modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = quickBolusEnabled,
+                            onCheckedChange = { quickBolusEnabled = it }
+                        )
+                    }
+                    Text("增量：", modifier = Modifier.padding(top = 8.dp))
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
+                    ) {
+                        OutlinedTextField(
+                            value = quickBolusIncrement.name,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            SetQuickBolusSettingsRequest.QuickBolusIncrement.values().forEach { increment ->
+                                DropdownMenuItem(
+                                    text = { Text(increment.name) },
+                                    onClick = {
+                                        quickBolusIncrement = increment
+                                        quickBolusEnabled = increment.enabled
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val message = SetQuickBolusSettingsRequest(quickBolusIncrement)
+                    sendPumpCommands(SendType.STANDARD, listOf(message))
+                    showQuickBolusDialog = false
+                    refreshScope.launch {
+                        delay(500)
+                        refresh()
+                    }
+                }) {
+                    Text("应用")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showQuickBolusDialog = false }) {
+                    Text("取消")
                 }
             }
         )
@@ -387,21 +489,21 @@ fun SoundSettingsActions(
     if (showAlertSnoozeDialog) {
         AlertDialog(
             onDismissRequest = { showAlertSnoozeDialog = false },
-            title = { Text("Alert Snooze Settings") },
+            title = { Text("警告贪睡设置") },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Snooze Enabled", modifier = Modifier.weight(1f))
+                        Text("贪睡已启用", modifier = Modifier.weight(1f))
                         Switch(
                             checked = alertSnoozeEnabled,
                             onCheckedChange = { alertSnoozeEnabled = it }
                         )
                     }
                     if (alertSnoozeEnabled) {
-                        Text("Duration:", modifier = Modifier.padding(top = 8.dp))
+                        Text("时长：", modifier = Modifier.padding(top = 8.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(top = 4.dp)
@@ -411,7 +513,7 @@ fun SoundSettingsActions(
                                     onClick = { alertSnoozeDuration = mins },
                                 ) {
                                     Text(
-                                        "${mins} min",
+                                        "${mins} 分钟",
                                         color = if (alertSnoozeDuration == mins) Color.Blue else Color.Gray
                                     )
                                 }
@@ -431,12 +533,12 @@ fun SoundSettingsActions(
                         refresh()
                     }
                 }) {
-                    Text("Apply")
+                    Text("应用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAlertSnoozeDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -461,7 +563,7 @@ private fun SoundSettingField(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    label = { Text("Value") },
+                    label = { Text("值") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
@@ -480,16 +582,16 @@ private fun SoundSettingField(
 
 private fun annunciationLabel(value: String): String {
     val parsed = value.toIntOrNull()
-    return if (parsed != null) PumpGlobalsResponse.AnnunciationEnum.fromId(parsed)?.name ?: "Unknown" else "Unknown"
+    return if (parsed != null) PumpGlobalsResponse.AnnunciationEnum.fromId(parsed)?.name ?: "未知" else "未知"
 }
 
 private fun cgmAnnunciationLabel(valueA: String, valueB: String): String {
     val a = valueA.toIntOrNull()
     val b = valueB.toIntOrNull()
     return if (a != null && b != null) {
-        SetPumpSoundsRequest.CgmAlertAnnunciationEnum.fromIds(a, b)?.name ?: "Unknown"
+        SetPumpSoundsRequest.CgmAlertAnnunciationEnum.fromIds(a, b)?.name ?: "未知"
     } else {
-        "Unknown"
+        "未知"
     }
 }
 

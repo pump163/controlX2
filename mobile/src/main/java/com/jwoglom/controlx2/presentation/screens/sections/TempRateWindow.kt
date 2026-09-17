@@ -83,9 +83,9 @@ fun TempRateWindow(
     val durationHoursFocusRequester = remember { FocusRequester() }
     val durationMinutesFocusRequester = remember { FocusRequester() }
 
-    var percentSubtitle by remember { mutableStateOf<String>("percent") }
-    var hoursSubtitle by remember { mutableStateOf<String>("hours") }
-    var minutesSubtitle by remember { mutableStateOf<String>("mins") }
+    var percentSubtitle by remember { mutableStateOf<String>("%") }
+    var hoursSubtitle by remember { mutableStateOf<String">"时" }
+    var minutesSubtitle by remember { mutableStateOf<String">"分" }
 
     var inputMode by remember { mutableStateOf(TempRateInputMode.PERCENT) }
     var percentHumanEntered by remember { mutableStateOf<Int?>(null) }
@@ -201,7 +201,7 @@ fun TempRateWindow(
                 if (rawUnits == null) {
                     null
                 } else if (currentBasalRate == null || currentBasalRate <= 0.0) {
-                    return TempRateValidationResult(error = "Current profile basal rate is unavailable.")
+                    return TempRateValidationResult(error = "当前配置文件基础率不可用。")
                 } else {
                     ((rawUnits / currentBasalRate) * 100.0).roundToInt()
                 }
@@ -210,47 +210,47 @@ fun TempRateWindow(
 
         if (mode == TempRateInputMode.PERCENT) {
             if (rawPercent == null) {
-                return TempRateValidationResult(error = "Enter a temp basal percent.")
+                return TempRateValidationResult(error = "请输入临时基础率百分比。")
             }
             if (rawPercent < 0 || rawPercent > 250) {
-                return TempRateValidationResult(error = "Percent must be between 0 and 250.")
+                return TempRateValidationResult(error = "百分比必须在 0 到 250 之间。")
             }
         }
 
         if (mode == TempRateInputMode.UNITS) {
             if (rawUnits == null) {
-                return TempRateValidationResult(error = "Enter a temp basal rate in U/hr.")
+                return TempRateValidationResult(error = "请输入临时基础率（U/hr）。")
             }
             if (rawUnits < 0.0) {
-                return TempRateValidationResult(error = "Temp basal units must be 0 or greater.")
+                return TempRateValidationResult(error = "临时基础率单位必须大于等于 0。")
             }
             if (rawUnits != 0.0 && rawUnits < 0.05) {
-                return TempRateValidationResult(error = "Temp basal units must be 0 or at least 0.05 U/hr.")
+                return TempRateValidationResult(error = "临时基础率单位必须为 0 或至少 0.05 U/hr。")
             }
             if (derivedPercent == null || derivedPercent > 250) {
-                return TempRateValidationResult(error = "Effective percent cannot exceed 250%.")
+                return TempRateValidationResult(error = "有效百分比不能超过 250%。")
             }
         }
 
         val hours = rawHours ?: 0
         val minutes = rawMinutes ?: 0
         if (rawHours == null && rawMinutes == null) {
-            return TempRateValidationResult(error = "Enter a temp basal duration.")
+            return TempRateValidationResult(error = "请输入临时基础率时长。")
         }
         if (hours < 0 || hours > 72 || minutes < 0 || minutes >= 60) {
-            return TempRateValidationResult(error = "Duration must be 0-72h and 0-59m.")
+            return TempRateValidationResult(error = "时长必须为 0-72h 和 0-59m。")
         }
 
         val totalMinutes = (60 * hours) + minutes
         if (totalMinutes < 15) {
-            return TempRateValidationResult(error = "Duration must be at least 15 minutes.")
+            return TempRateValidationResult(error = "时长至少为 15 分钟。")
         }
         if (totalMinutes > 72 * 60) {
-            return TempRateValidationResult(error = "Duration cannot exceed 72 hours.")
+            return TempRateValidationResult(error = "时长不能超过 72 小时。")
         }
 
         if (derivedPercent == null || derivedPercent < 0 || derivedPercent > 250) {
-            return TempRateValidationResult(error = "Effective percent must be between 0 and 250.")
+            return TempRateValidationResult(error = "有效百分比必须在 0 到 250 之间。")
         }
 
         return try {
@@ -260,7 +260,7 @@ fun TempRateWindow(
                 effectiveBasalRate = currentBasalRate?.times(derivedPercent / 100.0)
             )
         } catch (e: IllegalArgumentException) {
-            TempRateValidationResult(error = "Invalid temp basal request.")
+            TempRateValidationResult(error = "无效的临时基础率请求。")
         }
     }
 
@@ -293,11 +293,11 @@ fun TempRateWindow(
         )
         tempRateButtonEnabled = result.request != null
         tempRateError = result.error
-        effectiveBasalPreview = result.effectiveBasalRate?.let { "Effective basal rate: ${"%.2f".format(it)} U/hr" }
-        effectivePercentPreview = result.effectivePercent?.let { "Effective percent: ${"%.0f".format(it)}%" }
+        effectiveBasalPreview = result.effectiveBasalRate?.let { "有效基础率：${"%.2f".format(it)} U/hr" }
+        effectivePercentPreview = result.effectivePercent?.let { "有效百分比：${"%.0f".format(it)}%" }
     }
 
-    HeaderLine("Temp Rate")
+    HeaderLine("临基")
 
     Row(
         modifier = Modifier
@@ -308,13 +308,13 @@ fun TempRateWindow(
         FilterChip(
             selected = inputMode == TempRateInputMode.PERCENT,
             onClick = { inputMode = TempRateInputMode.PERCENT },
-            label = { Text("Percent") },
+            label = { Text("百分比") },
             modifier = Modifier.padding(end = 8.dp)
         )
         FilterChip(
             selected = inputMode == TempRateInputMode.UNITS,
             onClick = { inputMode = TempRateInputMode.UNITS },
-            label = { Text("Units (U/hr)") }
+            label = { Text("单位 (U/hr)") }
         )
     }
 
@@ -451,12 +451,12 @@ fun TempRateWindow(
             ) {
                 Image(
                     painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    "大剂量图标",
                     Modifier.size(ButtonDefaults.IconSize)
                 )
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text(
-                    "Set temp rate",
+                    "设置临基",
                     fontSize = 18.sp
                 )
             }
@@ -483,13 +483,13 @@ fun TempRateWindow(
                 showPermissionCheckDialog = false
             },
             title = {
-                Text("Set ${tempRate?.percent}% temp rate for ${prettyDuration(tempRate?.minutes)}?")
+                Text("设置 ${tempRate?.percent}% 临基，时长 ${prettyDuration(tempRate?.minutes)}？")
             },
             icon = {
                 Image(
                     if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                     else painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    "大剂量图标",
                     Modifier.size(ButtonDefaults.IconSize)
                 )
             },
@@ -500,7 +500,7 @@ fun TempRateWindow(
                         resetTempRateDataStoreState(dataStore)
                     },
                 ) {
-                    Text("Cancel")
+                    Text("取消")
                 }
 
             },
@@ -528,7 +528,7 @@ fun TempRateWindow(
                         tempRate != null
                     )
                 ) {
-                    Text("Set temp rate")
+                    Text("设置临基")
                 }
             }
         )

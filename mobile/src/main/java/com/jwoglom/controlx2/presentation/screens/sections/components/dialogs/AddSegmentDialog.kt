@@ -52,7 +52,7 @@ fun AddSegmentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Add Profile Segment")
+            Text("添加配置文件时段")
         },
         text = {
             LazyColumn(
@@ -62,11 +62,11 @@ fun AddSegmentDialog(
                     .padding(horizontal = 0.dp),
             ) {
                 item {
-                    Text("Adding to ${profile.idpSettingsResponse.name} (#${profile.idpId})", fontSize = 14.sp)
+                    Text("添加到 ${profile.idpSettingsResponse.name}（#${profile.idpId}）", fontSize = 14.sp)
                 }
                 item {
                     Text(
-                        "Start Time",
+                        "开始时间",
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -81,8 +81,8 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        placeholder = { Text("e.g., 1.0") },
+                        label = { Text("基础率（u/hr）") },
+                        placeholder = { Text("例如：1.0") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -91,9 +91,9 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
-                        placeholder = { Text("e.g., 10g") },
+                        label = { Text("碳水化合物比（g/u）") },
+                        supportingText = { Text("示例：10 = 1:10 比例") },
+                        placeholder = { Text("例如：10g") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -102,8 +102,8 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG") },
-                        placeholder = { Text("e.g., 110") },
+                        label = { Text("目标血糖") },
+                        placeholder = { Text("例如：110") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -112,9 +112,9 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF (Insulin Sensitivity Factor)") },
-                        supportingText = { Text("Example: 50 = 1u:50 mg/dL") },
-                        placeholder = { Text("e.g., 50") },
+                        label = { Text("ISF（胰岛素敏感系数）") },
+                        supportingText = { Text("示例：50 = 1u:50 mg/dL") },
+                        placeholder = { Text("例如：50") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -143,41 +143,41 @@ fun AddSegmentDialog(
                         val isfInt = isf.toIntOrNull() ?: 0
 
                         if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                            errorMessage = "Invalid time. Hours must be 0-23, minutes must be 0-59."
+                            errorMessage = "时间无效。小时必须为 0-23，分钟必须为 0-59。"
                             return@TextButton
                         }
                         if (basalRateFloat <= 0) {
-                            errorMessage = "Basal rate must be greater than 0"
+                            errorMessage = "基础率必须大于 0"
                             return@TextButton
                         }
                         if (carbRatioLong <= 0) {
-                            errorMessage = "Carb ratio must be greater than 0"
+                            errorMessage = "碳水化合物比必须大于 0"
                             return@TextButton
                         }
                         if (targetBGInt <= 0) {
-                            errorMessage = "Target BG must be greater than 0"
+                            errorMessage = "目标血糖必须大于 0"
                             return@TextButton
                         }
                         if (isfInt <= 0) {
-                            errorMessage = "ISF must be greater than 0"
+                            errorMessage = "ISF 必须大于 0"
                             return@TextButton
                         }
 
                         onConfirm(startTime, basalRateFloat, carbRatioLong, targetBGInt, isfInt)
                     } catch (e: Exception) {
-                        errorMessage = "Error: ${e.message}"
+                        errorMessage = "错误：${e.message}"
                         Timber.e(e, "Error creating segment")
                     }
                 }
             ) {
-                Text("Add Segment")
+                Text("添加时段")
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text("取消")
             }
         }
     )

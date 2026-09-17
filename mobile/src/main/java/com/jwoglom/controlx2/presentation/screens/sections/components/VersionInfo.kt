@@ -35,29 +35,29 @@ fun VersionInfo(
         }
     }, Modifier.padding(start = 16.dp, top = 16.dp))
     Text(buildAnnotatedString {
-        append("with PumpX2 ")
+        append("基于 PumpX2 ")
         append(ver.pumpX2)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("Build: ")
+            append("构建版本：")
         }
         append(ver.buildVersion)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("Build time: ")
+            append("构建时间：")
         }
         append(ver.buildTime)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("PumpX2 build time: ")
+            append("PumpX2 构建时间：")
         }
         append(ver.pumpX2BuildTime)
         append("\n")
     }, lineHeight = 20.sp, fontSize = 14.sp, modifier = Modifier.padding(start = 16.dp).clickable {
-        Toast.makeText(context, "Checking for version update", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "正在检查版本更新", Toast.LENGTH_SHORT).show()
         AppVersionCheck(context)
     })
 }

@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -48,7 +47,6 @@ fun XdripSettings(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
     sendMessage: (String, ByteArray) -> Unit,
-    navigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = Prefs(context).prefs()
@@ -88,28 +86,28 @@ fun XdripSettings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("xDrip Settings")
+                HeaderLine("xDrip 设置")
                 Divider()
             }
 
             item {
                 ListItem(
                     headlineContent = {
-                        Text(if (config.enabled) "Disable xDrip Sync" else "Enable xDrip Sync")
+                        Text(if (config.enabled) "禁用 xDrip 同步" else "启用 xDrip 同步")
                     },
                     supportingContent = {
                         Text(
                             if (config.enabled) {
-                                "Stops sending pump and CGM updates to xDrip"
+                                "停止发送胰岛素泵和 CGM 更新到 xDrip"
                             } else {
-                                "Enables xDrip broadcasts for selected payload groups"
+                                "启用 xDrip 广播以发送所选数据组"
                             }
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (config.enabled) Icons.Filled.Close else Icons.Filled.Check,
-                            contentDescription = if (config.enabled) "Disable" else "Enable"
+                            contentDescription = if (config.enabled) "禁用" else "启用"
                         )
                     },
                     trailingContent = {
@@ -122,7 +120,7 @@ fun XdripSettings(
                         val newEnabled = !config.enabled
                         saveConfig(
                             config.copy(enabled = newEnabled),
-                            if (newEnabled) "xDrip sync enabled" else "xDrip sync disabled"
+                            if (newEnabled) "xDrip 同步已启用" else "xDrip 同步已禁用"
                         )
                     }
                 )
@@ -131,8 +129,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send SGV",
-                    subtitle = "Broadcast current glucose readings to xDrip",
+                    title = "发送 SGV",
+                    subtitle = "广播当前血糖读数到 xDrip",
                     enabled = config.sendCgmSgv,
                     onToggle = { togglePayload(XdripPayloadGroup.CGM) }
                 )
@@ -141,8 +139,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Device Status",
-                    subtitle = "Broadcast battery, IOB, cartridge, and basal status",
+                    title = "发送设备状态",
+                    subtitle = "广播电池、活性胰岛素（IOB）、储药器和基础率状态",
                     enabled = config.sendPumpDeviceStatus,
                     onToggle = { togglePayload(XdripPayloadGroup.PUMP_DEVICE_STATUS) }
                 )
@@ -151,8 +149,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Treatments",
-                    subtitle = "Broadcast bolus treatments to xDrip",
+                    title = "发送治疗记录",
+                    subtitle = "广播大剂量治疗记录到 xDrip",
                     enabled = config.sendTreatments,
                     onToggle = { togglePayload(XdripPayloadGroup.TREATMENTS) }
                 )
@@ -161,8 +159,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Statusline",
-                    subtitle = "Broadcast one-line pump status text",
+                    title = "发送状态栏",
+                    subtitle = "广播单行胰岛素泵状态文本",
                     enabled = config.sendStatusLine,
                     onToggle = { togglePayload(XdripPayloadGroup.STATUS_LINE) }
                 )
@@ -171,14 +169,14 @@ fun XdripSettings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Send diagnostics test payload") },
+                    headlineContent = { Text("发送诊断测试数据") },
                     supportingContent = {
-                        Text("Sends one-shot test SGV and statusline broadcast intents")
+                        Text("发送一次性测试 SGV 和状态栏广播 intent")
                     },
                     leadingContent = {
                         Icon(
                             Icons.Filled.BugReport,
-                            contentDescription = "Diagnostics icon"
+                            contentDescription = "诊断图标"
                         )
                     },
                     modifier = Modifier.clickable {
@@ -186,14 +184,6 @@ fun XdripSettings(
                     }
                 )
                 Divider()
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text("Back") },
-                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = navigateBack),
-                )
             }
         }
     )
@@ -234,9 +224,9 @@ private fun sendDiagnosticsPayload(context: Context) {
     val statusSent = sender.sendExternalStatusline("ControlX2 test statusline @ ${now}")
 
     val message = buildString {
-        append("Diagnostics sent")
-        append(if (sgvSent) " (SGV OK" else " (SGV skipped")
-        append(if (statusSent) ", statusline OK)" else ", statusline skipped)")
+        append("诊断已发送")
+        append(if (sgvSent) "（SGV 正常" else "（SGV 跳过")
+        append(if (statusSent) "，状态栏正常）" else "，状态栏跳过）")
     }
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }

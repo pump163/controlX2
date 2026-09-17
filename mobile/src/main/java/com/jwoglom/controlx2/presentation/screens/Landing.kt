@@ -83,7 +83,6 @@ import com.jwoglom.controlx2.presentation.screens.sections.Dashboard
 import com.jwoglom.controlx2.presentation.screens.sections.Debug
 import com.jwoglom.controlx2.presentation.screens.sections.Notifications
 import com.jwoglom.controlx2.presentation.screens.sections.ProfileActions
-import com.jwoglom.controlx2.presentation.screens.sections.QuickBolusSettingsActions
 import com.jwoglom.controlx2.presentation.screens.sections.SafetyLimitsActions
 import com.jwoglom.controlx2.presentation.screens.sections.Settings
 import com.jwoglom.controlx2.presentation.screens.sections.TempRateWindow
@@ -220,13 +219,13 @@ fun Landing(
                     if (pumpConnected.value != true) {
                         Icon(
                             imageVector = Icons.Filled.Warning,
-                            contentDescription = "Disconnected",
+                            contentDescription = "未连接",
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
                             when {
-                                Prefs(context).serviceEnabled() -> "Disconnected, reconnecting..."
-                                else -> "Service disabled"
+                                Prefs(context).serviceEnabled() -> "未连接，正在重新连接..."
+                                else -> "服务已禁用"
                              },
                             modifier = Modifier.padding(start = 36.dp)
                         )
@@ -234,7 +233,7 @@ fun Landing(
                         Icon(
                             painterResource(R.drawable.pump),
                             tint = Color.Unspecified,
-                            contentDescription = "Pump icon",
+                            contentDescription = "胰岛素泵图标",
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
@@ -250,7 +249,7 @@ fun Landing(
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refresh"
+                            contentDescription = "刷新"
                         )
                     }
                 },
@@ -411,17 +410,6 @@ fun Landing(
                                 },
                             )
                         }
-                        LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS -> {
-                            QuickBolusSettingsActions(
-                                innerPadding = innerPadding,
-                                navController = navController,
-                                sendMessage = sendMessage,
-                                sendPumpCommands = sendPumpCommands,
-                                navigateBack = {
-                                    selectedItem = LandingSection.ACTIONS
-                                },
-                            )
-                        }
                         LandingSection.CONTROLIQ_SETTINGS_ACTIONS -> {
                             ControlIQSettingsActions(
                                 innerPadding = innerPadding,
@@ -454,7 +442,6 @@ fun Landing(
                                 navigateToFeatureFlags = {
                                     selectedItem = LandingSection.FEATURE_FLAGS
                                 },
-                                navigateBack = { selectedItem = LandingSection.SETTINGS },
                             )
                         }
                         LandingSection.FEATURE_FLAGS -> {
@@ -487,16 +474,14 @@ fun Landing(
                             NightscoutSettings(
                                 innerPadding = innerPadding,
                                 navController = navController,
-                                pumpSid = ds.pumpSid.observeAsState().value ?: 0,
-                                navigateBack = { selectedItem = LandingSection.SETTINGS }
+                                pumpSid = ds.pumpSid.observeAsState().value ?: 0
                             )
                         }
                         LandingSection.XDRIP_SETTINGS -> {
                             XdripSettings(
                                 innerPadding = innerPadding,
                                 navController = navController,
-                                sendMessage = sendMessage,
-                                navigateBack = { selectedItem = LandingSection.SETTINGS }
+                                sendMessage = sendMessage
                             )
                         }
                     }
@@ -525,21 +510,21 @@ fun Landing(
                                     Image(
                                         if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
                                         else painterResource(R.drawable.bolus_icon_secondary),
-                                        "Bolus icon",
+                                        "大剂量图标",
                                         Modifier.size(24.dp)
                                     )
                                 } else {
                                     Image(
                                         if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_x)
                                         else painterResource(R.drawable.bolus_x_secondary),
-                                        "Cancel bolus icon",
+                                        "取消大剂量图标",
                                         Modifier.size(24.dp)
                                     )
                                 }
                             },
                             text = {
                                 Text(
-                                    if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) "Bolus" else "Cancel",
+                                    if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) "大剂量" else "取消",
                                     color = if (isSystemInDarkTheme()) Colors.primary
                                     else Colors.onPrimary
                                 )
@@ -586,24 +571,23 @@ fun Landing(
 // HACK: subpages should have the same label as an item appearing in the nav
 // so that item appears as selected when it is navigated to within the app
 enum class LandingSection(val label: String, val icon: ImageVector, val showInNav: Boolean) {
-    DASHBOARD("Dashboard", Icons.Filled.Info, true),
+    DASHBOARD("仪表板", Icons.Filled.Info, true),
 
-    NOTIFICATIONS("Notifications", Icons.Filled.Notifications, true),
+    NOTIFICATIONS("通知", Icons.Filled.Notifications, true),
 
-    ACTIONS("Actions", Icons.Filled.Create, true),
-    CGM_ACTIONS("Actions", Icons.Filled.Create, false),
-    CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create, false),
-    PROFILE_ACTIONS("Profiles", Icons.Filled.Create, false),
-    SOUND_SETTINGS_ACTIONS("Profiles", Icons.Filled.Create, false),
-    QUICK_BOLUS_SETTINGS_ACTIONS("Actions", Icons.Filled.Create, false),
-    CONTROLIQ_SETTINGS_ACTIONS("Actions", Icons.Filled.Create, false),
-    SAFETY_LIMITS_ACTIONS("Actions", Icons.Filled.Create, false),
+    ACTIONS("操作", Icons.Filled.Create, true),
+    CGM_ACTIONS("操作", Icons.Filled.Create, false),
+    CARTRIDGE_ACTIONS("操作", Icons.Filled.Create, false),
+    PROFILE_ACTIONS("配置文件", Icons.Filled.Create, false),
+    SOUND_SETTINGS_ACTIONS("配置文件", Icons.Filled.Create, false),
+    CONTROLIQ_SETTINGS_ACTIONS("操作", Icons.Filled.Create, false),
+    SAFETY_LIMITS_ACTIONS("操作", Icons.Filled.Create, false),
 
-    SETTINGS("Settings", Icons.Filled.Settings, true),
-    DEBUG("Settings", Icons.Filled.Settings, false),
-    NIGHTSCOUT_SETTINGS("Settings", Icons.Filled.Settings, false),
-    XDRIP_SETTINGS("Settings", Icons.Filled.Settings, false),
-    FEATURE_FLAGS("Settings", Icons.Filled.Settings, false),
+    SETTINGS("设置", Icons.Filled.Settings, true),
+    DEBUG("设置", Icons.Filled.Settings, false),
+    NIGHTSCOUT_SETTINGS("设置", Icons.Filled.Settings, false),
+    XDRIP_SETTINGS("设置", Icons.Filled.Settings, false),
+    FEATURE_FLAGS("设置", Icons.Filled.Settings, false),
     ;
 }
 

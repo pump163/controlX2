@@ -41,7 +41,7 @@ fun HorizBatteryIcon(
             ) {
                 Icon(
                     getPainterForBatteryPercent(it),
-                    "Battery icon",
+                    "电池图标",
                     tint = color,
                     modifier = modifier.height(height)
                 )

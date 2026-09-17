@@ -56,8 +56,8 @@ fun WearServiceDisabledMessage(
             onClick = {
                 (context as? MainActivity)?.reEnablePumpService()
             },
-            label = { Text("Service disabled", fontSize = 12.sp) },
-            secondaryLabel = { Text("Tap to re-enable", fontSize = 10.sp) },
+            label = { Text("服务已禁用", fontSize = 12.sp) },
+            secondaryLabel = { Text("点击重新启用", fontSize = 10.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = modifier.fillMaxWidth(),
         )

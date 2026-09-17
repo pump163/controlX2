@@ -81,12 +81,12 @@ fun BolusDeliverActionRegion(
             ) {
                 Image(
                     painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    "大剂量图标",
                     Modifier.size(ButtonDefaults.IconSize)
                 )
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text(
-                    "Deliver ${bolusUnits?.let { "${twoDecimalPlaces(it)}u " }}bolus",
+                    "输注 ${bolusUnits?.let { "${twoDecimalPlaces(it)}u " }}大剂量",
                     fontSize = 18.sp,
                     color = if (isSystemInDarkTheme()) Color.Black else Color.Unspecified
                 )
@@ -130,19 +130,19 @@ fun BolusPermissionDialogRegion(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Deliver ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}bolus?")
+            Text("输注 ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}大剂量？")
         },
         icon = {
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                "大剂量图标",
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("取消")
             }
         },
         confirmButton = {
@@ -167,7 +167,7 @@ fun BolusPermissionDialogRegion(
                         bolusFinalParameters.value?.takeIf { it.units >= 0.05 } != null
                     )
             ) {
-                Text("Deliver")
+                Text("输注")
             }
         }
     )
@@ -206,22 +206,22 @@ fun InProgressDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                "大剂量图标",
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         title = {
-            Text("Requesting ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}bolus")
+            Text("正在请求 ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}大剂量")
         },
         text = {
             Text(
                 when {
-                    bolusInitiateResponse.value != null -> "Bolus request received by pump, waiting for response..."
+                    bolusInitiateResponse.value != null -> "泵已收到大剂量请求，等待响应..."
                     bolusFinalParameters.value != null -> when {
-                        bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold -> "A notification was sent to approve the request."
-                        else -> "Sending request to pump..."
+                        bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold -> "已发送通知以批准该请求。"
+                        else -> "正在向泵发送请求..."
                     }
-                    else -> "Sending request to pump..."
+                    else -> "正在向泵发送请求..."
                 }
             )
         },
@@ -230,7 +230,7 @@ fun InProgressDialogRegion(
                 onClick = onCancel,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("Cancel Bolus Delivery")
+                Text("取消大剂量输注")
             }
         },
         confirmButton = {}
@@ -255,7 +255,7 @@ fun ApprovedDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                "大剂量图标",
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
@@ -263,10 +263,10 @@ fun ApprovedDialogRegion(
             Text(
                 when {
                     bolusInitiateResponse.value != null -> when {
-                        bolusInitiateResponse.value!!.wasBolusInitiated() -> "Bolus Initiated"
-                        else -> "Bolus Rejected by Pump"
+                        bolusInitiateResponse.value!!.wasBolusInitiated() -> "大剂量已启动"
+                        else -> "大剂量被泵拒绝"
                     }
-                    else -> "Fetching Bolus Status..."
+                    else -> "正在获取大剂量状态..."
                 }
             )
         },
@@ -308,21 +308,21 @@ fun ApprovedDialogRegion(
             Text(
                 text = when {
                     bolusInitiateResponse.value != null -> when {
-                        bolusInitiateResponse.value!!.wasBolusInitiated() -> "The ${bolusFinalParameters.value?.let { twoDecimalPlaces(it.units) }}u bolus ${
+                        bolusInitiateResponse.value!!.wasBolusInitiated() -> "${bolusFinalParameters.value?.let { twoDecimalPlaces(it.units) }}u 大剂量 ${
                             when (bolusCurrentResponse.value) {
-                                null -> "was requested."
+                                null -> "已请求。"
                                 else -> when (bolusCurrentResponse.value!!.status) {
-                                    CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> "is being prepared."
-                                    CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> "is being delivered."
-                                    else -> "was completed."
+                                    CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> "正在准备。"
+                                    CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> "正在输注。"
+                                    else -> "已完成。"
                                 }
                             }
                         }"
-                        else -> "The bolus could not be delivered: ${
+                        else -> "大剂量无法输注：${
                             bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }
                         }"
                     }
-                    else -> "The bolus status is unknown. Please check your pump to identify the status of the bolus."
+                    else -> "大剂量状态未知。请检查您的胰岛素泵以确认大剂量状态。"
                 }
             )
         },
@@ -336,7 +336,7 @@ fun ApprovedDialogRegion(
                     onClick = onCancel,
                     modifier = Modifier.padding(top = 16.dp)
                 ) {
-                    Text("Cancel Bolus Delivery")
+                    Text("取消大剂量输注")
                 }
             }
         },
@@ -351,7 +351,7 @@ fun ApprovedDialogRegion(
                             it != CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING &&
                             it != CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING
                         } == true
-                    ) "Done" else "OK"
+                    ) "完成" else "确定"
                 )
             }
         }
@@ -378,15 +378,15 @@ fun CancellingDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                "大剂量图标",
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         title = {
-            Text("Cancelling..")
+            Text("正在取消..")
         },
         text = {
-            Text("The bolus is being cancelled...")
+            Text("正在取消大剂量...")
         },
         confirmButton = {}
     )
@@ -442,50 +442,50 @@ fun CancelledDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                "大剂量图标",
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         title = {
             Text(when (bolusCancelResponse.value?.status) {
                 CancelBolusResponse.CancelStatus.SUCCESS ->
-                    "Bolus Cancelled"
+                    "大剂量已取消"
                 CancelBolusResponse.CancelStatus.FAILED ->
                     when (bolusInitiateResponse.value) {
-                        null -> "Bolus Cancelled"
-                        else -> "Could Not Be Cancelled"
+                        null -> "大剂量已取消"
+                        else -> "无法取消"
                     }
-                else -> "Bolus Status Unknown"
+                else -> "大剂量状态未知"
             })
         },
         text = {
             Text(
                 "${when (bolusCancelResponse.value?.status) {
                     CancelBolusResponse.CancelStatus.SUCCESS ->
-                        "The bolus was cancelled."
+                        "大剂量已取消。"
                     CancelBolusResponse.CancelStatus.FAILED ->
                         when (bolusInitiateResponse.value) {
-                            null -> "A bolus request was not sent to the pump, so there is nothing to cancel."
-                            else -> "The bolus could not be cancelled: ${
+                            null -> "未向泵发送大剂量请求，因此没有可取消的内容。"
+                            else -> "大剂量无法取消：${
                                 snakeCaseToSpace(
                                     bolusCancelResponse.value?.reason.toString()
                                 )
                             }"
                         }
-                    else -> "Please check your pump to confirm whether the bolus was cancelled."
+                    else -> "请检查您的胰岛素泵以确认大剂量是否已取消。"
                 }}\n\n${when {
                     matchesBolusId() == true ->
                         lastBolusStatusResponse.value?.deliveredVolume?.let {
-                            if (it == 0L) "A bolus was started and no insulin was delivered." else "${twoDecimalPlaces1000Unit(it)}u was delivered."
+                            if (it == 0L) "大剂量已启动，但未输注胰岛素。" else "${twoDecimalPlaces1000Unit(it)}u 已输注。"
                         } ?: ""
-                    matchesBolusId() == false -> "No insulin was delivered."
-                    else -> "Checking if any insulin was delivered..."
+                    matchesBolusId() == false -> "未输注胰岛素。"
+                    else -> "正在检查是否已输注胰岛素..."
                 }}"
             )
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text("确定")
             }
         }
     )

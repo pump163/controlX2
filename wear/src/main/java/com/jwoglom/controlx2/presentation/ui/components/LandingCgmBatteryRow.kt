@@ -12,7 +12,7 @@ import com.jwoglom.controlx2.presentation.components.LineInfoChip
 fun LandingCgmBatteryRow() {
     val ds = LocalDataStore.current
     val status = ds.cgmTransmitterStatus.observeAsState().value
-    LineInfoChip("CGM Battery", status?.toString() ?: "?")
+    LineInfoChip("CGM 电池", status?.toString() ?: "?")
 }
 
 @Preview

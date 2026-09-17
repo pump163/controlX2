@@ -415,8 +415,8 @@ class CommService : Service(), CommServiceCallbacks {
                         "CommService".toByteArray()
                     )
                     NotificationCompat.Builder(this)
-                        .setContentTitle("Bolus Blocked")
-                        .setContentText("Bolus message was blocked due to an invalid signature.")
+                        .setContentTitle("大剂量已阻止")
+                        .setContentText("大剂量消息因签名无效而被阻止。")
                         .build()
                     return
                 }
@@ -559,9 +559,9 @@ class CommService : Service(), CommServiceCallbacks {
         }
 
         started = true
-        Toast.makeText(this, "ControlX2 service starting", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "ControlX2 服务启动中", Toast.LENGTH_SHORT).show()
 
-        updateNotification("Initializing...")
+        updateNotification("正在初始化...")
 
         Timber.i("CommService onStartCommand has pumpFinderCommHandler=${pumpFinderCommHandler} pumpCommHandler=${pumpCommHandler}")
 
@@ -598,7 +598,7 @@ class CommService : Service(), CommServiceCallbacks {
             Timber.e(e, "Unable to start foreground service: missing connectedDevice permissions")
             Toast.makeText(
                 this,
-                "ControlX2 needs Bluetooth permissions before starting the background service",
+                "ControlX2 在启动后台服务前需要蓝牙权限",
                 Toast.LENGTH_LONG
             ).show()
             stopSelf()
@@ -619,7 +619,7 @@ class CommService : Service(), CommServiceCallbacks {
         super.onTaskRemoved(rootIntent)
         Timber.w("CommService onTaskRemoved")
         triggerAppReload(applicationContext)
-        Toast.makeText(this, "ControlX2 service removed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "ControlX2 服务已移除", Toast.LENGTH_SHORT).show()
         stopSelf()
     }
 
@@ -814,7 +814,7 @@ class CommService : Service(), CommServiceCallbacks {
         scope.cancel()
         messageBus.close()
         httpDebugApiService?.stop()
-        Toast.makeText(this, "ControlX2 service destroyed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "ControlX2 服务已销毁", Toast.LENGTH_SHORT).show()
     }
 
     private fun createNotification(): Notification {
@@ -823,10 +823,10 @@ class CommService : Service(), CommServiceCallbacks {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
         val channel = NotificationChannel(
             notificationChannelId,
-            "Endless Service notifications channel",
+            "后台服务通知渠道",
             NotificationManager.IMPORTANCE_NONE
         ).let {
-            it.description = "Endless Service channel"
+            it.description = "后台服务渠道"
             it.setShowBadge(false)
             it.lockscreenVisibility = 0
 
@@ -851,21 +851,21 @@ class CommService : Service(), CommServiceCallbacks {
             if (atTime == null || it.isAfter(atTime)) atTime = it
         }
         atTime?.let {
-            title += " at ${shortTime(it)}"
+            title += " 于 ${shortTime(it)}"
         }
 
         var contentText = ""
         if (currentPumpData.batteryPercent != null) {
-            contentText += "Battery: ${currentPumpData.batteryPercent}%\u00A0\u00A0\u00A0"
+            contentText += "电池：${currentPumpData.batteryPercent}%\u00A0\u00A0\u00A0"
         }
         if (currentPumpData.iobUnits != null) {
-            contentText += "IOB: ${currentPumpData.iobUnits}u\u00A0\u00A0\u00A0"
+            contentText += "活性胰岛素（IOB）：${currentPumpData.iobUnits}u\u00A0\u00A0\u00A0"
         }
         if (currentPumpData.cartridgeRemainingUnits != null) {
-            contentText += "Cartridge: ${currentPumpData.cartridgeRemainingUnits}u"
+            contentText += "储药器：${currentPumpData.cartridgeRemainingUnits}u"
         }
         currentPumpData.connectionTime?.let {
-            contentText += "    \nConnection established at: ${shortTime(it)}"
+            contentText += "    \n连接建立时间：${shortTime(it)}"
         }
 
         return builder

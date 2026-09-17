@@ -79,9 +79,9 @@ fun BolusWindow(
     val carbsRawValue = dataStore.bolusCarbsRawValue.observeAsState()
     val glucoseRawValue = dataStore.bolusGlucoseRawValue.observeAsState()
 
-    var unitsSubtitle by remember { mutableStateOf<String>("Units") }
-    var carbsSubtitle by remember { mutableStateOf<String>("Carbs (g)") }
-    var glucoseSubtitle by remember { mutableStateOf<String>("BG ($unitAbbrev)") }
+    var unitsSubtitle by remember { mutableStateOf<String>("单位") }
+    var carbsSubtitle by remember { mutableStateOf<String>("碳水 (g)") }
+    var glucoseSubtitle by remember { mutableStateOf<String>("血糖 ($unitAbbrev)") }
 
     var unitsHumanEntered by remember { mutableStateOf<Double?>(null) }
     var unitsHumanFocus by remember { mutableStateOf(false) }
@@ -262,11 +262,11 @@ fun BolusWindow(
         // TODO: invalid logic for attributing override vs pre-filled units
         unitsSubtitle = when {
             unitsHumanEntered == null -> when {
-                dataStore.bolusCurrentParameters.value == null -> "Units"
-                dataStore.bolusCurrentParameters.value?.units == 0.0 -> "Units"
-                else -> "Calculated"
+                dataStore.bolusCurrentParameters.value == null -> "单位"
+                dataStore.bolusCurrentParameters.value?.units == 0.0 -> "单位"
+                else -> "计算"
             }
-            else -> "Override"
+            else -> "手动覆盖"
         }
 
         val autofilledBg = dataStore.bolusCalculatorBuilder.value?.glucoseMgdl?.orElse(null)
@@ -277,9 +277,9 @@ fun BolusWindow(
             dataStore.bolusGlucoseRawValue.value = GlucoseConverter.format(autofilledBg, glucoseUnit)
         }
         glucoseSubtitle = when {
-            glucoseHumanEntered != null -> "Entered ($unitAbbrev)"
+            glucoseHumanEntered != null -> "手动输入 ($unitAbbrev)"
             autofilledBg != null -> "CGM ($unitAbbrev)"
-            else -> "BG ($unitAbbrev)"
+            else -> "血糖 ($unitAbbrev)"
         }
     }
 
@@ -313,7 +313,7 @@ fun BolusWindow(
         recalculate()
     }
 
-    HeaderLine("Bolus")
+    HeaderLine("大剂量")
 
     BolusEntryFormRegion(
         unitsSubtitle = unitsSubtitle,

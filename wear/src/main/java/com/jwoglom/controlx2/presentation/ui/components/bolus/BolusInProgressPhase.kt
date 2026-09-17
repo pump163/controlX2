@@ -69,7 +69,7 @@ fun BolusInProgressPhase(
         Alert(
             title = {
                 Text(
-                    text = bolusFinalParameters.value?.let { "${it.units}u Bolus" } ?: "",
+                    text = bolusFinalParameters.value?.let { "${it.units}u 大剂量" } ?: "",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
                 )
@@ -80,30 +80,30 @@ fun BolusInProgressPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             },
             positiveButton = {},
             scrollState = scrollState,
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), "大剂量图标", Modifier.size(24.dp))
             }
         ) {
             Text(
                 text = when {
-                    bolusInitiateResponse.value != null -> "Bolus request received by pump, waiting for response..."
+                    bolusInitiateResponse.value != null -> "胰岛素泵已收到大剂量请求，等待响应…"
                     bolusFinalParameters.value != null && bolusMinNotifyThreshold.value != null -> when {
                         bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold.value!! ->
                             if (countdownSeconds > 0)
-                                "The bolus will begin unless canceled on the phone in $countdownSeconds seconds."
+                                "$countdownSeconds 秒后开始输注大剂量，如需取消请在手机上操作。"
                             else if ((wearAutoApproveTimeout.value ?: 0) > 0)
-                                "Auto-approving bolus..."
+                                "自动批准大剂量…"
                             else
-                                "A notification was sent to approve the request."
-                        else -> "Sending request to pump..."
+                                "已发送通知以批准请求。"
+                        else -> "正在向胰岛素泵发送请求…"
                     }
 
-                    else -> "Sending request to phone..."
+                    else -> "正在向手机发送请求…"
                 },
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.body2,

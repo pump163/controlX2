@@ -72,11 +72,11 @@ fun XdripSettingsScreen() {
                     val newConfig = config.copy(enabled = !config.enabled)
                     saveConfig(
                         newConfig,
-                        toastText = if (newConfig.enabled) "xDrip enabled" else "xDrip disabled",
+                        toastText = if (newConfig.enabled) "xDrip 已启用" else "xDrip 已关闭",
                     )
                 },
-                label = { Text(if (config.enabled) "Enabled" else "Disabled", fontSize = 13.sp) },
-                secondaryLabel = { Text("Tap to toggle", fontSize = 10.sp) },
+                label = { Text(if (config.enabled) "已启用" else "已关闭", fontSize = 13.sp) },
+                secondaryLabel = { Text("点击切换", fontSize = 10.sp) },
                 colors = if (config.enabled) ChipDefaults.primaryChipColors()
                     else ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -84,28 +84,28 @@ fun XdripSettingsScreen() {
         }
         item {
             PayloadToggleChip(
-                label = "Send SGV",
+                label = "发送 SGV",
                 enabled = config.sendCgmSgv,
                 onClick = { togglePayload(XdripPayloadGroup.CGM) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Device status",
+                label = "设备状态",
                 enabled = config.sendPumpDeviceStatus,
                 onClick = { togglePayload(XdripPayloadGroup.PUMP_DEVICE_STATUS) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Treatments",
+                label = "治疗记录",
                 enabled = config.sendTreatments,
                 onClick = { togglePayload(XdripPayloadGroup.TREATMENTS) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Status line",
+                label = "状态行",
                 enabled = config.sendStatusLine,
                 onClick = { togglePayload(XdripPayloadGroup.STATUS_LINE) },
             )
@@ -122,7 +122,7 @@ private fun PayloadToggleChip(
     Chip(
         onClick = onClick,
         label = { Text(label, fontSize = 12.sp) },
-        secondaryLabel = { Text(if (enabled) "On" else "Off", fontSize = 10.sp) },
+        secondaryLabel = { Text(if (enabled) "开" else "关", fontSize = 10.sp) },
         colors = if (enabled) ChipDefaults.primaryChipColors()
             else ChipDefaults.secondaryChipColors(),
         modifier = Modifier.fillMaxWidth(),

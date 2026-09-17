@@ -446,7 +446,7 @@ private fun formatCarbGrams(grams: Int): String {
 private fun formatBolusTooltip(units: Float, isAutomated: Boolean, timestamp: Long): String {
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
     val timeStr = timeFormat.format(Date(timestamp * 1000))
-    val typeStr = if (isAutomated) "Auto" else "Bolus"
+    val typeStr = if (isAutomated) "自动" else "大剂量"
     val pattern = if (units >= 1f) "%.1fU" else "%.2fU"
     val unitsStr = String.format(Locale.getDefault(), pattern, units)
     return "$unitsStr\n$typeStr @ $timeStr"
@@ -1970,7 +1970,7 @@ fun VicoCgmChart(
                     ) {}
                     Spacer(Modifier.width(Spacing.ExtraSmall))
                     Text(
-                        "Sleep",
+                        "睡眠",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1986,7 +1986,7 @@ fun VicoCgmChart(
                     ) {}
                     Spacer(Modifier.width(Spacing.ExtraSmall))
                     Text(
-                        "Exercise",
+                        "运动",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2012,25 +2012,25 @@ fun ChartLegend(
     ) {
         LegendItem(
             color = GlucoseColors.InRange,
-            label = "Glucose",
+            label = "血糖",
             shape = LegendShape.LINE
         )
         LegendItem(
             color = InsulinColors.Bolus,
-            label = "Bolus",
+            label = "大剂量",
             shape = LegendShape.CIRCLE
         )
         if (showCarbs) {
             LegendItem(
                 color = CarbColor,
-                label = "Carbs",
+                label = "碳水",
                 shape = LegendShape.SQUARE
             )
         }
         if (showBasal) {
             LegendItem(
                 color = InsulinColors.Basal,
-                label = "Basal",
+                label = "基础率",
                 shape = LegendShape.LINE
             )
         }

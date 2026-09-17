@@ -128,7 +128,7 @@ class PumpBatteryComplicationDataSourceService : SuspendingComplicationDataSourc
             "complicationData: $displayType $pumpBattery $duration $percentLabel $percentValue"
         )
 
-        val caseContentDescription = "Pump Battery ($displayType)"
+        val caseContentDescription = "胰岛素泵电池 ($displayType)"
 
         // Create a content description that includes the value information
         val contentDescription = PlainComplicationText.Builder(

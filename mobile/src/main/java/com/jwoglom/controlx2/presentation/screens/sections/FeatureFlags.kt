@@ -45,11 +45,11 @@ fun FeatureFlags(
         content = {
             item {
                 ListItem(
-                    headlineContent = { Text("Back") },
+                    headlineContent = { Text("返回") },
                     leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                     modifier = Modifier.clickable { navigateBack() },
                 )
-                HeaderLine("Feature Flags")
+                HeaderLine("功能开关")
                 Divider()
             }
 

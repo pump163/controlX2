@@ -88,11 +88,11 @@ class MobileClientService : Service() {
                 }
                 override fun onBolusBlockedSignature() {
                     Timber.w("MobileClientService: blocked bolus signature")
-                    Toast.makeText(applicationContext, "Bolus blocked: invalid signature", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, "大剂量被阻止：签名无效", Toast.LENGTH_LONG).show()
                 }
                 override fun onBolusNotEnabled() {
                     Timber.w("MobileClientService: bolus not enabled")
-                    Toast.makeText(applicationContext, "Bolus not enabled on pump-host", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, "泵主机未启用大剂量", Toast.LENGTH_LONG).show()
                 }
             },
             scope = serviceScope,
@@ -134,10 +134,10 @@ class MobileClientService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             channelId,
-            "Client Service notifications",
+            "客户端服务通知",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "ControlX2 client service channel"
+            description = "ControlX2 客户端服务渠道"
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)
@@ -147,15 +147,15 @@ class MobileClientService : Service() {
         }
 
         val stateText = when (connectionState) {
-            ClientConnectionState.HOST_CONNECTED_PUMP_CONNECTED -> "Watch connected to pump"
-            ClientConnectionState.HOST_CONNECTED_PUMP_DISCONNECTED -> "Watch connected, pump disconnected"
-            ClientConnectionState.HOST_DISCONNECTED -> "Watch disconnected"
-            ClientConnectionState.UNKNOWN -> "Connecting to watch..."
+            ClientConnectionState.HOST_CONNECTED_PUMP_CONNECTED -> "手表已连接泵"
+            ClientConnectionState.HOST_CONNECTED_PUMP_DISCONNECTED -> "手表已连接，泵已断开"
+            ClientConnectionState.HOST_DISCONNECTED -> "手表已断开"
+            ClientConnectionState.UNKNOWN -> "正在连接手表..."
         }
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("ControlX2 Client: $stateText")
-            .setContentText("Watch is managing the pump connection")
+            .setContentTitle("ControlX2 客户端：$stateText")
+            .setContentText("手表正在管理泵连接")
             .setContentIntent(pendingIntent)
             .setSmallIcon(IconCompat.createWithResource(this, R.drawable.pump))
             .setPriority(NotificationCompat.PRIORITY_LOW)

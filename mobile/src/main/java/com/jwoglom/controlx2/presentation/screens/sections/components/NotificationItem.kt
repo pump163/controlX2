@@ -116,7 +116,7 @@ fun NotificationItem(
             when (it) {
                 SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> {
                     dismissNotification()
-                    Toast.makeText(context, "Dismissing notification", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "正在关闭通知", Toast.LENGTH_SHORT).show()
                 }
                 SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
             }
@@ -133,11 +133,11 @@ fun NotificationItem(
                 headlineContent = {
                     Text(
                         when (notification) {
-                            is AlertStatusResponse.AlertResponseType -> "Alert: ${notification.name}"
-                            is ReminderStatusResponse.ReminderType -> "Reminder: ${notification.name}"
-                            is AlarmStatusResponse.AlarmResponseType -> "Alarm: ${notification.name}"
-                            is CGMAlertStatusResponse.CGMAlert -> "CGM Alert: ${notification.name}"
-                            is HighestAamResponse -> "MALFUNCTION: ${notification.errorString}"
+                            is AlertStatusResponse.AlertResponseType -> "警报：${notification.name}"
+                            is ReminderStatusResponse.ReminderType -> "提醒：${notification.name}"
+                            is AlarmStatusResponse.AlarmResponseType -> "报警：${notification.name}"
+                            is CGMAlertStatusResponse.CGMAlert -> "CGM 警报：${notification.name}"
+                            is HighestAamResponse -> "故障：${notification.errorString}"
                             else -> "$notification"
                         }
                     )
@@ -152,7 +152,7 @@ fun NotificationItem(
                             notification.description ?: ""
                         )
 
-                        is HighestAamResponse -> Text("This alert cannot be cleared and DIY app developers cannot assist you with this problem.\nFor further instructions please contact Tandem technical support and reference the above code.")
+                        is HighestAamResponse -> Text("此警报无法清除，DIY 应用开发者无法就此问题为您提供帮助。\n如需进一步说明，请联系 Tandem 技术支持并提供上述代码。")
                         else -> {}
                     }
                 },
@@ -160,27 +160,27 @@ fun NotificationItem(
                     when (notification) {
                         is AlertStatusResponse.AlertResponseType -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "Alert"
+                            contentDescription = "警报"
                         )
 
                         is ReminderStatusResponse.ReminderType -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "Reminder"
+                            contentDescription = "提醒"
                         )
 
                         is AlarmStatusResponse.AlarmResponseType -> Icon(
                             Icons.Filled.Warning,
-                            contentDescription = "Alarm"
+                            contentDescription = "报警"
                         )
 
                         is CGMAlertStatusResponse.CGMAlert -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "CGM Alert"
+                            contentDescription = "CGM 警报"
                         )
 
                         is HighestAamResponse -> Icon(
                             Icons.Filled.Warning,
-                            contentDescription = "Malfunction"
+                            contentDescription = "故障"
                         )
                     }
                 }
@@ -213,12 +213,12 @@ fun DismissBackground(dismissState: SwipeToDismissBoxState) {
     ) {
         Icon(
             Icons.Default.Delete,
-            contentDescription = "Dismiss"
+            contentDescription = "关闭"
         )
         Spacer(modifier = Modifier)
         Icon(
             Icons.Default.Delete,
-            contentDescription = "Dismiss"
+            contentDescription = "关闭"
         )
     }
 }

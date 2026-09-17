@@ -50,11 +50,11 @@ fun PumpDisconnectedReconnectingScreen() {
     ) {
         Icon(
             imageVector = Icons.Filled.Warning,
-            contentDescription = "Disconnected",
+            contentDescription = "已断开",
             modifier = Modifier.size(24.dp),
         )
         Text(
-            text = "Disconnected, reconnecting…",
+            text = "已断开，正在重连…",
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -64,7 +64,7 @@ fun PumpDisconnectedReconnectingScreen() {
 
         Chip(
             onClick = { (context as? MainActivity)?.stopPumpService() },
-            label = { Text("Stop", fontSize = 12.sp) },
+            label = { Text("停止", fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

@@ -48,7 +48,7 @@ fun CustomTimeText(
         val isEmulator = Build.PRODUCT.startsWith("sdk_gwear")
 
         if (BuildConfig.DEBUG && !isEmulator) {
-            "Debug"
+            "调试版"
         } else {
             null
         }

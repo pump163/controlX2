@@ -67,28 +67,28 @@ fun SensorInfoCard(
                 if (cgmSessionState == CGMSessionState.ACTIVE) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Expires",
+                        label = "探头到期",
                         value = if (!sensorExpiration.isNullOrEmpty()) sensorExpiration else null,
                         color = getSensorExpirationColor(sensorExpiration)
                     )
                 } else if (cgmSessionState == CGMSessionState.STARTING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Starting",
+                        label = "探头启动中",
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Stopping",
+                        label = "探头停止中",
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPED) {
                     SensorItem(
                         icon = Icons.Default.SensorAlert,
-                        label = "No CGM Sensor Active",
+                        label = "无激活的CGM探头",
                         value = null,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -97,7 +97,7 @@ fun SensorInfoCard(
                 if (!transmitterBattery.isNullOrEmpty()) {
                     SensorItem(
                         icon = getTransmitterBatteryIcon(transmitterBattery),
-                        label = "Transmitter",
+                        label = "发射器",
                         value = transmitterBattery ?: "--",
                         color = getTransmitterBatteryColor(transmitterBattery)
                     )

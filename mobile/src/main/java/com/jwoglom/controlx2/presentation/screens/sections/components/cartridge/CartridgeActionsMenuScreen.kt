@@ -47,19 +47,19 @@ fun CartridgeActionsMenuScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            HeaderLine("Cartridge Actions")
+            HeaderLine("储药器操作")
             Divider()
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("Insulin control is not supported on this device model (${model}).")
+                Line("此设备型号不支持胰岛素控制（${model}）。")
                 Line("")
             }
         }
 
         item {
             MenuActionItem(
-                title = "Change Cartridge",
+                title = "更换储药器",
                 enabled = changeCartridgeEnabled,
                 disabledReason = changeCartridgeDisabledReason,
                 onClick = onChangeCartridge,
@@ -68,7 +68,7 @@ fun CartridgeActionsMenuScreen(
 
         item {
             MenuActionItem(
-                title = "Fill Tubing",
+                title = "充盈导管",
                 enabled = fillTubingEnabled,
                 disabledReason = fillTubingDisabledReason,
                 onClick = onFillTubing,
@@ -77,7 +77,7 @@ fun CartridgeActionsMenuScreen(
 
         item {
             MenuActionItem(
-                title = "Fill Cannula",
+                title = "充盈插管",
                 enabled = fillCannulaEnabled,
                 disabledReason = fillCannulaDisabledReason,
                 onClick = onFillCannula,
@@ -86,7 +86,7 @@ fun CartridgeActionsMenuScreen(
 
         item {
             ListItem(
-                headlineContent = { Text("Back") },
+                headlineContent = { Text("返回") },
                 leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onBack),
             )

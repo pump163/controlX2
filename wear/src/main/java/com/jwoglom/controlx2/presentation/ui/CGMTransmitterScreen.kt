@@ -105,12 +105,12 @@ fun CGMTransmitterScreen(
     // launcher is a stable () -> Unit returned by rememberRemoteTextInputLauncher.
 
     val g6SensorCodeLauncher = rememberRemoteTextInputLauncher(
-        label = "G6 sensor code (digits or 0000)",
+        label = "G6探头代码（数字或0000）",
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
         if (code == null) {
-            pendingError = "Sensor code must be numeric."
+            pendingError = "探头代码必须为数字。"
             return@rememberRemoteTextInputLauncher
         }
         pendingG6SensorCode = code
@@ -118,11 +118,11 @@ fun CGMTransmitterScreen(
     }
 
     val g6TxIdLauncher = rememberRemoteTextInputLauncher(
-        label = "G6 transmitter ID (6 chars)",
+        label = "G6发射器ID（6位字符）",
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         if (result.length != 6) {
-            pendingError = "Transmitter ID must be exactly 6 characters."
+            pendingError = "发射器ID必须为6位字符。"
             return@rememberRemoteTextInputLauncher
         }
         pendingG6TxId = result.uppercase()
@@ -131,12 +131,12 @@ fun CGMTransmitterScreen(
     }
 
     val g7CodeLauncher = rememberRemoteTextInputLauncher(
-        label = "G7 pairing code (8 digits)",
+        label = "G7配对码（8位数字）",
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
         if (code == null) {
-            pendingError = "Pairing code must be numeric."
+            pendingError = "配对码必须为数字。"
             return@rememberRemoteTextInputLauncher
         }
         pendingG7Code = code
@@ -227,7 +227,7 @@ fun CGMTransmitterScreen(
         return
     }
 
-    val sessionLabel = sessionState ?: "Unknown"
+    val sessionLabel = sessionState ?: "未知"
     val transmitterLabel = transmitterStatus.takeUnless { it.isNullOrBlank() } ?: "—"
 
     ScalingLazyColumn(
@@ -249,7 +249,7 @@ fun CGMTransmitterScreen(
         }
         item {
             Text(
-                text = "Session: $sessionLabel  •  Transmitter: $transmitterLabel",
+                text = "会话：$sessionLabel  •  发射器：$transmitterLabel",
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -258,9 +258,9 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = g6TxIdLauncher,
-                label = { Text("Start G6 sensor", fontSize = 13.sp) },
+                label = { Text("启动G6探头", fontSize = 13.sp) },
                 secondaryLabel = {
-                    Text("Transmitter ID + sensor code", fontSize = 10.sp)
+                    Text("发射器ID + 探头代码", fontSize = 10.sp)
                 },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -269,9 +269,9 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = g7CodeLauncher,
-                label = { Text("Pair G7 sensor", fontSize = 13.sp) },
+                label = { Text("配对G7探头", fontSize = 13.sp) },
                 secondaryLabel = {
-                    Text("8-digit pairing code", fontSize = 10.sp)
+                    Text("8位配对码", fontSize = 10.sp)
                 },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -280,7 +280,7 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = { pendingStopConfirm = true },
-                label = { Text("Stop sensor session", fontSize = 13.sp) },
+                label = { Text("停止探头会话", fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -298,19 +298,19 @@ private fun StartG6ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Start G6 sensor with TX $txId, code $sensorCode?",
+                text = "用TX $txId、代码$sensorCode启动G6探头？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = "取消")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Start G6 sensor")
+                Icon(Icons.Filled.Check, contentDescription = "启动G6探头")
             }
         },
         icon = {
@@ -332,19 +332,19 @@ private fun PairG7ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Pair G7 sensor with code $code?",
+                text = "用代码$code配对G7探头？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = "取消")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Pair G7 sensor")
+                Icon(Icons.Filled.Check, contentDescription = "配对G7探头")
             }
         },
         icon = {
@@ -365,25 +365,25 @@ private fun StopSessionConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Stop the active CGM sensor session?",
+                text = "停止当前CGM探头会话？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = "取消")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Stop sensor session")
+                Icon(Icons.Filled.Check, contentDescription = "停止探头会话")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Stop,
-                contentDescription = "Stop",
+                contentDescription = "停止",
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -406,13 +406,13 @@ private fun InfoAlert(
         negativeButton = {},
         positiveButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "OK")
+                Icon(Icons.Filled.Check, contentDescription = "确定")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Clear,
-                contentDescription = "Info",
+                contentDescription = "信息",
                 modifier = Modifier.size(24.dp),
             )
         },

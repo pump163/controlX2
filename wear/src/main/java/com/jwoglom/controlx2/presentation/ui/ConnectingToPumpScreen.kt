@@ -46,7 +46,7 @@ fun ConnectingToPumpScreen() {
     ) {
         CircularProgressIndicator()
         Text(
-            text = "Connecting to pump",
+            text = "正在连接胰岛素泵",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -63,7 +63,7 @@ fun ConnectingToPumpScreen() {
         }
         Chip(
             onClick = { (context as? MainActivity)?.stopPumpService() },
-            label = { Text("Stop", fontSize = 12.sp) },
+            label = { Text("停止", fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

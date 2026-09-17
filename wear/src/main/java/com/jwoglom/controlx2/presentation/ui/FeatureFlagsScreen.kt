@@ -47,7 +47,7 @@ fun FeatureFlagsScreen() {
                         FeatureFlag.set(context, flag, enabled)
                     },
                     label = { Text(flag.slug, fontSize = 12.sp) },
-                    secondaryLabel = { Text(if (enabled) "On" else "Off", fontSize = 10.sp) },
+                    secondaryLabel = { Text(if (enabled) "开" else "关", fontSize = 10.sp) },
                     colors = if (enabled) ChipDefaults.primaryChipColors()
                         else ChipDefaults.secondaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),

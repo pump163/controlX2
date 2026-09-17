@@ -81,7 +81,7 @@ fun GlucoseHeroCard(
                 } else if (!noCgmConnected) {
                     "--"
                 } else {
-                    "n/a"
+                    "未连接"
                 }
 
                 Text(

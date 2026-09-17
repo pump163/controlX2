@@ -87,7 +87,7 @@ fun FillTubingWorkflowScreen(
     }
 
     CartridgeWorkflowScreen(
-        title = "Fill Tubing",
+        title = "充盈导管",
         innerPadding = innerPadding,
         stepInfo = WizardStepInfo(step.stepNumber, 5),
         canCancel = true,
@@ -101,15 +101,15 @@ fun FillTubingWorkflowScreen(
         body = {
             when (step) {
                 FillTubingStep.SUSPEND -> {
-                    Text("Important", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("重要提示", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Filling tubing requires suspending insulin delivery. You will use the pump button to fill.",
+                        "充盈导管需要暂停胰岛素输注。您将使用胰岛素泵按钮进行充盈。",
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 FillTubingStep.ENTER_MODE -> {
-                    Text("Clear all active pump notifications before continuing.", style = MaterialTheme.typography.bodyLarge)
+                    Text("继续前请清除所有活动的泵通知。", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     CartridgeNotificationsPanel(
                         notifications = activeNotifications,
@@ -118,22 +118,22 @@ fun FillTubingWorkflowScreen(
                         refreshNotifications = refreshNotifications,
                     )
                     if (hasActiveNotifications) {
-                        NotificationsBlockingWarning("Clear all notifications before starting tubing fill.")
+                        NotificationsBlockingWarning("开始充盈导管前请清除所有通知。")
                     }
                 }
                 FillTubingStep.FILLING -> {
-                    Text("Press and hold the button on your pump to fill tubing.", style = MaterialTheme.typography.bodyLarge)
+                    Text("按住胰岛素泵上的按钮以充盈导管。", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Release the button when you see insulin at the end of the tubing.", style = MaterialTheme.typography.bodyLarge)
+                    Text("当看到导管末端有胰岛素时松开按钮。", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     when (fillTubingButtonDown) {
                         true -> {
-                            Text("FILLING... keep holding the pump button.", style = MaterialTheme.typography.bodyLarge)
+                            Text("充盈中...继续按住泵按钮。", style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.height(8.dp))
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         }
-                        false -> Text("Pump button released. Can you see insulin at the end of the tubing?", style = MaterialTheme.typography.bodyLarge)
-                        null -> Text("Waiting for tubing fill input...", style = MaterialTheme.typography.bodyLarge)
+                        false -> Text("泵按钮已松开。您是否看到导管末端有胰岛素？", style = MaterialTheme.typography.bodyLarge)
+                        null -> Text("等待导管充盈输入...", style = MaterialTheme.typography.bodyLarge)
                     }
                     if (hasActiveNotifications) {
                         Spacer(modifier = Modifier.height(12.dp))
@@ -143,14 +143,14 @@ fun FillTubingWorkflowScreen(
                             sendPumpCommands = sendPumpCommands,
                             refreshNotifications = refreshNotifications,
                         )
-                        NotificationsBlockingWarning("Clear all notifications before completing tubing fill.")
+                        NotificationsBlockingWarning("完成导管充盈前请清除所有通知。")
                     }
                 }
                 FillTubingStep.EXITING -> {
-                    Text("Finalizing tubing fill process...", style = MaterialTheme.typography.bodyLarge)
+                    Text("正在完成导管充盈流程...", style = MaterialTheme.typography.bodyLarge)
                 }
                 FillTubingStep.DONE -> {
-                    Text("You can now fill cannula and resume insulin.", style = MaterialTheme.typography.bodyLarge)
+                    Text("现在可以充盈插管并恢复胰岛素输注。", style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },
@@ -158,14 +158,14 @@ fun FillTubingWorkflowScreen(
             when (step) {
                 FillTubingStep.SUSPEND -> {
                     PrimaryActionButton(
-                        text = "Suspend insulin delivery",
+                        text = "暂停胰岛素输注",
                         loading = loadingSuspend,
                         onClick = { showSuspendConfirm = true },
                     )
                 }
                 FillTubingStep.ENTER_MODE -> {
                     PrimaryActionButton(
-                        text = "Start tubing fill",
+                        text = "开始充盈导管",
                         loading = loadingEnterMode,
                         enabled = !hasActiveNotifications,
                         onClick = {
@@ -178,14 +178,14 @@ fun FillTubingWorkflowScreen(
                     when {
                         fillTubingButtonDown == true -> {
                             PrimaryActionButton(
-                                text = "Filling...",
+                                text = "充盈中...",
                                 enabled = false,
                                 onClick = {},
                             )
                         }
                         hasDisplayedFlow -> {
                             PrimaryActionButton(
-                                text = "Complete tubing fill",
+                                text = "完成导管充盈",
                                 loading = loadingExitMode,
                                 enabled = !hasActiveNotifications,
                                 onClick = {
@@ -196,7 +196,7 @@ fun FillTubingWorkflowScreen(
                         }
                         else -> {
                             PrimaryActionButton(
-                                text = "Hold pump button to fill",
+                                text = "按住泵按钮以充盈",
                                 enabled = false,
                                 onClick = {},
                             )
@@ -205,12 +205,12 @@ fun FillTubingWorkflowScreen(
                 }
                 FillTubingStep.EXITING -> {
                     PrimaryActionButton(
-                        text = "Exiting fill mode...",
+                        text = "正在退出充盈模式...",
                         enabled = false,
                         onClick = {},
                     )
                 }
-                FillTubingStep.DONE -> PrimaryActionButton("Done", onClick = onDone)
+                FillTubingStep.DONE -> PrimaryActionButton("完成", onClick = onDone)
             }
         }
     )
@@ -218,11 +218,11 @@ fun FillTubingWorkflowScreen(
     if (showSuspendConfirm) {
         AlertDialog(
             onDismissRequest = { showSuspendConfirm = false },
-            title = { Text("Suspend insulin delivery?") },
-            text = { Text("This will stop all insulin delivery until you resume.") },
+            title = { Text("暂停胰岛素输注？") },
+            text = { Text("这将停止所有胰岛素输注，直到您恢复。") },
             dismissButton = {
                 TextButton(onClick = { showSuspendConfirm = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             },
             confirmButton = {
@@ -231,7 +231,7 @@ fun FillTubingWorkflowScreen(
                     loadingSuspend = true
                     onSuspend()
                 }) {
-                    Text("Suspend")
+                    Text("暂停")
                 }
             },
         )
@@ -240,11 +240,11 @@ fun FillTubingWorkflowScreen(
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
-            title = { Text("Cancel tubing fill?") },
-            text = { Text("The tubing fill is not complete. The app will try to exit fill mode.") },
+            title = { Text("取消充盈导管？") },
+            text = { Text("导管充盈未完成。应用将尝试退出充盈模式。") },
             dismissButton = {
                 TextButton(onClick = { showCancelConfirm = false }) {
-                    Text("No, continue")
+                    Text("不，继续")
                 }
             },
             confirmButton = {
@@ -253,7 +253,7 @@ fun FillTubingWorkflowScreen(
                     onCancelInProgress()
                     onDismiss()
                 }) {
-                    Text("Yes, cancel")
+                    Text("是，取消")
                 }
             },
         )

@@ -513,9 +513,9 @@ private fun disabledReasonForCartridgeMenuAction(
         return null
     }
     return when (requiredSubScreen) {
-        CartridgeSubScreen.CHANGE_CARTRIDGE -> "Complete Change Cartridge first."
-        CartridgeSubScreen.FILL_TUBING -> "Complete Fill Tubing first."
-        CartridgeSubScreen.FILL_CANNULA -> "Complete Fill Cannula first."
+        CartridgeSubScreen.CHANGE_CARTRIDGE -> "请先完成更换储药器。"
+        CartridgeSubScreen.FILL_TUBING -> "请先完成充盈导管。"
+        CartridgeSubScreen.FILL_CANNULA -> "请先完成充盈插管。"
         CartridgeSubScreen.MENU -> null
     }
 }

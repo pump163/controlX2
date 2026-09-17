@@ -429,7 +429,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
 
     // --- Notification ---
     private data class DisplayablePumpData(
-        var statusText: String = "Initializing...",
+        var statusText: String = "初始化中...",
         var connectionTime: Instant? = null,
         var lastMessageTime: Instant? = null,
         var batteryPercent: Int? = null,
@@ -472,8 +472,8 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
     private fun createNotification(): Notification {
         val channelId = "ControlX2 Pump Host"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(channelId, "Pump Host Service", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "ControlX2 pump host service"
+        val channel = NotificationChannel(channelId, "胰岛素泵主机服务", NotificationManager.IMPORTANCE_LOW).apply {
+            description = "ControlX2 胰岛素泵主机服务"
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)
@@ -630,8 +630,8 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         }
 
         started = true
-        Toast.makeText(this, "ControlX2 pump host starting", Toast.LENGTH_SHORT).show()
-        updateNotification("Initializing...")
+        Toast.makeText(this, "ControlX2 胰岛素泵主机启动中", Toast.LENGTH_SHORT).show()
+        updateNotification("初始化中...")
 
         if (WearPrefs(applicationContext).pumpFinderServiceEnabled()) {
             Timber.i("Starting WearPumpCommService in PumpFinder mode")
@@ -658,7 +658,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         try {
             unregisterReceiver(bleChangeReceiver)
         } catch (_: Exception) {}
-        Toast.makeText(this, "ControlX2 pump host stopped", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "ControlX2 胰岛素泵主机已停止", Toast.LENGTH_SHORT).show()
     }
 
     private fun prefs(context: Context): SharedPreferences? {

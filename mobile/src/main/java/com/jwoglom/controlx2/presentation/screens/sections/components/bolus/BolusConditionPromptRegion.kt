@@ -68,7 +68,7 @@ fun BolusConditionPromptRegion(
                         },
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Reject")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = "拒绝")
                     }
                 }
 
@@ -92,7 +92,7 @@ fun BolusConditionPromptRegion(
                         },
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Apply")
+                        Icon(imageVector = Icons.Filled.Check, contentDescription = "应用")
                     }
                 }
             }

@@ -33,7 +33,7 @@ fun LandingFooterActions(
                 modifier = Modifier.size(24.dp),
             )
         },
-        label = { Text("Settings", fontSize = 13.sp) },
+        label = { Text("设置", fontSize = 13.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 25.dp),

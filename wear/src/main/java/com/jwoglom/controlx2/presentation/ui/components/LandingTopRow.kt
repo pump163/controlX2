@@ -32,7 +32,7 @@ fun LandingTopRow() {
     FlowRow {
         FirstRowChip(
             labelText = model.batteryPercent?.let { "$it%" } ?: "?",
-            secondaryLabelText = "Battery",
+            secondaryLabelText = "电池",
             theme = when {
                 model.batteryPercent == null -> defaultTheme
                 model.batteryPercent > 50 -> greenTheme
@@ -44,7 +44,7 @@ fun LandingTopRow() {
 
         FirstRowChip(
             labelText = model.iobUnits?.let { "${String.format("%.1f", it)}u" } ?: "?",
-            secondaryLabelText = "IOB",
+            secondaryLabelText = "活性胰岛素",
             theme = defaultTheme,
             numItems = 3,
         )
@@ -53,7 +53,7 @@ fun LandingTopRow() {
             labelText = model.cartridgeRemainingUnits?.let {
                 "${it}u${if (model.cartridgeRemainingEstimate == true) "+" else ""}"
             } ?: "?",
-            secondaryLabelText = "Cartridge",
+            secondaryLabelText = "储药器",
             theme = when {
                 model.cartridgeRemainingUnits == null -> defaultTheme
                 model.cartridgeRemainingUnits > 75 -> greenTheme

@@ -303,11 +303,11 @@ fun WearApp(
 
                 // WaitingForPhone
                 composable(Screen.WaitingForPhone.route) {
-                    IndeterminateProgressIndicator(text = "Waiting for phone")
+                    IndeterminateProgressIndicator(text = "等待连接手机")
                 }
 
                 composable(Screen.WaitingToFindPump.route) {
-                    IndeterminateProgressIndicator(text = "Waiting to find pump")
+                    IndeterminateProgressIndicator(text = "等待查找胰岛素泵")
                 }
 
                 composable(Screen.ConnectingToPump.route) {
@@ -315,11 +315,11 @@ fun WearApp(
                 }
 
                 composable(Screen.PairingToPump.route) {
-                    IndeterminateProgressIndicator(text = "Pairing to pump")
+                    IndeterminateProgressIndicator(text = "正在配对胰岛素泵")
                 }
 
                 composable(Screen.MissingPairingCode.route) {
-                    IndeterminateProgressIndicator(text = "Pump pairing needed")
+                    IndeterminateProgressIndicator(text = "需要配对胰岛素泵")
                 }
 
                 composable(Screen.PumpDisconnectedReconnecting.route) {
@@ -508,9 +508,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (controlIQMode.value) {
-                                    UserMode.SLEEP -> "Disable Sleep mode?"
-                                    UserMode.NONE -> "Enable Sleep mode?"
-                                    else -> "Already in ${controlIQMode.value?.str} mode, that must be disabled first."
+                                    UserMode.SLEEP -> "关闭睡眠模式？"
+                                    UserMode.NONE -> "开启睡眠模式？"
+                                    else -> "当前已处于${controlIQMode.value?.str}模式，需先关闭该模式。"
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
@@ -523,7 +523,7 @@ fun WearApp(
                                 },
                                 colors = ButtonDefaults.secondaryButtonColors()
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
                             }
                         },
                         positiveButton = {
@@ -537,7 +537,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Disable Sleep mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "关闭睡眠模式")
                                     }
 
                                 UserMode.NONE ->
@@ -549,7 +549,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Enable Sleep mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "开启睡眠模式")
                                     }
                                 else -> {}
                             }
@@ -557,7 +557,7 @@ fun WearApp(
                         icon = {
                             Image(
                                 Icons.Filled.KingBed,
-                                "Sleep mode",
+                                "睡眠模式",
                                 Modifier.size(24.dp)
                             )
                         },
@@ -571,9 +571,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (controlIQMode.value) {
-                                    UserMode.EXERCISE -> "Disable Exercise mode?"
-                                    UserMode.NONE -> "Enable Exercise mode?"
-                                    else -> "Already in ${controlIQMode.value?.str} mode, that must be disabled first."
+                                    UserMode.EXERCISE -> "关闭运动模式？"
+                                    UserMode.NONE -> "开启运动模式？"
+                                    else -> "当前已处于${controlIQMode.value?.str}模式，需先关闭该模式。"
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
@@ -586,7 +586,7 @@ fun WearApp(
                                 },
                                 colors = ButtonDefaults.secondaryButtonColors()
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
                             }
                         },
                         positiveButton = {
@@ -600,7 +600,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Disable Exercise mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "关闭运动模式")
                                     }
 
                                 UserMode.NONE ->
@@ -612,7 +612,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Enable Exercise mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "开启运动模式")
                                     }
                                 else -> {}
                             }
@@ -620,7 +620,7 @@ fun WearApp(
                         icon = {
                             Image(
                                 Icons.AutoMirrored.Filled.DirectionsRun,
-                                "Exercise mode",
+                                "运动模式",
                                 Modifier.size(24.dp)
                             )
                         },
@@ -646,9 +646,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (basalStatus.value) {
-                                    BasalStatus.PUMP_SUSPENDED -> "Resume insulin deliveries?"
-                                    BasalStatus.UNKNOWN, null -> "Insulin state unknown, try again in a moment."
-                                    else -> "Suspend all insulin deliveries?"
+                                    BasalStatus.PUMP_SUSPENDED -> "恢复胰岛素输注？"
+                                    BasalStatus.UNKNOWN, null -> "胰岛素状态未知，请稍后重试。"
+                                    else -> "暂停所有胰岛素输注？"
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground,
@@ -659,7 +659,7 @@ fun WearApp(
                                 onClick = { navController.navigate(Screen.Landing.route) },
                                 colors = ButtonDefaults.secondaryButtonColors(),
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "取消")
                             }
                         },
                         positiveButton = {
@@ -673,7 +673,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors(),
                                     ) {
-                                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = "Resume insulin")
+                                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = "恢复胰岛素")
                                     }
                                 BasalStatus.UNKNOWN, null -> {}
                                 else ->
@@ -685,7 +685,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors(),
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Suspend insulin")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "暂停胰岛素")
                                     }
                             }
                         },
@@ -695,7 +695,7 @@ fun WearApp(
                                     BasalStatus.PUMP_SUSPENDED -> Icons.Filled.PlayArrow
                                     else -> Icons.Filled.Stop
                                 },
-                                contentDescription = "Insulin",
+                                contentDescription = "胰岛素",
                                 modifier = Modifier.size(24.dp),
                             )
                         },
@@ -756,7 +756,7 @@ fun WearApp(
                     }
 
                     DecimalNumberPicker(
-                        label = "Units",
+                        label = "单位",
                         onNumberConfirm = {
                             navController.popBackStack()
                             bolusUnitsUserInput = it
@@ -782,7 +782,7 @@ fun WearApp(
                     val maxCarbAmount = ds.maxCarbAmount.observeAsState()
                     val currentCarbs = bolusCalculatorBuilder.value?.carbsValueGrams?.orElse(null)
                     SingleNumberPicker(
-                        label = "Carbs",
+                        label = "碳水",
                         maxNumber = when {
                             maxCarbAmount.value != null -> maxCarbAmount.value!!
                             else -> 100
@@ -809,7 +809,7 @@ fun WearApp(
                     val glucoseUnit = glucoseUnitPreference.value ?: GlucoseUnit.MGDL
 
                     SingleNumberPicker(
-                        label = "BG (${glucoseUnit.abbreviation})",
+                        label = "血糖 (${glucoseUnit.abbreviation})",
                         minNumber = 40,
                         maxNumber = 400,
                         defaultNumber = when {
@@ -826,18 +826,18 @@ fun WearApp(
                 }
 
                 composable(Screen.BolusBlocked.route) {
-                    FullScreenText("A bolus was blocked which didn't match the units requested. This is either a bug in ControlX2 or another actor is attempting to bolus via your phone and/or watch unsuccessfully.")
+                    FullScreenText("大剂量被阻止，请求的单位数值不匹配。这可能是 ControlX2 的 bug，或有其他程序正试图通过你的手机和/或手表进行大剂量操作但未成功。")
                     BottomText()
                 }
                 composable(Screen.BolusNotEnabled.route) {
-                    FullScreenText("A bolus was requested, but actions affecting insulin delivery are not enabled in the phone app settings.")
+                    FullScreenText("已请求大剂量，但手机应用设置中未启用影响胰岛素输注的操作。")
                     BottomText()
                 }
                 composable(Screen.BolusRejectedOnPhone.route) {
                     Alert(
                         title = {
                             Text(
-                                text = "Bolus Rejected on Phone",
+                                text = "大剂量在手机上被拒绝",
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
                             )
@@ -851,20 +851,20 @@ fun WearApp(
                                 modifier = Modifier.fillMaxWidth()
 
                             ) {
-                                Text("Cancel")
+                                Text("取消")
                             }
                         },
                         positiveButton = {},
                         icon = {
                             Image(
                                 painterResource(R.drawable.bolus_icon),
-                                "Bolus icon",
+                                "大剂量图标",
                                 Modifier.size(24.dp)
                             )
                         },
                     ) {
                         Text(
-                            text = "The bolus request was rejected by the connected phone.",
+                            text = "大剂量请求已被连接的手机拒绝。",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.body2,
                             color = MaterialTheme.colors.onBackground

@@ -129,7 +129,7 @@ fun WatchNotificationsScreen(
     ) {
         item {
             Text(
-                text = "Pump alerts",
+                text = "胰岛素泵提醒",
                 fontSize = 11.sp,
                 color = MaterialTheme.colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -139,7 +139,7 @@ fun WatchNotificationsScreen(
         if (items.isEmpty()) {
             item {
                 Text(
-                    text = "No active alerts.",
+                    text = "无活动提醒。",
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -175,7 +175,7 @@ private fun NotificationChip(
         },
         secondaryLabel = {
             Text(
-                text = if (canDismiss) "Tap to dismiss" else "Cannot be dismissed",
+                text = if (canDismiss) "点击关闭" else "无法关闭",
                 fontSize = 10.sp,
             )
         },
@@ -195,25 +195,25 @@ private fun DismissConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Dismiss ${notificationLabel(notification)}?",
+                text = "关闭${notificationLabel(notification)}？",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Keep")
+                Icon(Icons.Filled.Clear, contentDescription = "保留")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Dismiss")
+                Icon(Icons.Filled.Check, contentDescription = "关闭")
             }
         },
         icon = {
             Image(
                 imageVector = if (isAlarm) Icons.Filled.Warning else Icons.Filled.Notifications,
-                contentDescription = "Notification",
+                contentDescription = "通知",
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -221,11 +221,11 @@ private fun DismissConfirmAlert(
 }
 
 private fun notificationLabel(notification: Any): String = when (notification) {
-    is AlertStatusResponse.AlertResponseType -> "Alert: ${notification.name}"
-    is AlarmStatusResponse.AlarmResponseType -> "Alarm: ${notification.name}"
-    is ReminderStatusResponse.ReminderType -> "Reminder: ${notification.name}"
-    is CGMAlertStatusResponse.CGMAlert -> "CGM: ${notification.name}"
-    is HighestAamResponse -> "Malfunction: ${notification.errorString ?: ""}"
+    is AlertStatusResponse.AlertResponseType -> "提醒：${notification.name}"
+    is AlarmStatusResponse.AlarmResponseType -> "报警：${notification.name}"
+    is ReminderStatusResponse.ReminderType -> "提醒事项：${notification.name}"
+    is CGMAlertStatusResponse.CGMAlert -> "CGM：${notification.name}"
+    is HighestAamResponse -> "故障：${notification.errorString ?: ""}"
     else -> notification.toString()
 }
 

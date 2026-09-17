@@ -37,14 +37,14 @@ fun LastConnectionUpdatedTimestamp() {
 
     when {
         pumpConnected.value == false -> when {
-            pumpLastMessageTimestampRelative != null -> Line("Last connected: $pumpLastMessageTimestampRelative", bold = true)
-            pumpLastConnectionTimestamp.value != null -> Line("Device last seen: ${pumpLastConnectionTimestamp.value}", bold = true)
+            pumpLastMessageTimestampRelative != null -> Line("上次连接：$pumpLastMessageTimestampRelative", bold = true)
+            pumpLastConnectionTimestamp.value != null -> Line("设备上次在线：${pumpLastConnectionTimestamp.value}", bold = true)
             else -> {}
         }
         pumpLastMessageTimestamp.value == null -> {}
         pumpLastMessageTimestampRelative == null -> {}
         else -> {
-            Line("Last updated: $pumpLastMessageTimestampRelative", bold = true)
+            Line("上次更新：$pumpLastMessageTimestampRelative", bold = true)
         }
 
     }

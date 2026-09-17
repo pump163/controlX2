@@ -52,13 +52,13 @@ fun CartridgeWorkflowScreen(
         ) {
             Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Normal)
             TextButton(onClick = onCancel, enabled = canCancel) {
-                Text("Cancel")
+                Text("取消")
             }
         }
 
         stepInfo?.let {
             Text(
-                "Step ${it.currentStep} of ${it.totalSteps}",
+                "第 ${it.currentStep} 步，共 ${it.totalSteps} 步",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -105,7 +105,7 @@ fun PrimaryActionButton(
         modifier = Modifier.fillMaxWidth().height(56.dp),
     ) {
         if (loading) {
-            Text("Working...")
+            Text("处理中...")
         } else {
             Text(text)
         }
@@ -118,12 +118,12 @@ fun CartridgeWorkflowScreenPreview() {
     ControlX2Theme {
         Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
             CartridgeWorkflowScreen(
-                title = "Preview Cartridge",
+                title = "预览储药器",
                 onCancel = {},
                 body = {
-                    Text("Status", style = MaterialTheme.typography.titleMedium)
+                    Text("状态", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Example body content", style = MaterialTheme.typography.bodyLarge)
+                    Text("示例正文内容", style = MaterialTheme.typography.bodyLarge)
                 },
                 actions = {
                     PrimaryActionButton("Continue", onClick = {})

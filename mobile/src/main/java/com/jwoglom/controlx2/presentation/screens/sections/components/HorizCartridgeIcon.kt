@@ -49,14 +49,14 @@ fun HorizCartridgeIcon(
             Box {
                 Icon(
                     getPainterForCartridgePercent(percent),
-                    "Pump cartridge icon",
+                    "泵储药器图标",
                     tint = color,
                     modifier = modifier.height(height)
                 )
                 if (it == 0) {
                     Icon(
                         painterResource(R.drawable.cartridge_horiz_x),
-                        "Pump cartridge empty",
+                        "泵储药器为空",
                         tint = Color.Red,
                         modifier = modifier.height(height)
                     )

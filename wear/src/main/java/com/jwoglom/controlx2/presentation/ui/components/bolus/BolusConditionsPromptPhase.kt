@@ -67,12 +67,12 @@ fun BolusConditionsPromptPhase(
             },
             negativeButton = {
                 Button(onClick = { handlePromptAction(true) }, colors = ButtonDefaults.secondaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Do not apply")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "不应用")
                 }
             },
             positiveButton = {
                 Button(onClick = { handlePromptAction(false) }, colors = ButtonDefaults.primaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Apply")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = "应用")
                 }
             },
             scrollState = scrollState,

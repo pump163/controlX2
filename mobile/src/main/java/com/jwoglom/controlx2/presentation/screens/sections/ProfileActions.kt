@@ -210,12 +210,12 @@ fun ProfileActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Profile Actions")
+                    HeaderLine("配置文件操作")
                     HorizontalDivider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Profile control is not supported on this device model (${model}). Profiles can only be viewed.")
+                        Line("此设备型号不支持配置文件控制（${model}），仅可查看配置文件。")
                         Line("")
                     }
                 }
@@ -231,12 +231,12 @@ fun ProfileActions(
                                 ListItem(
                                     headlineContent = {
                                         Text(
-                                            "No profiles present"
+                                            "无配置文件"
                                         )
                                     },
                                     supportingContent = {
                                         Text(
-                                            "To continue, please configure at least one profile"
+                                            "请至少配置一个配置文件以继续"
                                         )
                                     },
                                 )
@@ -260,9 +260,9 @@ fun ProfileActions(
                                     supportingContent = {
                                         Text(
                                             buildAnnotatedString {
-                                                append("IDP ID ${profile.idpSettingsResponse.idpId} in slot ${profileIndex}")
+                                                append("IDP ID ${profile.idpSettingsResponse.idpId}，插槽 ${profileIndex}")
                                                 if (idpManager.value?.activeProfile?.idpId == profile.idpId) {
-                                                    append("\nActive Profile")
+                                                    append("\n当前配置文件")
                                                 }
                                             }
                                         )
@@ -297,7 +297,7 @@ fun ProfileActions(
                                                 },
                                                 modifier = Modifier.padding(top = 16.dp)
                                             ) {
-                                                Text("Back")
+                                                Text("返回")
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f),
@@ -306,7 +306,7 @@ fun ProfileActions(
                                         ),
                                         confirmButton = {},
                                         title = {
-                                            Text("Profile '${profile.idpSettingsResponse.name}'")
+                                            Text("配置文件 '${profile.idpSettingsResponse.name}'")
                                         },
                                         text = {
                                             LazyColumn(
@@ -338,11 +338,11 @@ fun ProfileActions(
                                                                 },
                                                                 supportingContent = {
                                                                     Text(buildAnnotatedString {
-                                                                        append("Carb ratio: ${segment.profileCarbRatio}")
+                                                                        append("碳水化合物比例：${segment.profileCarbRatio}")
                                                                         append("\n")
-                                                                        append("ISF: ${segment.profileISF}")
+                                                                        append("ISF：${segment.profileISF}")
                                                                         append("\n")
-                                                                        append("Target BG: ${segment.profileTargetBG}")
+                                                                        append("目标血糖：${segment.profileTargetBG}")
                                                                         append("\n")
                                                                     })
                                                                 },
@@ -363,7 +363,7 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Add Segment")
+                                                                Text("添加时段")
                                                             },
                                                             leadingContent = {
                                                                 Icon(
@@ -382,7 +382,7 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Delete Profile")
+                                                                Text("删除配置文件")
                                                             },
                                                             leadingContent = {
                                                                 Icon(
@@ -407,11 +407,11 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Set Active Profile")
+                                                                Text("设为当前配置文件")
                                                             },
                                                             supportingContent = {
                                                                 if (idpManager.value?.activeProfile?.idpId == profile.idpId) {
-                                                                    Text("This profile is already active")
+                                                                    Text("此配置文件已是当前配置")
                                                                 }
                                                             },
                                                             leadingContent = {
@@ -449,7 +449,7 @@ fun ProfileActions(
                 }
                 else {
                     item {
-                        LoadSpinner("Loading profiles...")
+                        LoadSpinner("正在加载配置文件...")
                     }
                 }
                 item {
@@ -465,11 +465,11 @@ fun ProfileActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Add New Profile"
+                                    "添加新配置文件"
                                 )
                             },
                             supportingContent = {
-                                Text("Create a new insulin delivery profile")
+                                Text("创建新的胰岛素输送配置文件")
                             },
                             leadingContent = {
                                 Icon(Icons.Filled.Add, contentDescription = null)
@@ -490,7 +490,7 @@ fun ProfileActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Back"
+                                    "返回"
                                 )
                             },
                             supportingContent = {

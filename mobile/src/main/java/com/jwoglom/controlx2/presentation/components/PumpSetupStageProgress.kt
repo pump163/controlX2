@@ -40,7 +40,7 @@ fun PumpSetupStageProgress(
     }
 
     Line(
-        "${setupStage.value?.description} (stage ${setupStage.value?.step ?: 0} of ${PumpSetupStage.PUMPX2_PUMP_CONNECTED.step})",
+        "${setupStage.value?.description}（第 ${setupStage.value?.step ?: 0} 步，共 ${PumpSetupStage.PUMPX2_PUMP_CONNECTED.step} 步）",
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(start = 10.dp, top = 10.dp)
     )

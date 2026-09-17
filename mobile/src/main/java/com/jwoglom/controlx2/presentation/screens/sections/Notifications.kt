@@ -167,12 +167,12 @@ fun Notifications(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Notifications")
+                    HeaderLine("通知")
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Notifications cannot be dismissed on this device model (${model}).")
+                        Line("此设备型号上无法关闭通知（${model}）。")
                         Line("")
                     }
                 }
@@ -180,13 +180,13 @@ fun Notifications(
                 Timber.i("Notifications fetched: ${notifications}")
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading notifications...")
+                        LoadSpinner("正在加载通知...")
                     }
                 } else if (notifications.isEmpty()) {
                     item {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) {
                             Spacer(Modifier.height(64.dp))
-                            Line("No notifications", style = TextStyle(textAlign = TextAlign.Center))
+                            Line("无通知", style = TextStyle(textAlign = TextAlign.Center))
                         }
                     }
                 }

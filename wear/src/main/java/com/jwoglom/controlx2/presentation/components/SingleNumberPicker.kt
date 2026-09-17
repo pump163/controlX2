@@ -194,7 +194,7 @@ fun SingleNumberPicker(
             }) {
                 Icon(
                     imageVector = Icons.Filled.Check,
-                    contentDescription = "Confirm",
+                    contentDescription = "确认",
                     modifier = Modifier
                         .size(24.dp)
                         .wrapContentSize(align = Alignment.Center)

@@ -17,7 +17,7 @@ fun BolusPermissionCheckPhase(
     Dialog(showDialog = showPermissionCheckDialog, onDismissRequest = onDismiss, scrollState = scrollState) {
         val bolusFinalParameters = dataStore.bolusFinalParameters.observeAsState()
         IndeterminateProgressIndicator(
-            text = bolusFinalParameters.value?.units?.let { "Requesting permission" } ?: "Invalid request!"
+            text = bolusFinalParameters.value?.units?.let { "正在请求权限" } ?: "无效请求！"
         )
     }
 }

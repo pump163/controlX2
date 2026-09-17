@@ -100,7 +100,7 @@ fun HistoryLogSyncProgressBar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "History Log Sync",
+                    text = "历史记录同步",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
@@ -108,7 +108,7 @@ fun HistoryLogSyncProgressBar(
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = if (isSynced) {
-                        "Synced"
+                        "已同步"
                     } else {
                         "$syncedLogs / $totalLogs"
                     },
@@ -134,7 +134,7 @@ fun HistoryLogSyncProgressBar(
             if (!isSynced && totalLogs > 0) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${(progress * 100).toInt()}% complete (${totalLogs - syncedLogs} logs remaining)",
+                    text = "${(progress * 100).toInt()}% 已完成（剩余 ${totalLogs - syncedLogs} 条记录）",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

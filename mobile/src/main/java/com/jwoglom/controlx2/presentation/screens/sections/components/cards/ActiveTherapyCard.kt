@@ -71,21 +71,21 @@ fun ActiveTherapyCard(
             ) {
                 TherapyItem(
                     icon = Icons.Default.Water,
-                    label = "Basal",
+                    label = "基础率",
                     value = basalRate ?: "--",
                     color = InsulinColors.Basal
                 )
 
                 TherapyItem(
                     icon = Icons.Default.Vaccines,
-                    label = "Last Bolus",
+                    label = "上次大剂量",
                     value = lastBolus ?: "--",
                     color = InsulinColors.Bolus
                 )
 
                 TherapyItem(
                     icon = getControlIQIcon(controlIQMode),
-                    label = "Mode",
+                    label = "模式",
                     value = controlIQMode ?: "--",
                     color = getControlIQColor(controlIQMode)
                 )
@@ -133,16 +133,16 @@ private fun TherapyItem(
 
 private fun getControlIQIcon(mode: String?): ImageVector {
     return when {
-        mode?.contains("Sleep", ignoreCase = true) == true -> Icons.Default.Bedtime
-        mode?.contains("Exercise", ignoreCase = true) == true -> Icons.Default.DirectionsRun
+        mode?.contains("睡眠", ignoreCase = true) == true -> Icons.Default.Bedtime
+        mode?.contains("运动", ignoreCase = true) == true -> Icons.Default.DirectionsRun
         else -> Icons.Default.Speed
     }
 }
 
 private fun getControlIQColor(mode: String?): Color {
     return when {
-        mode?.contains("Sleep", ignoreCase = true) == true -> Color(0xFF3F51B5)  // Indigo
-        mode?.contains("Exercise", ignoreCase = true) == true -> Color(0xFFFF9800)  // Orange
+        mode?.contains("睡眠", ignoreCase = true) == true -> Color(0xFF3F51B5)  // Indigo
+        mode?.contains("运动", ignoreCase = true) == true -> Color(0xFFFF9800)  // Orange
         else -> GlucoseColors.InRange
     }
 }
@@ -161,9 +161,9 @@ fun ActiveTherapyCardFromDataStore(
     val controlIQStatus = ds.controlIQStatus.observeAsState()
 
     val displayedMode = when (controlIQMode.value) {
-        UserMode.SLEEP -> "Sleep"
-        UserMode.EXERCISE -> "Exercise"
-        else -> controlIQStatus.value?.toString() ?: "None"
+        UserMode.SLEEP -> "睡眠"
+        UserMode.EXERCISE -> "运动"
+        else -> controlIQStatus.value?.toString() ?: "无"
     }
 
     ActiveTherapyCard(

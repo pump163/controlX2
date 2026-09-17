@@ -35,8 +35,8 @@ fun LandingModeActionsRow(
         item {
             Chip(
                 onClick = onExerciseClick,
-                label = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = "Exercise") },
-                secondaryLabel = { Text(if (controlIQMode == UserMode.EXERCISE) "ON" else "OFF", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                label = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = "运动") },
+                secondaryLabel = { Text(if (controlIQMode == UserMode.EXERCISE) "开" else "关", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -44,8 +44,8 @@ fun LandingModeActionsRow(
         item {
             Chip(
                 onClick = onSleepClick,
-                label = { Icon(Icons.Filled.KingBed, contentDescription = "Sleep") },
-                secondaryLabel = { Text(if (controlIQMode == UserMode.SLEEP) "ON" else "OFF", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                label = { Icon(Icons.Filled.KingBed, contentDescription = "睡眠") },
+                secondaryLabel = { Text(if (controlIQMode == UserMode.SLEEP) "开" else "关", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -61,12 +61,12 @@ fun LandingModeActionsRow(
                 label = {
                     Icon(
                         imageVector = if (suspended) Icons.Filled.PlayArrow else Icons.Filled.Stop,
-                        contentDescription = if (suspended) "Resume insulin" else "Stop insulin",
+                        contentDescription = if (suspended) "恢复输注" else "暂停输注",
                     )
                 },
                 secondaryLabel = {
                     Text(
-                        text = if (suspended) "STOPPED" else "ON",
+                        text = if (suspended) "已停止" else "开启",
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )

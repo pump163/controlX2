@@ -43,9 +43,9 @@ fun CartridgeNotificationsPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Active Notifications", style = MaterialTheme.typography.titleSmall)
+                Text("活动通知", style = MaterialTheme.typography.titleSmall)
                 TextButton(onClick = { refreshNotifications() }, enabled = !refreshing) {
-                    Text(if (refreshing) "Refreshing..." else "Refresh")
+                    Text(if (refreshing) "刷新中..." else "刷新")
                 }
             }
 
@@ -57,7 +57,7 @@ fun CartridgeNotificationsPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CircularProgressIndicator(strokeWidth = 2.dp)
-                        Text("Checking notifications...", style = MaterialTheme.typography.bodyMedium)
+                        Text("正在检查通知...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 notifications.isEmpty() -> {
@@ -67,7 +67,7 @@ fun CartridgeNotificationsPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                        Text("No active notifications", style = MaterialTheme.typography.bodyMedium)
+                        Text("无活动通知", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 else -> {

@@ -60,7 +60,7 @@ fun BolusCarbsAndBgRow(
             },
             secondaryLabel = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Carbs (grams)", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
+                    Text(text = "碳水（克）", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
                 }
             },
             contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
@@ -83,7 +83,7 @@ fun BolusCarbsAndBgRow(
             },
             secondaryLabel = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = model.bgSubtitle ?: "BG ($unitAbbrev)", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
+                    Text(text = model.bgSubtitle ?: "血糖（$unitAbbrev）", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
                 }
             },
             contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),

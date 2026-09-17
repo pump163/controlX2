@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -57,8 +56,7 @@ import java.time.format.DateTimeFormatter
 fun NightscoutSettings(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    pumpSid: Int = 0,
-    navigateBack: () -> Unit = {}
+    pumpSid: Int = 0
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("controlx2", android.content.Context.MODE_PRIVATE)
@@ -80,7 +78,7 @@ fun NightscoutSettings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Nightscout Settings")
+                HeaderLine("Nightscout 设置")
                 Divider()
             }
 
@@ -88,21 +86,21 @@ fun NightscoutSettings(
             item {
                 ListItem(
                     headlineContent = {
-                        Text(if (config.enabled) "Disable Nightscout Sync" else "Enable Nightscout Sync")
+                        Text(if (config.enabled) "禁用 Nightscout 同步" else "启用 Nightscout 同步")
                     },
                     supportingContent = {
                         Text(
                             if (config.enabled) {
-                                "Stops automatic upload to Nightscout"
+                                "停止自动上传到 Nightscout"
                             } else {
-                                "Starts automatic upload of pump data to Nightscout"
+                                "开始自动上传胰岛素泵数据到 Nightscout"
                             }
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (config.enabled) Icons.Filled.Close else Icons.Filled.Check,
-                            contentDescription = if (config.enabled) "Disable" else "Enable"
+                            contentDescription = if (config.enabled) "禁用" else "启用"
                         )
                     },
                     modifier = Modifier.clickable {
@@ -113,10 +111,10 @@ fun NightscoutSettings(
                         // Start/stop worker
                         if (newConfig.enabled) {
                             NightscoutSyncWorker.startIfEnabled(context, prefs, pumpSid)
-                            Toast.makeText(context, "Nightscout sync enabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Nightscout 同步已启用", Toast.LENGTH_SHORT).show()
                         } else {
                             NightscoutSyncWorker.stopIfRunning()
-                            Toast.makeText(context, "Nightscout sync disabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Nightscout 同步已禁用", Toast.LENGTH_SHORT).show()
                         }
 
                         syncStatus = NightscoutSyncStatusStore.load(prefs)
@@ -127,10 +125,10 @@ fun NightscoutSettings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Last successful sync") },
+                    headlineContent = { Text("上次成功同步") },
                     supportingContent = {
                         Text(
-                            syncStatus.lastSuccessfulSyncMillis?.let { formatTimestamp(it) } ?: "Never"
+                            syncStatus.lastSuccessfulSyncMillis?.let { formatTimestamp(it) } ?: "从未"
                         )
                     }
                 )
@@ -139,23 +137,23 @@ fun NightscoutSettings(
 
             item {
                 val connectionMessage = if (!config.enabled) {
-                    "Nightscout sync is disabled"
+                    "Nightscout 同步已禁用"
                 } else if (!config.isValid()) {
-                    "Nightscout config is incomplete"
+                    "Nightscout 配置不完整"
                 } else if (!syncStatus.lastError.isNullOrBlank()) {
-                    syncStatus.lastError ?: "Connection error"
+                    syncStatus.lastError ?: "连接错误"
                 } else {
-                    "Connected"
+                    "已连接"
                 }
 
                 val supportingMessage = if (config.enabled && !syncStatus.lastError.isNullOrBlank()) {
-                    syncStatus.lastErrorMillis?.let { "Last failure: ${formatTimestamp(it)}" } ?: ""
+                    syncStatus.lastErrorMillis?.let { "上次失败：${formatTimestamp(it)}" } ?: ""
                 } else {
                     ""
                 }
 
                 ListItem(
-                    headlineContent = { Text("Connection status") },
+                    headlineContent = { Text("连接状态") },
                     supportingContent = {
                         Column {
                             Text(connectionMessage)
@@ -173,7 +171,7 @@ fun NightscoutSettings(
                 ListItem(
                     headlineContent = { Text("Nightscout URL") },
                     supportingContent = {
-                        Text(config.nightscoutUrl.ifBlank { "Not configured" })
+                        Text(config.nightscoutUrl.ifBlank { "未配置" })
                     },
                     modifier = Modifier.clickable {
                         showUrlDialog = true
@@ -187,7 +185,7 @@ fun NightscoutSettings(
                 ListItem(
                     headlineContent = { Text("API Secret") },
                     supportingContent = {
-                        Text(if (config.apiSecret.isNotBlank()) "••••••••" else "Not configured")
+                        Text(if (config.apiSecret.isNotBlank()) "••••••••" else "未配置")
                     },
                     modifier = Modifier.clickable {
                         showApiSecretDialog = true
@@ -199,9 +197,9 @@ fun NightscoutSettings(
             // Enabled Processors
             item {
                 ListItem(
-                    headlineContent = { Text("Data Types") },
+                    headlineContent = { Text("数据类型") },
                     supportingContent = {
-                        Text("${config.enabledProcessors.size} of ${ProcessorType.all().size} enabled")
+                        Text("已启用 ${config.enabledProcessors.size}/${ProcessorType.all().size}")
                     },
                     modifier = Modifier.clickable {
                         showProcessorsDialog = true
@@ -213,8 +211,8 @@ fun NightscoutSettings(
             // Sync Interval
             item {
                 ListItem(
-                    headlineContent = { Text("Sync Interval") },
-                    supportingContent = { Text("${config.syncIntervalMinutes} minutes") },
+                    headlineContent = { Text("同步间隔") },
+                    supportingContent = { Text("${config.syncIntervalMinutes} 分钟") },
                     modifier = Modifier.clickable {
                         showIntervalDialog = true
                     }
@@ -225,8 +223,8 @@ fun NightscoutSettings(
             // Lookback Period
             item {
                 ListItem(
-                    headlineContent = { Text("Initial Lookback") },
-                    supportingContent = { Text("${config.initialLookbackHours} hours on first sync") },
+                    headlineContent = { Text("初始回溯") },
+                    supportingContent = { Text("首次同步时回溯 ${config.initialLookbackHours} 小时") },
                     modifier = Modifier.clickable {
                         showLookbackDialog = true
                     }
@@ -237,36 +235,28 @@ fun NightscoutSettings(
             // Sync Now button
             item {
                 ListItem(
-                    headlineContent = { Text("Sync Now") },
-                    supportingContent = { Text("Trigger immediate sync") },
+                    headlineContent = { Text("立即同步") },
+                    supportingContent = { Text("立即触发同步") },
                     leadingContent = {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Sync")
+                        Icon(Icons.Filled.Refresh, contentDescription = "同步")
                     },
                     modifier = Modifier.clickable {
                         if (config.enabled && config.isValid()) {
                             coroutineScope.launch {
                                 NightscoutSyncWorker.getInstance(context, prefs, pumpSid).syncNow()
                                 syncStatus = NightscoutSyncStatusStore.load(prefs)
-                                Toast.makeText(context, "Sync triggered", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "已触发同步", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Toast.makeText(
                                 context,
-                                "Please enable and configure Nightscout first",
+                                "请先启用并配置 Nightscout",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                     }
                 )
                 Divider()
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text("Back") },
-                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = navigateBack),
-                )
             }
         }
     )
@@ -304,7 +294,7 @@ fun NightscoutSettings(
                 TextButton(onClick = {
                     val normalizedUrl = normalizeNightscoutUrl(urlInput)
                     if (normalizedUrl == null) {
-                        urlError = "Please enter a valid Nightscout URL"
+                        urlError = "请输入有效的 Nightscout URL"
                         return@TextButton
                     }
 
@@ -313,12 +303,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showUrlDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUrlDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -346,12 +336,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showApiSecretDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showApiSecretDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -362,7 +352,7 @@ fun NightscoutSettings(
         var selectedProcessors by remember { mutableStateOf(config.enabledProcessors) }
         AlertDialog(
             onDismissRequest = { showProcessorsDialog = false },
-            title = { Text("Select Data Types") },
+            title = { Text("选择数据类型") },
             text = {
                 LazyColumn {
                     items(ProcessorType.all().toList()) { processorType ->
@@ -398,12 +388,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showProcessorsDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showProcessorsDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -414,12 +404,12 @@ fun NightscoutSettings(
         var intervalInput by remember { mutableStateOf(config.syncIntervalMinutes.toString()) }
         AlertDialog(
             onDismissRequest = { showIntervalDialog = false },
-            title = { Text("Sync Interval") },
+            title = { Text("同步间隔") },
             text = {
                 OutlinedTextField(
                     value = intervalInput,
                     onValueChange = { intervalInput = it },
-                    label = { Text("Minutes") },
+                    label = { Text("分钟") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -439,12 +429,12 @@ fun NightscoutSettings(
 
                     showIntervalDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showIntervalDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -455,14 +445,14 @@ fun NightscoutSettings(
         var lookbackInput by remember { mutableStateOf(config.initialLookbackHours.toString()) }
         AlertDialog(
             onDismissRequest = { showLookbackDialog = false },
-            title = { Text("Initial Lookback Period") },
+            title = { Text("初始回溯周期") },
             text = {
                 Column {
-                    Text("How far back to sync when first enabled (hours)")
+                    Text("首次启用时同步回溯时长（小时）")
                     OutlinedTextField(
                         value = lookbackInput,
                         onValueChange = { lookbackInput = it },
-                        label = { Text("Hours") },
+                        label = { Text("小时") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -476,12 +466,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showLookbackDialog = false
                 }) {
-                    Text("Save")
+                    Text("保存")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLookbackDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )

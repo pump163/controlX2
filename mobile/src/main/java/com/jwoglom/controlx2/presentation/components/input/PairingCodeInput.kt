@@ -227,7 +227,7 @@ fun ShortPairingCodeInput(
 
         if (hasInvalidSavedValue) {
             Text(
-                text = "Saved PIN was invalid and has been sanitized.",
+                text = "已保存的 PIN 无效，已被清除。",
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.error,
             )
@@ -235,7 +235,7 @@ fun ShortPairingCodeInput(
 
         if (code.isNotEmpty() || hasInvalidSavedValue) {
             TextButton(onClick = onClearSavedPin) {
-                Text("Clear saved PIN")
+                Text("清除已保存的 PIN")
             }
         }
     }

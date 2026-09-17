@@ -36,7 +36,7 @@ fun LandingCgmSensorRow() {
         else -> "${model.sessionState}"
     }
 
-    LineInfoChip("CGM Sensor", text, onClick = { showExact = !showExact })
+    LineInfoChip("CGM 探头", text, onClick = { showExact = !showExact })
 }
 
 @Preview

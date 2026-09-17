@@ -71,7 +71,7 @@ fun EditSegmentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Edit Profile Segment")
+            Text("编辑配置文件时段")
         },
         text = {
             LazyColumn(
@@ -81,11 +81,11 @@ fun EditSegmentDialog(
                     .padding(horizontal = 0.dp),
             ) {
                 item {
-                    Text("Editing segment ${segmentIndex} in ${profile.idpSettingsResponse.name} (#${profile.idpId})", fontSize = 14.sp)
+                    Text("正在编辑 ${profile.idpSettingsResponse.name}（#${profile.idpId}）中的第 ${segmentIndex} 个时段", fontSize = 14.sp)
                 }
                 item {
                     Text(
-                        "Start Time",
+                        "开始时间",
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -100,8 +100,8 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        placeholder = { Text("e.g., 1.0") },
+                        label = { Text("基础率（u/hr）") },
+                        placeholder = { Text("例如：1.0") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -110,9 +110,9 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
-                        placeholder = { Text("e.g., 10g") },
+                        label = { Text("碳水化合物比（g/u）") },
+                        supportingText = { Text("示例：10 = 1:10 比例") },
+                        placeholder = { Text("例如：10g") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -121,10 +121,10 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG (${glucoseUnit.abbreviation})") },
+                        label = { Text("目标血糖（${glucoseUnit.abbreviation}）") },
                         placeholder = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "e.g., 110"
-                            GlucoseUnit.MMOL -> "e.g., 6.1"
+                            GlucoseUnit.MGDL -> "例如：110"
+                            GlucoseUnit.MMOL -> "例如：6.1"
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -134,16 +134,16 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF (${glucoseUnit.abbreviation} per u)") },
+                        label = { Text("ISF（${glucoseUnit.abbreviation}/u）") },
                         supportingText = {
                             Text(when (glucoseUnit) {
-                                GlucoseUnit.MGDL -> "Example: 50 = 1u:50 mg/dL"
-                                GlucoseUnit.MMOL -> "Example: 2.8 = 1u:2.8 mmol/L"
+                                GlucoseUnit.MGDL -> "示例：50 = 1u:50 mg/dL"
+                                GlucoseUnit.MMOL -> "示例：2.8 = 1u:2.8 mmol/L"
                             })
                         },
                         placeholder = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "e.g., 50"
-                            GlucoseUnit.MMOL -> "e.g., 2.8"
+                            GlucoseUnit.MGDL -> "例如：50"
+                            GlucoseUnit.MMOL -> "例如：2.8"
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -186,41 +186,41 @@ fun EditSegmentDialog(
                         }
 
                         if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                            errorMessage = "Invalid time. Hours must be 0-23, minutes must be 0-59."
+                            errorMessage = "时间无效。小时必须为 0-23，分钟必须为 0-59。"
                             return@TextButton
                         }
                         if (basalRateFloat <= 0) {
-                            errorMessage = "Basal rate must be greater than 0"
+                            errorMessage = "基础率必须大于 0"
                             return@TextButton
                         }
                         if (carbRatioLong <= 0) {
-                            errorMessage = "Carb ratio must be greater than 0"
+                            errorMessage = "碳水化合物比必须大于 0"
                             return@TextButton
                         }
                         if (targetBGMgdl <= 0) {
-                            errorMessage = "Target BG must be greater than 0"
+                            errorMessage = "目标血糖必须大于 0"
                             return@TextButton
                         }
                         if (isfMgdl <= 0) {
-                            errorMessage = "ISF must be greater than 0"
+                            errorMessage = "ISF 必须大于 0"
                             return@TextButton
                         }
 
                         onConfirm(newStartTime, basalRateFloat, carbRatioLong, targetBGMgdl, isfMgdl)
                     } catch (e: Exception) {
-                        errorMessage = "Error: ${e.message}"
+                        errorMessage = "错误：${e.message}"
                         Timber.e(e, "Error updating segment")
                     }
                 }
             ) {
-                Text("Update Segment")
+                Text("更新时段")
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text("取消")
             }
         }
     )

@@ -61,10 +61,10 @@ fun PairingCodeEntryScreen() {
             ?.trim()
         when {
             code == null -> {
-                localError.value = "No code entered"
+                localError.value = "未输入配对码"
             }
             code.length != PAIRING_CODE_LENGTH || !code.all(Char::isDigit) -> {
-                localError.value = "Must be $PAIRING_CODE_LENGTH digits"
+                localError.value = "必须为$PAIRING_CODE_LENGTH位数字"
             }
             else -> {
                 localError.value = null
@@ -80,7 +80,7 @@ fun PairingCodeEntryScreen() {
 
     val launchInput: () -> Unit = {
         val remoteInput = RemoteInput.Builder(REMOTE_INPUT_KEY)
-            .setLabel("Pairing code")
+            .setLabel("配对码")
             .build()
         val intent = RemoteInputIntentHelper.createActionRemoteInputIntent()
         RemoteInputIntentHelper.putRemoteInputsExtra(intent, listOf(remoteInput))
@@ -88,7 +88,7 @@ fun PairingCodeEntryScreen() {
             launcher.launch(intent)
         } catch (e: Exception) {
             Timber.e(e, "PairingCodeEntryScreen: failed to launch RemoteInputIntent")
-            localError.value = "Input unavailable"
+            localError.value = "输入不可用"
         }
     }
 
@@ -117,7 +117,7 @@ fun PairingCodeEntryScreen() {
             )
         }
         Text(
-            text = "Enter pump pairing code",
+            text = "输入胰岛素泵配对码",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -125,7 +125,7 @@ fun PairingCodeEntryScreen() {
         )
         Chip(
             onClick = launchInput,
-            label = { Text("Enter code", fontSize = 12.sp) },
+            label = { Text("输入配对码", fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

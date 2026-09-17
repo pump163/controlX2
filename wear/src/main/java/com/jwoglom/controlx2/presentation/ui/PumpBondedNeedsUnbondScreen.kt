@@ -46,11 +46,11 @@ fun PumpBondedNeedsUnbondScreen() {
     ) {
         Icon(
             imageVector = Icons.Filled.Bluetooth,
-            contentDescription = "Bluetooth",
+            contentDescription = "蓝牙",
             modifier = Modifier.size(24.dp),
         )
         Text(
-            text = "Unpair pump first",
+            text = "请先取消配对胰岛素泵",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -59,9 +59,9 @@ fun PumpBondedNeedsUnbondScreen() {
         val name = deviceName.value
         Text(
             text = if (!name.isNullOrBlank()) {
-                "$name is bonded to another device. Open Bluetooth settings, forget it, then retry."
+                "$name 已与其他设备配对。请打开蓝牙设置取消配对后重试。"
             } else {
-                "The pump is bonded to another device. Open Bluetooth settings, forget it, then retry."
+                "胰岛素泵已与其他设备配对。请打开蓝牙设置取消配对后重试。"
             },
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
@@ -80,7 +80,7 @@ fun PumpBondedNeedsUnbondScreen() {
                     // can still unpair manually from the system Settings app.
                 }
             },
-            label = { Text("Open BT settings", fontSize = 12.sp) },
+            label = { Text("打开蓝牙设置", fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

@@ -111,7 +111,7 @@ fun Settings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Settings")
+                HeaderLine("设置")
                 Divider()
             }
 
@@ -122,8 +122,8 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Send Support Bundle") },
-                    supportingContent = { Text("Generates a zip file with ControlX2 debug logs.") },
+                    headlineContent = { Text("发送支持包") },
+                    supportingContent = { Text("生成包含 ControlX2 调试日志的 zip 文件。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Help,
@@ -133,7 +133,7 @@ fun Settings(
                     modifier = Modifier.clickable {
                         val summary = getSupportBundleSummary(context)
                         if (summary == null) {
-                            Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "没有可分享的调试日志。", Toast.LENGTH_SHORT).show()
                         } else {
                             supportBundleSummary = summary
                             showSupportBundleDialog = true
@@ -146,12 +146,12 @@ fun Settings(
             item {
                 if (!Prefs(context).serviceEnabled()) {
                     ListItem(
-                        headlineContent = { Text("Enable ControlX2 service") },
-                        supportingContent = { Text("Starts the background service and enables it to start automatically when the app is opened.") },
+                        headlineContent = { Text("启用 ControlX2 服务") },
+                        supportingContent = { Text("启动后台服务，并使其在打开应用时自动启动。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Check,
-                                contentDescription = "Start icon",
+                                contentDescription = "启动图标",
                             )
                         },
                         modifier = Modifier.clickable {
@@ -197,7 +197,7 @@ fun Settings(
 //                        leadingContent = {
 //                            Icon(
 //                                Icons.Filled.Check,
-//                                contentDescription = "Start icon",
+//                                contentDescription = "启动图标",
 //                            )
 //                        },
 //                        modifier = Modifier.clickable {
@@ -216,12 +216,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Force service reload") },
-                    supportingContent = { Text("Restarts the background service.") },
+                    headlineContent = { Text("强制重载服务") },
+                    supportingContent = { Text("重启后台服务。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Refresh,
-                            contentDescription = "Reload icon",
+                            contentDescription = "重新加载图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -233,13 +233,13 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Reconfigure pump") },
-                    supportingContent = { Text("Disconnect and re-pair with a pump.") },
+                    headlineContent = { Text("重新配置胰岛素泵") },
+                    supportingContent = { Text("断开并重新配对胰岛素泵。") },
                     leadingContent = {
                         Icon(
                             painterResource(R.drawable.pump),
                             tint = Color.Unspecified,
-                            contentDescription = "Settings icon",
+                            contentDescription = "设置图标",
                             modifier = Modifier.size(24.dp),
                         )
                     },
@@ -252,12 +252,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Reconfigure app") },
-                    supportingContent = { Text("Enable or disable insulin delivery actions.") },
+                    headlineContent = { Text("重新配置应用") },
+                    supportingContent = { Text("启用或禁用胰岛素输送操作。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Settings,
-                            contentDescription = "Settings icon",
+                            contentDescription = "设置图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -275,16 +275,16 @@ fun Settings(
 
                 if (ffEnabled) {
                     val roleLabel = when (currentDeviceRole) {
-                        DeviceRole.PUMP_HOST -> "Phone (pump-host)"
-                        DeviceRole.CLIENT -> "Watch (pump-host)"
+                        DeviceRole.PUMP_HOST -> "手机（胰岛素泵主机）"
+                        DeviceRole.CLIENT -> "手表（胰岛素泵主机）"
                     }
                     ListItem(
-                        headlineContent = { Text("Pump-host device") },
-                        supportingContent = { Text("Currently: $roleLabel.") },
+                        headlineContent = { Text("胰岛素泵主机设备") },
+                        supportingContent = { Text("当前：$roleLabel。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Devices,
-                                contentDescription = "Device role icon",
+                                contentDescription = "设备角色图标",
                             )
                         },
                         modifier = Modifier.clickable {
@@ -293,12 +293,12 @@ fun Settings(
                     )
                     Divider()
                     ListItem(
-                        headlineContent = { Text("Reset & start over on this device") },
-                        supportingContent = { Text("Use if you're stuck. Forces this phone to be pump-host and clears the pump bond.") },
+                        headlineContent = { Text("重置并在此设备上重新开始") },
+                        supportingContent = { Text("如果卡住时使用。强制此手机作为胰岛素泵主机并清除胰岛素泵配对。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Devices,
-                                contentDescription = "Reset icon",
+                                contentDescription = "重置图标",
                             )
                         },
                         modifier = Modifier.clickable {
@@ -312,11 +312,11 @@ fun Settings(
             item {
                 ListItem(
                     headlineContent = { Text("Nightscout") },
-                    supportingContent = { Text("Configure Nightscout sync to upload pump data.") },
+                    supportingContent = { Text("配置 Nightscout 同步以上传胰岛素泵数据。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.CloudSync,
-                            contentDescription = "Nightscout icon",
+                            contentDescription = "Nightscout 图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -329,11 +329,11 @@ fun Settings(
             item {
                 ListItem(
                     headlineContent = { Text("xDrip") },
-                    supportingContent = { Text("Configure xDrip broadcasts for pump and CGM data.") },
+                    supportingContent = { Text("配置 xDrip 广播以发送胰岛素泵和 CGM 数据。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Sync,
-                            contentDescription = "xDrip icon",
+                            contentDescription = "xDrip 图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -345,12 +345,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Sync pump time") },
-                    supportingContent = { Text("Set the pump's clock to the current phone time.") },
+                    headlineContent = { Text("同步胰岛素泵时间") },
+                    supportingContent = { Text("将胰岛素泵时钟设置为当前手机时间。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Timer,
-                            contentDescription = "Sync time icon",
+                            contentDescription = "同步时间图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -362,12 +362,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Find my pump") },
-                    supportingContent = { Text("Play a sound on the pump to help locate it.") },
+                    headlineContent = { Text("查找我的胰岛素泵") },
+                    supportingContent = { Text("在胰岛素泵上播放声音以帮助定位。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.NotificationsActive,
-                            contentDescription = "Play sound icon",
+                            contentDescription = "播放声音图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -379,12 +379,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Debug options") },
-                    supportingContent = { Text("Perform debug options.") },
+                    headlineContent = { Text("调试选项") },
+                    supportingContent = { Text("执行调试选项。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.DeveloperMode,
-                            contentDescription = "Settings icon",
+                            contentDescription = "设置图标",
                         )
                     },
                     modifier = Modifier.clickable {
@@ -399,9 +399,9 @@ fun Settings(
     if (showPumpSetupConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showPumpSetupConfirmDialog = false },
-            title = { Text("Forget pump?") },
+            title = { Text("忘记胰岛素泵？") },
             text = {
-                Text("Clears the pump bond on this phone. Place the Mobi on the charging pad to re-pair.")
+                Text("清除此手机上的胰岛素泵配对。将 Mobi 放在充电座上以重新配对。")
             },
             confirmButton = {
                 TextButton(
@@ -416,12 +416,12 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_APP_RELOAD, "".toByteArray())
                     }
                 ) {
-                    Text("Disconnect")
+                    Text("断开连接")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPumpSetupConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -434,9 +434,9 @@ fun Settings(
                 showSupportBundleDialog = false
                 supportBundleSummary = null
             },
-            title = { Text("Send PumpX2 Support Bundle") },
+            title = { Text("发送 PumpX2 支持包") },
             text = {
-                Text("Send ${summary.debugFileCount} debug files with ${formatLogLineCount(summary.totalLogLines)} total logs from ${summary.rangeStart} - ${summary.rangeEnd} to the developers for assistance?")
+                Text("是否将 ${summary.debugFileCount} 个调试文件（共 ${formatLogLineCount(summary.totalLogLines)} 条日志，时间范围 ${summary.rangeStart} - ${summary.rangeEnd}）发送给开发者以获取帮助？")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -444,7 +444,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Send email")
+                    Text("发送邮件")
                 }
 
                 TextButton(onClick = {
@@ -452,7 +452,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Share")
+                    Text("分享")
                 }
             },
             dismissButton = {
@@ -460,7 +460,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -470,8 +470,8 @@ fun Settings(
     if (showSyncTimeDialog) {
         AlertDialog(
             onDismissRequest = { showSyncTimeDialog = false },
-            title = { Text("Sync Pump Time") },
-            text = { Text("Set the pump's internal clock to the current phone time?") },
+            title = { Text("同步胰岛素泵时间") },
+            text = { Text("将胰岛素泵内部时钟设置为当前手机时间？") },
             confirmButton = {
                 TextButton(onClick = {
                     sendPumpCommands(
@@ -479,14 +479,14 @@ fun Settings(
                         listOf(ChangeTimeDateRequest(Instant.now()))
                     )
                     showSyncTimeDialog = false
-                    Toast.makeText(context, "Pump time sync sent", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "胰岛素泵时间同步已发送", Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("Sync")
+                    Text("同步")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSyncTimeDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -498,18 +498,18 @@ fun Settings(
             DeviceRole.CLIENT -> DeviceRole.PUMP_HOST
         }
         val newRoleLabel = when (newRole) {
-            DeviceRole.PUMP_HOST -> "Phone (pump-host)"
-            DeviceRole.CLIENT -> "Watch (pump-host)"
+            DeviceRole.PUMP_HOST -> "手机（胰岛素泵主机）"
+            DeviceRole.CLIENT -> "手表（胰岛素泵主机）"
         }
         val walkthrough = when (newRole) {
             DeviceRole.CLIENT ->
-                "The phone restarts as client and the watch takes over as pump-host. Place the Mobi on the charging pad to re-pair."
+                "手机将作为客户端重启，手表接管为胰岛素泵主机。将 Mobi 放在充电座上以重新配对。"
             DeviceRole.PUMP_HOST ->
-                "The phone restarts as pump-host and the watch flips to client. Place the Mobi on the charging pad to re-pair."
+                "手机将作为胰岛素泵主机重启，手表切换为客户端。将 Mobi 放在充电座上以重新配对。"
         }
         AlertDialog(
             onDismissRequest = { showDeviceRoleDialog = false },
-            title = { Text("Switch pump-host to $newRoleLabel?") },
+            title = { Text("将胰岛素泵主机切换为 $newRoleLabel？") },
             text = { Text(walkthrough) },
             confirmButton = {
                 TextButton(onClick = {
@@ -523,15 +523,15 @@ fun Settings(
                         // the fresh pref.
                         switchDeviceRole(activity, newRole)
                     } else {
-                        Toast.makeText(context, "Unable to switch role: no activity context", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "无法切换角色：无 Activity 上下文", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Switch")
+                    Text("切换")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeviceRoleDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -540,9 +540,9 @@ fun Settings(
     if (showRescueDialog) {
         AlertDialog(
             onDismissRequest = { showRescueDialog = false },
-            title = { Text("Reset & start over?") },
+            title = { Text("重置并重新开始？") },
             text = {
-                Text("Forces this phone to pump-host, clears the pump bond, and asks the watch to flip to client. Place the Mobi on the charging pad to re-pair.")
+                Text("强制此手机作为胰岛素泵主机，清除胰岛素泵配对，并要求手表切换为客户端。将 Mobi 放在充电座上以重新配对。")
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -551,15 +551,15 @@ fun Settings(
                     if (activity != null) {
                         rescueResetThisDevice(activity)
                     } else {
-                        Toast.makeText(context, "Unable to rescue: no activity context", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "无法重置：无 Activity 上下文", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Reset")
+                    Text("重置")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRescueDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -569,8 +569,8 @@ fun Settings(
     if (showPlaySoundDialog) {
         AlertDialog(
             onDismissRequest = { showPlaySoundDialog = false },
-            title = { Text("Find My Pump") },
-            text = { Text("Play a sound on the pump?") },
+            title = { Text("查找我的胰岛素泵") },
+            text = { Text("在胰岛素泵上播放声音？") },
             confirmButton = {
                 TextButton(onClick = {
                     sendPumpCommands(
@@ -578,14 +578,14 @@ fun Settings(
                         listOf(PlaySoundRequest())
                     )
                     showPlaySoundDialog = false
-                    Toast.makeText(context, "Playing sound on pump", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "正在胰岛素泵上播放声音", Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("Play Sound")
+                    Text("播放声音")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPlaySoundDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )

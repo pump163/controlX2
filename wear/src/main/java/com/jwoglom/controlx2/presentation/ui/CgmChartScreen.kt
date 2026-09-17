@@ -87,7 +87,7 @@ fun CgmChartScreen() {
     val pumpSid = pumpSidLive ?: -1
 
     if (pumpSid < 0 || repo == null) {
-        EmptyMessage(text = "CGM history will appear after the first pump connection.")
+        EmptyMessage(text = "首次连接胰岛素泵后显示CGM历史。")
         return
     }
 
@@ -104,7 +104,7 @@ fun CgmChartScreen() {
     val series = remember(items, unit) { buildSeries(items, unit) }
 
     if (series.points.isEmpty()) {
-        EmptyMessage(text = "No CGM readings in the last ${WINDOW_HOURS}h.")
+        EmptyMessage(text = "近${WINDOW_HOURS}h内无CGM读数。")
         return
     }
 

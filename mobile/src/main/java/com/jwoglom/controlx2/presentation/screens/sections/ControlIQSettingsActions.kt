@@ -97,11 +97,11 @@ fun ControlIQSettingsActions(
         controlIQTotalDailyInsulin.value,
     ) {
         if (controlIQEnabled.value == null) {
-            "Loading..."
+            "加载中..."
         } else {
-            "Status: ${if (controlIQEnabled.value == true) "Enabled" else "Disabled"}\n" +
-                "Weight: ${controlIQWeight.value ?: "?"} ${controlIQWeightUnit.value ?: ""}\n" +
-                "Total Daily Insulin: ${controlIQTotalDailyInsulin.value ?: "?"} units"
+            "状态：${if (controlIQEnabled.value == true) "已启用" else "已禁用"}\n" +
+                "体重：${controlIQWeight.value ?: "?"} ${controlIQWeightUnit.value ?: ""}\n" +
+                "每日总胰岛素：${controlIQTotalDailyInsulin.value ?: "?"} 单位"
         }
     }
 
@@ -205,18 +205,18 @@ fun ControlIQSettingsActions(
             content = {
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text("返回") },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable { navigateBack() },
                         colors = ListItemDefaults.colors(containerColor = Color.White),
                     )
-                    HeaderLine("Control-IQ Settings")
+                    HeaderLine("Control-IQ 设置")
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading Control-IQ settings...")
+                        LoadSpinner("正在加载 Control-IQ 设置...")
                     }
                 }
 
@@ -238,7 +238,7 @@ fun ControlIQSettingsActions(
                 // Sleep Schedule section header
                 item {
                     Line("\n")
-                    HeaderLine("Sleep Schedule")
+                    HeaderLine("睡眠计划")
                     Divider()
                 }
 
@@ -255,18 +255,18 @@ fun ControlIQSettingsActions(
                         item {
                             val enabled = slot.enabled != 0
                             ListItem(
-                                headlineContent = { Text("Schedule ${index + 1}") },
+                                headlineContent = { Text("计划 ${index + 1}") },
                                 supportingContent = {
                                     if (enabled) {
                                         val days = slot.activeDays().joinToString(", ") { it.name.take(3) }
                                         Text(
-                                            "Enabled\n" +
+                                            "已启用\n" +
                                             "${String.format("%02d:%02d", slot.startTime().hour(), slot.startTime().min())} - " +
                                             "${String.format("%02d:%02d", slot.endTime().hour(), slot.endTime().min())}\n" +
-                                            "Days: $days"
+                                            "日期：$days"
                                         )
                                     } else {
-                                        Text("Disabled")
+                                        Text("已禁用")
                                     }
                                 },
                                 leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -294,13 +294,13 @@ fun ControlIQSettingsActions(
                     }
                 } else if (!refreshing) {
                     item {
-                        Line("Sleep schedule data not available.")
+                        Line("睡眠计划数据不可用。")
                     }
                 }
 
                 item {
                     TextButton(onClick = navigateBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Back to ${LandingSection.ACTIONS.label}")
+                        Text("返回 ${LandingSection.ACTIONS.label}")
                     }
                 }
             }
@@ -311,14 +311,14 @@ fun ControlIQSettingsActions(
     if (showChangeControlIQDialog) {
         AlertDialog(
             onDismissRequest = { showChangeControlIQDialog = false },
-            title = { Text("Change Control-IQ Settings") },
+            title = { Text("修改 Control-IQ 设置") },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enabled", modifier = Modifier.weight(1f))
+                        Text("启用", modifier = Modifier.weight(1f))
                         Switch(
                             checked = ciqEnabled,
                             onCheckedChange = { ciqEnabled = it }
@@ -327,14 +327,14 @@ fun ControlIQSettingsActions(
                     OutlinedTextField(
                         value = weightText,
                         onValueChange = { weightText = it },
-                        label = { Text("Weight (lbs)") },
+                        label = { Text("体重 (lbs)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = tdiText,
                         onValueChange = { tdiText = it },
-                        label = { Text("Total Daily Insulin (units)") },
+                        label = { Text("每日总胰岛素（单位）") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -355,15 +355,15 @@ fun ControlIQSettingsActions(
                             refresh()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter valid numbers", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "请输入有效数字", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text("应用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showChangeControlIQDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -373,14 +373,14 @@ fun ControlIQSettingsActions(
     if (showEditSleepScheduleDialog) {
         AlertDialog(
             onDismissRequest = { showEditSleepScheduleDialog = false },
-            title = { Text("Sleep Schedule ${editingSlot + 1}") },
+            title = { Text("睡眠计划 ${editingSlot + 1}") },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enabled", modifier = Modifier.weight(1f))
+                        Text("启用", modifier = Modifier.weight(1f))
                         Switch(
                             checked = sleepEnabled,
                             onCheckedChange = { sleepEnabled = it }
@@ -393,14 +393,14 @@ fun ControlIQSettingsActions(
                         OutlinedTextField(
                             value = sleepStartHour,
                             onValueChange = { sleepStartHour = it },
-                            label = { Text("Start Hour") },
+                            label = { Text("开始时") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = sleepStartMin,
                             onValueChange = { sleepStartMin = it },
-                            label = { Text("Start Min") },
+                            label = { Text("开始分") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
@@ -412,14 +412,14 @@ fun ControlIQSettingsActions(
                         OutlinedTextField(
                             value = sleepEndHour,
                             onValueChange = { sleepEndHour = it },
-                            label = { Text("End Hour") },
+                            label = { Text("结束时") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = sleepEndMin,
                             onValueChange = { sleepEndMin = it },
-                            label = { Text("End Min") },
+                            label = { Text("结束分") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
@@ -427,7 +427,7 @@ fun ControlIQSettingsActions(
                     OutlinedTextField(
                         value = sleepDays,
                         onValueChange = { sleepDays = it },
-                        label = { Text("Active days bitmask (Mon=1,Tue=2,...Sun=64, all=127)") },
+                        label = { Text("生效日期位掩码（Mon=1,Tue=2,...Sun=64, 全部=127）") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -460,12 +460,12 @@ fun ControlIQSettingsActions(
                         refresh()
                     }
                 }) {
-                    Text("Apply")
+                    Text("应用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditSleepScheduleDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )

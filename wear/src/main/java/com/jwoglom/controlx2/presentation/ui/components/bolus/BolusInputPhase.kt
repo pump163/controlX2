@@ -108,7 +108,7 @@ fun BolusInputPhase(
                 Row {
                     Icon(
                         imageVector = Icons.Filled.Check,
-                        contentDescription = "continue",
+                        contentDescription = "继续",
                         modifier = Modifier
                             .size(ButtonDefaults.SmallIconSize)
                             .wrapContentSize(align = Alignment.Center),

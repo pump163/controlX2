@@ -165,18 +165,18 @@ fun SafetyLimitsActions(
             content = {
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text("返回") },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable { navigateBack() },
                         colors = ListItemDefaults.colors(containerColor = Color.White),
                     )
-                    HeaderLine("Safety Limits")
+                    HeaderLine("安全上限")
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading safety limits...")
+                        LoadSpinner("正在加载安全上限...")
                     }
                 }
 
@@ -184,16 +184,16 @@ fun SafetyLimitsActions(
                 item {
                     val bolus = maxBolusSettings.value
                     ListItem(
-                        headlineContent = { Text("Maximum Bolus") },
+                        headlineContent = { Text("最大大剂量") },
                         supportingContent = {
                             if (bolus != null) {
                                 Text(
-                                    "Current: ${InsulinUnit.from1000To1(bolus.maxBolus.toLong())} units\n" +
-                                    "Default: ${InsulinUnit.from1000To1(bolus.maxBolusDefault.toLong())} units\n" +
-                                    "Range: 1 - 25 units"
+                                    "当前：${InsulinUnit.from1000To1(bolus.maxBolus.toLong())} 单位\n" +
+                                    "默认：${InsulinUnit.from1000To1(bolus.maxBolusDefault.toLong())} 单位\n" +
+                                    "范围：1 - 25 单位"
                                 )
                             } else {
-                                Text("Loading...")
+                                Text("加载中...")
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -211,16 +211,16 @@ fun SafetyLimitsActions(
                 item {
                     val basal = basalLimitSettings.value
                     ListItem(
-                        headlineContent = { Text("Maximum Basal Rate") },
+                        headlineContent = { Text("最大基础率") },
                         supportingContent = {
                             if (basal != null) {
                                 Text(
-                                    "Current: ${InsulinUnit.from1000To1(basal.basalLimit)} U/hr\n" +
-                                    "Default: ${InsulinUnit.from1000To1(basal.basalLimitDefault)} U/hr\n" +
-                                    "Range: 1 - 15 U/hr"
+                                    "当前：${InsulinUnit.from1000To1(basal.basalLimit)} U/hr\n" +
+                                    "默认：${InsulinUnit.from1000To1(basal.basalLimitDefault)} U/hr\n" +
+                                    "范围：1 - 15 U/hr"
                                 )
                             } else {
-                                Text("Loading...")
+                                Text("加载中...")
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -236,7 +236,7 @@ fun SafetyLimitsActions(
 
                 item {
                     TextButton(onClick = navigateBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Back to ${LandingSection.ACTIONS.label}")
+                        Text("返回 ${LandingSection.ACTIONS.label}")
                     }
                 }
             }
@@ -247,12 +247,12 @@ fun SafetyLimitsActions(
     if (showMaxBolusDialog) {
         AlertDialog(
             onDismissRequest = { showMaxBolusDialog = false },
-            title = { Text("Set Maximum Bolus") },
+            title = { Text("设置最大大剂量") },
             text = {
                 OutlinedTextField(
                     value = maxBolusText,
                     onValueChange = { maxBolusText = it },
-                    label = { Text("Max bolus (units, 1-25)") },
+                    label = { Text("最大大剂量（单位，1-25）") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -273,18 +273,18 @@ fun SafetyLimitsActions(
                                 refresh()
                             }
                         } else {
-                            Toast.makeText(context, "Must be between 1 and 25 units", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "必须在 1 到 25 单位之间", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "请输入有效数字", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text("应用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showMaxBolusDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -294,12 +294,12 @@ fun SafetyLimitsActions(
     if (showMaxBasalDialog) {
         AlertDialog(
             onDismissRequest = { showMaxBasalDialog = false },
-            title = { Text("Set Maximum Basal Rate") },
+            title = { Text("设置最大基础率") },
             text = {
                 OutlinedTextField(
                     value = maxBasalText,
                     onValueChange = { maxBasalText = it },
-                    label = { Text("Max basal rate (U/hr, 1-15)") },
+                    label = { Text("最大基础率（U/hr，1-15）") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -320,18 +320,18 @@ fun SafetyLimitsActions(
                                 refresh()
                             }
                         } else {
-                            Toast.makeText(context, "Must be between 1 and 15 U/hr", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "必须在 1 到 15 U/hr 之间", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "请输入有效数字", Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text("应用")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showMaxBasalDialog = false }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )

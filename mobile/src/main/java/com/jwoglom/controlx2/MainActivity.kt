@@ -369,12 +369,12 @@ class MainActivity : ComponentActivity() {
                     AlertDialog.Builder(this)
                         .setMessage(
                             """
-                        The 'Wear OS' application is not installed on this device.
-                        This is required due to the current implementation.
-                        To resolve, install the 'Wear OS' app from Google Play.
+                        本设备未安装 'Wear OS' 应用。
+                        当前实现需要此应用。
+                        请从 Google Play 安装 'Wear OS' 应用以解决此问题。
                         """.trimIndent()
                         )
-                        .setPositiveButton("Install") { _, _ ->
+                        .setPositiveButton("安装") { _, _ ->
                             openPlayStore("com.google.android.wearable.app")
                         }
                         .show()
@@ -386,9 +386,9 @@ class MainActivity : ComponentActivity() {
                         }?.show()
                     } else {
                         AlertDialog.Builder(this)
-                            .setTitle("Error connecting to Google Play Services")
-                            .setMessage("Error code: $resultCode")
-                            .setPositiveButton("OK") { d, _ -> d.cancel() }
+                            .setTitle("连接 Google Play 服务时出错")
+                            .setMessage("错误代码：$resultCode")
+                            .setPositiveButton("确定") { d, _ -> d.cancel() }
                             .show()
                     }
                 }
@@ -494,15 +494,15 @@ class MainActivity : ComponentActivity() {
         bolusConfirmDialog?.dismiss()
 
         val message = if (autoApproveTimeout > 0) {
-            "$units units from $source. Will auto-approve in ${autoApproveTimeout}s unless canceled."
+            "$units 单位，来自 $source。将在 ${autoApproveTimeout} 秒后自动批准，除非取消。"
         } else {
-            "$units units from $source. Press Confirm to deliver."
+            "$units 单位，来自 $source。点击确认进行输注。"
         }
 
         bolusConfirmDialog = AlertDialog.Builder(this)
-            .setTitle("Bolus Request")
+            .setTitle("大剂量请求")
             .setMessage(message)
-            .setPositiveButton("Confirm ${units}u") { dialog, _ ->
+            .setPositiveButton("确认 ${units}u") { dialog, _ ->
                 val intent = Intent(applicationContext, BolusNotificationBroadcastReceiver::class.java).apply {
                     putExtra("action", "INITIATE")
                     putExtra("request", requestBytes)
@@ -514,7 +514,7 @@ class MainActivity : ComponentActivity() {
                 confirmPendingIntent.send()
                 dialog.dismiss()
             }
-            .setNegativeButton("Reject") { dialog, _ ->
+            .setNegativeButton("拒绝") { dialog, _ ->
                 val intent = Intent(applicationContext, BolusNotificationBroadcastReceiver::class.java).apply {
                     putExtra("action", "REJECT")
                 }
@@ -628,7 +628,7 @@ class MainActivity : ComponentActivity() {
 
             MessagePaths.TO_SERVER_SET_PAIRING_CODE -> {
                 val pairingCodeText = String(data)
-                Toast.makeText(applicationContext, "Set pairing code: $pairingCodeText", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "设置配对码：$pairingCodeText", Toast.LENGTH_SHORT).show()
                 when (dataStore.pumpSetupStage.value) {
                     PumpSetupStage.WAITING_PUMP_FINDER_CLEANUP -> {
                         Prefs(applicationContext).setPumpFinderServiceEnabled(false)
@@ -797,13 +797,13 @@ class MainActivity : ComponentActivity() {
             val verboseStr = verbosePumpMessage(message)
             AlertDialog.Builder(this)
                 .setMessage(verboseStr)
-                .setNeutralButton("Copy JSON") { dialog, which ->
+                .setNeutralButton("复制 JSON") { dialog, which ->
                     setClipboard(messagePairToJson(Pair(message, Instant.now())))
                 }
-                .setNegativeButton("Copy") { dialog, which ->
+                .setNegativeButton("复制") { dialog, which ->
                     setClipboard(verboseStr)
                 }
-                .setPositiveButton("OK") { dialog, which -> dialog.cancel() }
+                .setPositiveButton("确定") { dialog, which -> dialog.cancel() }
                 .show()
         }
 
@@ -890,20 +890,20 @@ class MainActivity : ComponentActivity() {
             }
             is HomeScreenMirrorResponse -> {
                 dataStore.controlIQStatus.value = when (message.apControlStateIcon) {
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY -> "On"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "Suspended"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "Increase"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "Reduced"
-                    else -> "CIQ Off"
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY -> "开启"
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "已暂停"
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "增加"
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "减少"
+                    else -> "CIQ 关闭"
                 }
                 dataStore.cgmStatusText.value = when (message.cgmAlertIcon) {
-                    HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_1, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_2, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_3, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_4 -> "Starting up"
-                    HomeScreenMirrorResponse.CGMAlertIcon.CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "Calibration Needed"
-                    HomeScreenMirrorResponse.CGMAlertIcon.ERROR_HIGH_WEDGE, HomeScreenMirrorResponse.CGMAlertIcon.ERROR_LOW_WEDGE -> "Error"
-                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> "Replace Sensor"
-                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_TRANSMITTER -> "Replace Transmitter"
-                    HomeScreenMirrorResponse.CGMAlertIcon.OUT_OF_RANGE -> "Out Of Range"
-                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> "Sensor Failed"
+                    HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_1, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_2, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_3, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_4 -> "启动中"
+                    HomeScreenMirrorResponse.CGMAlertIcon.CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "需要校准"
+                    HomeScreenMirrorResponse.CGMAlertIcon.ERROR_HIGH_WEDGE, HomeScreenMirrorResponse.CGMAlertIcon.ERROR_LOW_WEDGE -> "错误"
+                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> "更换探头"
+                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_TRANSMITTER -> "更换发射器"
+                    HomeScreenMirrorResponse.CGMAlertIcon.OUT_OF_RANGE -> "超出范围"
+                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> "探头故障"
                     HomeScreenMirrorResponse.CGMAlertIcon.TRIPLE_DASHES -> "---"
                     else -> ""
                 }
@@ -1068,9 +1068,9 @@ class MainActivity : ComponentActivity() {
 
     private fun unsuccessfulAlert(req: String) {
         AlertDialog.Builder(this@MainActivity)
-            .setTitle("Failed Pump Request")
-            .setMessage("$req was not successful. The pump returned an error fulfilling the request.")
-            .setPositiveButton("OK", null)
+            .setTitle("胰岛素泵请求失败")
+            .setMessage("$req 未成功。胰岛素泵在处理请求时返回了错误。")
+            .setPositiveButton("确定", null)
             .show()
     }
 
@@ -1190,16 +1190,16 @@ class MainActivity : ComponentActivity() {
     private fun checkLocationServices(): Boolean {
         return if (!areLocationServicesEnabled()) {
             AlertDialog.Builder(this)
-                .setTitle("Location services are not enabled")
-                .setMessage("Scanning for Bluetooth peripherals requires locations services to be enabled.") // Want to enable?
+                .setTitle("位置服务未启用")
+                .setMessage("扫描蓝牙外设需要启用位置服务。") // Want to enable?
                 .setPositiveButton(
-                    "Enable"
+                    "启用"
                 ) { dialogInterface, i ->
                     dialogInterface.cancel()
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }
                 .setNegativeButton(
-                    "Cancel"
+                    "取消"
                 ) { dialog, which -> // if this button is clicked, just close
                     // the dialog box and do nothing
                     dialog.cancel()
@@ -1239,10 +1239,10 @@ class MainActivity : ComponentActivity() {
             permissionsGranted()
         } else {
             AlertDialog.Builder(this)
-                .setTitle("Permissions required for Bluetooth scanning")
-                .setMessage("This app requires Nearby Devices and Location permissions to scan for Bluetooth devices. Please grant all requested permissions.")
+                .setTitle("蓝牙扫描所需的权限")
+                .setMessage("此应用需要附近设备和位置权限来扫描蓝牙设备。请授予所有请求的权限。")
                 .setPositiveButton(
-                    "Retry"
+                    "重试"
                 ) { dialogInterface, i ->
                     dialogInterface.cancel()
                     checkPermissions()

@@ -134,10 +134,10 @@ class PhoneCommService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
         val channel = NotificationChannel(
             notificationChannelId,
-            "Endless Service notifications channel",
+            "后台服务通知渠道",
             NotificationManager.IMPORTANCE_NONE
         ).let {
-            it.description = "Endless Service channel"
+            it.description = "后台服务渠道"
             it.setShowBadge(false)
             it.lockscreenVisibility = 0
 
@@ -156,10 +156,10 @@ class PhoneCommService : Service() {
             notificationChannelId
         )
 
-        val title = "ControlX2 is running: $connectionState"
+        val title = "ControlX2 正在运行：$connectionState"
         return builder
             .setContentTitle(title)
-            .setContentText("This notification can be hidden: open Settings > Apps > Notifications > All > ControlX2 and turn Endless Service Notifications off")
+            .setContentText("可隐藏此通知：打开 设置 > 应用 > 通知 > 全部 > ControlX2，关闭后台服务通知")
             .setContentIntent(pendingIntent)
             .setSmallIcon(IconCompat.createWithResource(this, R.drawable.pump))
             .setTicker(title)
@@ -185,13 +185,13 @@ class PhoneCommService : Service() {
             notificationManagerCompat.createNotificationChannel(
                 NotificationChannel(
                     "disconnectedChannel",
-                    "Disconnected",
+                    "已断开连接",
                     NotificationManager.IMPORTANCE_DEFAULT
                 )
             )
             val notif = NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.comm_error)
-                .setContentTitle("ControlX2 disconnected")
+                .setContentTitle("ControlX2 已断开连接")
                 .setContentText(reason)
                 .setChannelId("disconnectedChannel")
                 .build()

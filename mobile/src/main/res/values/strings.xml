@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">ControlX2</string>
     <string name="title_activity_uiactivity">UIActivity</string>
-    <string name="shortcut_bolus_short">Bolus Entry</string>
-    <string name="shortcut_bolus_long">Open bolus entry</string>
-    <string name="shortcut_temp_rate_short">Temp Rate</string>
-    <string name="shortcut_temp_rate_long">Open temp rate entry</string>
+    <string name="shortcut_bolus_short">大剂量输入</string>
+    <string name="shortcut_bolus_long">打开大剂量输入</string>
+    <string name="shortcut_temp_rate_short">临时基础率</string>
+    <string name="shortcut_temp_rate_long">打开临时基础率输入</string>
 </resources>

@@ -39,14 +39,14 @@ fun BolusConfirmPhase(
         Alert(
             title = {
                 Text(
-                    text = bolusFinalParameters.value?.units?.let { "${twoDecimalPlaces(it)}u Bolus" } ?: "",
+                    text = bolusFinalParameters.value?.units?.let { "${twoDecimalPlaces(it)}u 大剂量" } ?: "",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
                 )
             },
             negativeButton = {
                 Button(onClick = onReject, colors = ButtonDefaults.secondaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Do not deliver bolus")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "不输注大剂量")
                 }
             },
             positiveButton = {
@@ -54,14 +54,14 @@ fun BolusConfirmPhase(
                     bolusPermissionResponse.value?.let { permissionResponse ->
                         if (permissionResponse.isPermissionGranted && finalParameters.units >= 0.05) {
                             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = "Deliver bolus")
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = "输注大剂量")
                             }
                         }
                     }
                 }
             },
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), "大剂量图标", Modifier.size(24.dp))
             },
             scrollState = scrollState,
         ) {
@@ -69,9 +69,9 @@ fun BolusConfirmPhase(
                 text = bolusPermissionResponse.value?.let {
                     when {
                         bolusFinalParameters.value?.units == null -> ""
-                        bolusFinalParameters.value!!.units < 0.05 -> "Insulin amount too small."
-                        it.status == 0 -> "Do you want to deliver the bolus?"
-                        else -> "Cannot deliver bolus: ${it.nackReason}"
+                        bolusFinalParameters.value!!.units < 0.05 -> "胰岛素剂量过小。"
+                        it.status == 0 -> "是否输注大剂量？"
+                        else -> "无法输注大剂量：${it.nackReason}"
                     }
                 } ?: "",
                 textAlign = TextAlign.Center,

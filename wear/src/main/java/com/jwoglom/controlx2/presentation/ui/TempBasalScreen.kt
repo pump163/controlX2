@@ -270,17 +270,17 @@ private fun validateUnitsToPercent(
     currentBasalRate: Double?,
 ): UnitsValidation {
     if (currentBasalRate == null || currentBasalRate <= 0.0) {
-        return UnitsValidation.Error("Current basal rate unavailable.")
+        return UnitsValidation.Error("当前基础率不可用。")
     }
     if (rawUnits < 0.0) {
-        return UnitsValidation.Error("Rate must be 0 or greater.")
+        return UnitsValidation.Error("速率必须大于等于0。")
     }
     if (rawUnits != 0.0 && rawUnits < 0.05) {
-        return UnitsValidation.Error("Rate must be 0 or at least 0.05 U/hr.")
+        return UnitsValidation.Error("速率必须为0或至少0.05 U/hr。")
     }
     val derived = ((rawUnits / currentBasalRate) * 100.0).roundToInt()
     if (derived < 0 || derived > 250) {
-        return UnitsValidation.Error("Effective rate ${derived}% exceeds 250% max.")
+        return UnitsValidation.Error("有效速率${derived}%超过250%上限。")
     }
     return UnitsValidation.Ok(derived)
 }
@@ -300,7 +300,7 @@ private fun LoadingMessage() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Checking temp basal…",
+            text = "正在检查临基…",
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
         )
@@ -320,7 +320,7 @@ private fun PickModePanel(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Temp basal by…",
+            text = "临基按…",
             fontSize = 12.sp,
             color = MaterialTheme.colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -328,7 +328,7 @@ private fun PickModePanel(
         )
         Chip(
             onClick = onPercentTapped,
-            label = { Text("Percent", fontSize = 13.sp) },
+            label = { Text("百分比", fontSize = 13.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
         )
@@ -338,8 +338,8 @@ private fun PickModePanel(
             label = { Text("U/hr", fontSize = 13.sp) },
             secondaryLabel = {
                 Text(
-                    text = if (unitsAvailable) "Base ${formatRate(currentBasalRate!!)} U/hr"
-                        else "Basal rate unavailable",
+                    text = if (unitsAvailable) "基础 ${formatRate(currentBasalRate!!)} U/hr"
+                        else "基础率不可用",
                     fontSize = 10.sp,
                 )
             },
@@ -357,7 +357,7 @@ private fun CancelActivePanel(
 ) {
     val subtitle = details?.let {
         "${it.percentage}% for ${formatDurationMinutes((it.duration / 60).toInt())}"
-    } ?: "Active temp basal"
+    } ?: "临基进行中"
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -365,7 +365,7 @@ private fun CancelActivePanel(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Temp basal",
+            text = "临基",
             fontSize = 12.sp,
             color = MaterialTheme.colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -380,7 +380,7 @@ private fun CancelActivePanel(
         )
         Chip(
             onClick = onCancelTapped,
-            label = { Text("Cancel temp basal", fontSize = 13.sp) },
+            label = { Text("取消临基", fontSize = 13.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -394,8 +394,8 @@ private fun CancelTempBasalAlert(
     onConfirm: () -> Unit,
 ) {
     val titleText = details?.let {
-        "Cancel ${it.percentage}% for ${formatDurationMinutes((it.duration / 60).toInt())}?"
-    } ?: "Cancel this temp basal?"
+        "取消${it.percentage}%，持续${formatDurationMinutes((it.duration / 60).toInt())}？"
+    } ?: "取消此临基？"
     Alert(
         title = {
             Text(
@@ -406,18 +406,18 @@ private fun CancelTempBasalAlert(
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Keep temp basal")
+                Icon(Icons.Filled.Clear, contentDescription = "保留临基")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Cancel temp basal")
+                Icon(Icons.Filled.Check, contentDescription = "取消临基")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Stop,
-                contentDescription = "Cancel temp basal",
+                contentDescription = "取消临基",
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -434,8 +434,8 @@ private fun SetTempBasalConfirmAlert(
     onConfirm: () -> Unit,
 ) {
     val headline = when (mode) {
-        TempBasalMode.PERCENT -> "Set $percent% for ${formatDurationMinutes(minutes)}?"
-        TempBasalMode.UNITS -> "Set ${formatRate(enteredUnits)} U/hr ($percent%) for ${formatDurationMinutes(minutes)}?"
+        TempBasalMode.PERCENT -> "设置$percent%，持续${formatDurationMinutes(minutes)}？"
+        TempBasalMode.UNITS -> "设置${formatRate(enteredUnits)} U/hr（$percent%），持续${formatDurationMinutes(minutes)}？"
     }
     Alert(
         title = {
@@ -447,18 +447,18 @@ private fun SetTempBasalConfirmAlert(
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = "取消")
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Confirm temp basal")
+                Icon(Icons.Filled.Check, contentDescription = "确认临基")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Speed,
-                contentDescription = "Temp basal",
+                contentDescription = "临基",
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -481,13 +481,13 @@ private fun ErrorAlert(
         negativeButton = {},
         positiveButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "OK")
+                Icon(Icons.Filled.Check, contentDescription = "确定")
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Clear,
-                contentDescription = "Error",
+                contentDescription = "错误",
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -495,11 +495,11 @@ private fun ErrorAlert(
 }
 
 private fun formatDurationMinutes(totalMinutes: Int): String {
-    if (totalMinutes <= 0) return "0 min"
+    if (totalMinutes <= 0) return "0 分钟"
     val h = totalMinutes / 60
     val m = totalMinutes % 60
     return when {
-        h == 0 -> "$m min"
+        h == 0 -> "$m 分钟"
         m == 0 -> "${h}h"
         else -> "${h}h ${m}m"
     }

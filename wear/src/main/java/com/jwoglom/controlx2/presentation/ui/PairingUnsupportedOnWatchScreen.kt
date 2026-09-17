@@ -10,6 +10,6 @@ import androidx.compose.runtime.Composable
 @Composable
 fun PairingUnsupportedOnWatchScreen() {
     FullScreenText(
-        text = "This pump uses a 16-character pairing code. Pair from the phone first, then switch the watch to pump-host in settings.",
+        text = "此胰岛素泵使用16位配对码。请先在手机上配对，再在设置中将手表切换为泵主机。",
     )
 }

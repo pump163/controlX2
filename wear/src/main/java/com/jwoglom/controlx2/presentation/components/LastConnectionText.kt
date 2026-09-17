@@ -37,10 +37,10 @@ fun LastConnectionText(
             // last successful connect) over the last-message timestamp since
             // the latter is typically older and more confusing than useful.
             val instant = pumpLastConnectionTimestamp.value ?: pumpLastMessageTimestamp.value
-            instant?.let { "Last seen ${shortTimeAgo(it, nowThresholdSeconds = 1)}" }
+            instant?.let { "上次连接 ${shortTimeAgo(it, nowThresholdSeconds = 1)}" }
         }
         pumpLastMessageTimestamp.value != null ->
-            "Last updated ${shortTimeAgo(pumpLastMessageTimestamp.value!!, nowThresholdSeconds = 1)}"
+            "上次更新 ${shortTimeAgo(pumpLastMessageTimestamp.value!!, nowThresholdSeconds = 1)}"
         else -> null
     }
 

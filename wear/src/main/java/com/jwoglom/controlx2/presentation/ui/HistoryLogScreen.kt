@@ -95,7 +95,7 @@ fun HistoryLogScreen(
         when {
             pumpSid < 0 -> item {
                 Text(
-                    text = "No pump connected yet. History will appear after the first pump connection.",
+                    text = "尚未连接胰岛素泵。首次连接后显示历史记录。",
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -103,7 +103,7 @@ fun HistoryLogScreen(
             }
             items.isEmpty() -> item {
                 Text(
-                    text = "No recent history events.",
+                    text = "暂无近期历史事件。",
                     fontSize = 12.sp,
                     modifier = Modifier.padding(16.dp),
                 )
@@ -184,36 +184,36 @@ private fun formatHistoryLogLabel(item: HistoryLogItem): String {
     val parsed = try {
         item.parse()
     } catch (_: Exception) {
-        return "Raw event #${item.typeId}"
+        return "原始事件 #${item.typeId}"
     }
     return when (parsed) {
         is BolusDeliveryHistoryLog ->
-            "Bolus %.2fU".format(parsed.deliveredTotal / 1000.0)
-        is BolusCompletedHistoryLog -> "Bolus complete"
+            "大剂量 %.2fU".format(parsed.deliveredTotal / 1000.0)
+        is BolusCompletedHistoryLog -> "大剂量完成"
         is BasalRateChangeHistoryLog ->
-            "Basal %.3fU/hr".format(parsed.commandBasalRate.toDouble())
-        is TempRateActivatedHistoryLog -> "Temp basal start"
-        is TempRateCompletedHistoryLog -> "Temp basal end"
+            "基础率 %.3fU/hr".format(parsed.commandBasalRate.toDouble())
+        is TempRateActivatedHistoryLog -> "临基开始"
+        is TempRateCompletedHistoryLog -> "临基结束"
         // `carbs` is a Float (pump reports 0.5g resolution). `.toInt()` would
         // silently drop half-grams, so format with one decimal.
-        is CarbEnteredHistoryLog -> "Carbs %.1fg".format(parsed.carbs)
+        is CarbEnteredHistoryLog -> "碳水 %.1fg".format(parsed.carbs)
         // Prefer the enum name ("LOW_INSULIN", "OCCLUSION_DETECTED") — that's
         // what the user reads on the pump face — and fall back to the numeric
         // id when pumpx2 doesn't have a name for the id. Mirrors ProcessAlarm.
         is AlarmActivatedHistoryLog ->
-            "Alarm: ${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
+            "报警：${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
         is AlarmClearedHistoryLog ->
-            "Alarm cleared: ${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
+            "报警解除：${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
         is AlertActivatedHistoryLog ->
-            "Alert: ${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
+            "提醒：${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
         is AlertClearedHistoryLog ->
-            "Alert cleared: ${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
-        is DailyBasalHistoryLog -> "Daily basal summary"
-        is PumpingResumedHistoryLog -> "Pumping resumed"
-        is PumpingSuspendedHistoryLog -> "Pumping suspended"
-        is CannulaFilledHistoryLog -> "Cannula filled"
-        is TubingFilledHistoryLog -> "Tubing filled"
-        is CartridgeFilledHistoryLog -> "Cartridge filled"
+            "提醒解除：${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
+        is DailyBasalHistoryLog -> "每日基础率汇总"
+        is PumpingResumedHistoryLog -> "胰岛素泵已恢复"
+        is PumpingSuspendedHistoryLog -> "胰岛素泵已暂停"
+        is CannulaFilledHistoryLog -> "插管已充盈"
+        is TubingFilledHistoryLog -> "导管已充盈"
+        is CartridgeFilledHistoryLog -> "储药器已充注"
         else -> parsed.javaClass.simpleName.removeSuffix("HistoryLog")
     }
 }

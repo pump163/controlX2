@@ -57,7 +57,7 @@ fun SettingsHubScreen(
             if (ffEnabled) {
                 Chip(
                     onClick = { navController.navigate(Screen.RoleSelection.route) },
-                    label = { Text("Role", fontSize = 13.sp) },
+                    label = { Text("角色", fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -70,7 +70,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.TempBasalSet.route) },
-                label = { Text("Temp basal", fontSize = 13.sp) },
+                label = { Text("临基", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -78,7 +78,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.ProfileSwitch.route) },
-                label = { Text("Active profile", fontSize = 13.sp) },
+                label = { Text("当前配置文件", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -86,7 +86,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.SleepModeSet.route) },
-                label = { Text("Sleep mode", fontSize = 13.sp) },
+                label = { Text("睡眠模式", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -94,7 +94,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.ExerciseModeSet.route) },
-                label = { Text("Exercise mode", fontSize = 13.sp) },
+                label = { Text("运动模式", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -102,7 +102,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.Notifications.route) },
-                label = { Text("Pump alerts", fontSize = 13.sp) },
+                label = { Text("胰岛素泵提醒", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -110,7 +110,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.CGMTransmitter.route) },
-                label = { Text("CGM sensor", fontSize = 13.sp) },
+                label = { Text("CGM 探头", fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -123,7 +123,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.CgmChart.route) },
-                    label = { Text("CGM chart", fontSize = 13.sp) },
+                    label = { Text("CGM 图表", fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -131,7 +131,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.HistoryLog.route) },
-                    label = { Text("Pump history", fontSize = 13.sp) },
+                    label = { Text("胰岛素泵历史", fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -156,7 +156,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { sendPhoneCommand("force-reload") },
-                label = { Text("Force reload", fontSize = 13.sp) },
+                label = { Text("强制重新加载", fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -164,7 +164,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = sendPhoneOpenActivity,
-                label = { Text("Open on phone", fontSize = 13.sp) },
+                label = { Text("在手机上打开", fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -172,7 +172,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.FeatureFlags.route) },
-                label = { Text("Feature flags", fontSize = 13.sp) },
+                label = { Text("功能开关", fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )

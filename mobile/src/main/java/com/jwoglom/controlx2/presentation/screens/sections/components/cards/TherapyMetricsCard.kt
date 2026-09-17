@@ -74,7 +74,7 @@ fun TherapyMetricsCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 MetricDisplay(
-                    label = "IOB",
+                    label = "活性胰岛素（IOB）",
                     value = iob?.let { "%.2f U".format(it) } ?: "--",
                     color = InsulinColors.Bolus
                 )
