@@ -221,7 +221,7 @@ fun AppSetup(
             if (insulinDeliveryActions || preview) {
                 ListItem(
                     headlineContent = {
-                        Text("手表自动批准超时")
+                        Text("手表超时自动批准")
                     },
                     supportingContent = {
                         Text(
@@ -437,11 +437,11 @@ fun AppSetup(
         )
         AlertDialog(
             onDismissRequest = { showWearAutoApproveDialog = false },
-            title = { Text("手表自动批准超时") },
+            title = { Text("手表超时自动批准") },
             text = {
                 Column {
                     Text(
-                        "从手表请求大剂量后，如未在手机上取消，将在此超时时间后自动批准。",
+                        "手表请求大剂量后，如未在手机上取消，将在此超时时间后自动批准。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
