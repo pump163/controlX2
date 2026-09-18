@@ -15,11 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +25,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -133,7 +132,7 @@ fun QuickBolusSettingsActions(
     }
 
     // Quick Bolus Settings state
-    var showQuickBolusDialog by remember { mutableStateOf(false) }
+    var quickBolusDropdownExpanded by remember { mutableStateOf(false) }
     var quickBolusEnabled by remember { mutableStateOf(false) }
     var quickBolusIncrement by remember { mutableStateOf(SetQuickBolusSettingsRequest.QuickBolusIncrement.DISABLED) }
 
@@ -168,16 +167,88 @@ fun QuickBolusSettingsActions(
                 }
 
                 item {
-                    ListItem(
-                        headlineContent = { Text("快捷大剂量") },
-                        supportingContent = {
-                            Text("配置快捷大剂量模式和增量大小")
-                        },
-                        leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            showQuickBolusDialog = true
-                        }
+                    Text(
+                        "配置快捷大剂量模式和增量大小",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.bodyMedium
                     )
+                }
+
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Text("启用", modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = quickBolusEnabled,
+                            onCheckedChange = { quickBolusEnabled = it }
+                        )
+                    }
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Text("增量：", modifier = Modifier.padding(top = 8.dp))
+                        ExposedDropdownMenuBox(
+                            expanded = quickBolusDropdownExpanded,
+                            onExpandedChange = { quickBolusDropdownExpanded = !quickBolusDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = quickBolusIncrement.name,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = quickBolusDropdownExpanded) },
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = quickBolusDropdownExpanded,
+                                onDismissRequest = { quickBolusDropdownExpanded = false }
+                            ) {
+                                SetQuickBolusSettingsRequest.QuickBolusIncrement.values().forEach { increment ->
+                                    DropdownMenuItem(
+                                        text = { Text(increment.name) },
+                                        onClick = {
+                                            quickBolusIncrement = increment
+                                            quickBolusEnabled = increment.enabled
+                                            quickBolusDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        TextButton(onClick = {
+                            val message = SetQuickBolusSettingsRequest(quickBolusIncrement)
+                            sendPumpCommands(SendType.STANDARD, listOf(message))
+                            refreshScope.launch {
+                                delay(500)
+                                refresh()
+                            }
+                        }) {
+                            Text("应用")
+                        }
+                    }
+                }
+
+                item {
                     Divider()
                 }
 
@@ -187,78 +258,6 @@ fun QuickBolusSettingsActions(
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
-                }
-            }
-        )
-    }
-
-    // Quick Bolus Settings Dialog
-    if (showQuickBolusDialog) {
-        var expanded by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { showQuickBolusDialog = false },
-            title = { Text("快捷大剂量设置") },
-            text = {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("启用", modifier = Modifier.weight(1f))
-                        Switch(
-                            checked = quickBolusEnabled,
-                            onCheckedChange = { quickBolusEnabled = it }
-                        )
-                    }
-                    Text("增量：", modifier = Modifier.padding(top = 8.dp))
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = quickBolusIncrement.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            SetQuickBolusSettingsRequest.QuickBolusIncrement.values().forEach { increment ->
-                                DropdownMenuItem(
-                                    text = { Text(increment.name) },
-                                    onClick = {
-                                        quickBolusIncrement = increment
-                                        quickBolusEnabled = increment.enabled
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val message = SetQuickBolusSettingsRequest(quickBolusIncrement)
-                    sendPumpCommands(SendType.STANDARD, listOf(message))
-                    showQuickBolusDialog = false
-                    refreshScope.launch {
-                        delay(500)
-                        refresh()
-                    }
-                }) {
-                    Text("应用")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showQuickBolusDialog = false }) {
-                    Text("取消")
                 }
             }
         )
