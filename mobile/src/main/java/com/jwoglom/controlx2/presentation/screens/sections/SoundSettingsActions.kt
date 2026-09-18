@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,6 +28,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -228,6 +231,28 @@ fun SoundSettingsActions(
                     item {
                         LoadSpinner("正在加载声音设置..." )
                     }
+                }
+
+                item {
+                    Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 8.dp)) {
+                        Line("提示音编号说明", style = MaterialTheme.typography.bodyMedium, bold = true)
+                        Spacer(Modifier.height(2.dp))
+                        Line(
+                            "常规提示音：" + PumpGlobalsResponse.AnnunciationEnum.values().joinToString("  ") { e ->
+                                "${e.id()}=${annunciationLabels[e.name] ?: e.name}"
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Line("CGM 警告提示音：A 固定填 0，B 选声音", style = MaterialTheme.typography.bodySmall)
+                        Line(
+                            SetPumpSoundsRequest.CgmAlertAnnunciationEnum.values().joinToString("  ") { e ->
+                                "B=${e.idB}→${cgmAnnunciationLabels[e.name] ?: e.name}"
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Divider()
                 }
                 
 
