@@ -273,7 +273,7 @@ fun PumpSetup(
                             item {
                                 TextField(
                                     value = pumpStateJson,
-                                    label = { Text("PumpState") },
+                                    label = { Text("泵状态") },
                                     onValueChange = {v -> pumpStateJson = v},
                                     modifier = Modifier.fillMaxWidth().height(200.dp).background(Color.White)
                                 )

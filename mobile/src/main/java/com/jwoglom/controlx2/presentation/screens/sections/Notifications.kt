@@ -172,7 +172,7 @@ fun Notifications(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此设备型号上无法关闭通知（${model}）。")
+                        Line("此设备型号上无法清除通知（${model}）。")
                         Line("")
                     }
                 }

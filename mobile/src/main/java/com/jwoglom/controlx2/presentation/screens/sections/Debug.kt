@@ -810,7 +810,7 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("查看 PumpState") },
+                    headlineContent = { Text("查看泵状态") },
                     supportingContent = { Text("显示胰岛素泵 MAC、配对密钥和认证密钥。") },
                     leadingContent = {
                         Icon(
@@ -842,7 +842,7 @@ fun Debug(
                                 item {
                                     TextField(
                                         value = exportedPumpState,
-                                        label = { Text("PumpState") },
+                                        label = { Text("泵状态") },
                                         onValueChange = {v -> },
                                         modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp).background(Color.White)
                                     )

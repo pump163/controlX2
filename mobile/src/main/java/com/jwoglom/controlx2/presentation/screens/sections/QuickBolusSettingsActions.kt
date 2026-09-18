@@ -201,7 +201,7 @@ fun QuickBolusSettingsActions(
                             onExpandedChange = { quickBolusDropdownExpanded = !quickBolusDropdownExpanded }
                         ) {
                             OutlinedTextField(
-                                value = quickBolusIncrement.name,
+                                value = quickBolusIncrementLabel(quickBolusIncrement),
                                 onValueChange = {},
                                 readOnly = true,
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = quickBolusDropdownExpanded) },
@@ -215,7 +215,7 @@ fun QuickBolusSettingsActions(
                             ) {
                                 SetQuickBolusSettingsRequest.QuickBolusIncrement.values().forEach { increment ->
                                     DropdownMenuItem(
-                                        text = { Text(increment.name) },
+                                        text = { Text(quickBolusIncrementLabel(increment)) },
                                         onClick = {
                                             quickBolusIncrement = increment
                                             quickBolusEnabled = increment.enabled
@@ -277,5 +277,16 @@ internal fun QuickBolusSettingsActionsPreview() {
                 navigateBack = {},
             )
         }
+    }
+}
+private fun quickBolusIncrementLabel(increment: SetQuickBolusSettingsRequest.QuickBolusIncrement): String {
+    return when {
+        increment == SetQuickBolusSettingsRequest.QuickBolusIncrement.DISABLED -> "已禁用"
+        increment.name.startsWith("UNITS_") -> {
+            val v = increment.name.removePrefix("UNITS_").replace('_', '.')
+            (if (v.endsWith(".0")) v.dropLast(2) else v) + " 单位"
+        }
+        increment.name.startsWith("CARBS_") -> increment.name.removePrefix("CARBS_").removeSuffix("G") + " 克碳水"
+        else -> increment.name
     }
 }
