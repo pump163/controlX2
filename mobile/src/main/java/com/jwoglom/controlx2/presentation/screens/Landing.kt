@@ -586,7 +586,7 @@ fun Landing(
 // HACK: subpages should have the same label as an item appearing in the nav
 // so that item appears as selected when it is navigated to within the app
 enum class LandingSection(val label: String, val icon: ImageVector, val showInNav: Boolean) {
-    DASHBOARD("仪表板", Icons.Filled.Info, true),
+    DASHBOARD("首页", Icons.Filled.Info, true),
 
     NOTIFICATIONS("通知", Icons.Filled.Notifications, true),
 
