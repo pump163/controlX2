@@ -26,7 +26,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -229,14 +228,7 @@ fun SoundSettingsActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    ListItem(
-                        headlineContent = { Text("返回") },
-                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            navigateBack()
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.White),
-                    )
+
                     HeaderLine("声音设置")
                     Divider()
                 }
@@ -375,9 +367,11 @@ fun SoundSettingsActions(
                 }
 
                 item {
-                    TextButton(onClick = navigateBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("返回 ${LandingSection.ACTIONS.label}")
-                    }
+                    ListItem(
+                        headlineContent = { Text("返回") },
+                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = navigateBack),
+                    )
                 }
             }
         )
