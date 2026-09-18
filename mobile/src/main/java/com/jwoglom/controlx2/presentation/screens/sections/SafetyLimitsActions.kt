@@ -24,7 +24,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -164,12 +163,7 @@ fun SafetyLimitsActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    ListItem(
-                        headlineContent = { Text("Back") },
-                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                        modifier = Modifier.clickable { navigateBack() },
-                        colors = ListItemDefaults.colors(containerColor = Color.White),
-                    )
+
                     HeaderLine("Safety Limits")
                     Divider()
                 }
@@ -235,9 +229,11 @@ fun SafetyLimitsActions(
                 }
 
                 item {
-                    TextButton(onClick = navigateBack, modifier = Modifier.fillMaxWidth()) {
-                        Text("Back to ${LandingSection.ACTIONS.label}")
-                    }
+                    ListItem(
+                        headlineContent = { Text("Back") },
+                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = navigateBack),
+                    )
                 }
             }
         )
