@@ -44,11 +44,6 @@ fun FeatureFlags(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                ListItem(
-                    headlineContent = { Text("返回") },
-                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                    modifier = Modifier.clickable { navigateBack() },
-                )
                 HeaderLine("功能开关")
                 Divider()
             }
@@ -74,6 +69,14 @@ fun FeatureFlags(
                     )
                     Divider()
                 }
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("返回") },
+                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = navigateBack),
+                )
             }
         }
     )
