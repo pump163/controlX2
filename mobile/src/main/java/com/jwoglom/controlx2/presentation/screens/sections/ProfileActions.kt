@@ -210,7 +210,7 @@ fun ProfileActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("配置文件操作")
+                    HeaderLine("配置文件控制")
                     HorizontalDivider()
 
                     val model = determinePumpModel(deviceName.value ?: "")

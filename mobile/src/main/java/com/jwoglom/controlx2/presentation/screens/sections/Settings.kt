@@ -253,7 +253,7 @@ fun Settings(
             item {
                 ListItem(
                     headlineContent = { Text("重新配置应用") },
-                    supportingContent = { Text("启用或禁用胰岛素输注操作。") },
+                    supportingContent = { Text("启用或禁用胰岛素输注。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Settings,

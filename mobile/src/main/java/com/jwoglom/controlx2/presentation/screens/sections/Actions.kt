@@ -211,12 +211,12 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("操作")
+                    HeaderLine("控制")
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此设备型号不支持操作（${model}），仅支持远程大剂量。")
+                        Line("此设备型号不支持部分控制（${model}），仅支持远程大剂量。")
                         Line("")
                     }
                 }

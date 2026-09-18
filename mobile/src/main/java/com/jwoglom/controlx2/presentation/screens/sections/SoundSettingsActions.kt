@@ -157,7 +157,6 @@ fun SoundSettingsActions(
     var cgmAText by remember { mutableStateOf("") }
     var cgmBText by remember { mutableStateOf("") }
     var changeBitmaskText by remember { mutableStateOf("") }
-    var globalsText by remember { mutableStateOf("") }
 
     LaunchedEffect(quickBolusText, generalText, reminderText, alertText, alarmText, cgmAText, cgmBText) {
         if (pumpGlobals.value == null) return@LaunchedEffect
@@ -183,15 +182,7 @@ fun SoundSettingsActions(
 
     LaunchedEffect(pumpGlobals.value) {
         pumpGlobals.value?.let { globals ->
-            globalsText = listOf(
-                    "buttonAnnun = ${globals.cargo[7]}",
-                    "quickBolusAnnun = ${globals.cargo[8]}",
-                    "bolusAnnun = ${globals.cargo[9]}",
-                    "reminderAnnun = ${globals.cargo[10]}",
-                    "alertAnnun = ${globals.cargo[11]}",
-                    "alarmAnnun = ${globals.cargo[12]}",
-                    "fillTubingAnnun = ${globals.cargo[13]}",
-                ).joinToString(" \n");
+
             quickBolusText = globals.quickBolusAnnun.id().toString()
             generalText = globals.fillTubingAnnun.id().toString()
             reminderText = globals.reminderAnnun.id().toString()
@@ -239,9 +230,7 @@ fun SoundSettingsActions(
                     }
                 }
                 
-                item {
-                    Text("Globals:\n${globalsText}")
-                }
+
 
                 item {
                     SoundSettingField(
@@ -306,14 +295,6 @@ fun SoundSettingsActions(
                     )
                 }
 
-                item {
-                    SoundSettingField(
-                        label = "更改位掩码",
-                        value = changeBitmaskText,
-                        onValueChange = { changeBitmaskText = it },
-                        enumValue = ""
-                    )
-                }
 
                 item {
                     ListItem(
@@ -347,13 +328,13 @@ fun SoundSettingsActions(
                 if (model == KnownDeviceModel.MOBI) {
                     item {
                         Line("\n")
-                        HeaderLine("警告贪睡")
+                        HeaderLine("暂停警告音")
                         Divider()
                     }
 
                     item {
                         ListItem(
-                            headlineContent = { Text("按键贪睡") },
+                            headlineContent = { Text("按键静音") },
                             supportingContent = {
                                 Text("配置连按三次按钮来临时静音警报。")
                             },
@@ -381,14 +362,14 @@ fun SoundSettingsActions(
     if (showAlertSnoozeDialog) {
         AlertDialog(
             onDismissRequest = { showAlertSnoozeDialog = false },
-            title = { Text("警告贪睡设置") },
+            title = { Text("暂停警告音设置") },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("贪睡已启用", modifier = Modifier.weight(1f))
+                        Text("暂停已启用", modifier = Modifier.weight(1f))
                         Switch(
                             checked = alertSnoozeEnabled,
                             onCheckedChange = { alertSnoozeEnabled = it }
@@ -472,19 +453,29 @@ private fun SoundSettingField(
     )
 }
 
+private val annunciationLabels = mapOf(
+    "AUDIO_HIGH" to "高音量",
+    "AUDIO_MEDIUM" to "中音量",
+    "AUDIO_LOW" to "低音量",
+    "VIBRATE" to "振动",
+)
+
 private fun annunciationLabel(value: String): String {
-    val parsed = value.toIntOrNull()
-    return if (parsed != null) PumpGlobalsResponse.AnnunciationEnum.fromId(parsed)?.name ?: "未知" else "未知"
+    val parsed = value.toIntOrNull() ?: return "未知"
+    return PumpGlobalsResponse.AnnunciationEnum.fromId(parsed)?.name?.let { annunciationLabels[it] } ?: "未知"
 }
+
+private val cgmAnnunciationLabels = mapOf(
+    "VIBRATE" to "振动",
+    "BEEP" to "蜂鸣",
+    "HYPO_REPEAT" to "低血糖重复",
+)
 
 private fun cgmAnnunciationLabel(valueA: String, valueB: String): String {
     val a = valueA.toIntOrNull()
     val b = valueB.toIntOrNull()
-    return if (a != null && b != null) {
-        SetPumpSoundsRequest.CgmAlertAnnunciationEnum.fromIds(a, b)?.name ?: "未知"
-    } else {
-        "未知"
-    }
+    if (a == null || b == null) return "未知"
+    return SetPumpSoundsRequest.CgmAlertAnnunciationEnum.fromIds(a, b)?.name?.let { cgmAnnunciationLabels[it] } ?: "未知"
 }
 
 val soundSettingsActionsCommands = listOf(

@@ -590,14 +590,14 @@ enum class LandingSection(val label: String, val icon: ImageVector, val showInNa
 
     NOTIFICATIONS("通知", Icons.Filled.Notifications, true),
 
-    ACTIONS("操作", Icons.Filled.Create, true),
-    CGM_ACTIONS("操作", Icons.Filled.Create, false),
-    CARTRIDGE_ACTIONS("操作", Icons.Filled.Create, false),
+    ACTIONS("控制", Icons.Filled.Create, true),
+    CGM_ACTIONS("控制", Icons.Filled.Create, false),
+    CARTRIDGE_ACTIONS("控制", Icons.Filled.Create, false),
     PROFILE_ACTIONS("配置文件", Icons.Filled.Create, false),
     SOUND_SETTINGS_ACTIONS("配置文件", Icons.Filled.Create, false),
-    QUICK_BOLUS_SETTINGS_ACTIONS("操作", Icons.Filled.Create, false),
-    CONTROLIQ_SETTINGS_ACTIONS("操作", Icons.Filled.Create, false),
-    SAFETY_LIMITS_ACTIONS("操作", Icons.Filled.Create, false),
+    QUICK_BOLUS_SETTINGS_ACTIONS("控制", Icons.Filled.Create, false),
+    CONTROLIQ_SETTINGS_ACTIONS("控制", Icons.Filled.Create, false),
+    SAFETY_LIMITS_ACTIONS("控制", Icons.Filled.Create, false),
 
     SETTINGS("设置", Icons.Filled.Settings, true),
     DEBUG("设置", Icons.Filled.Settings, false),

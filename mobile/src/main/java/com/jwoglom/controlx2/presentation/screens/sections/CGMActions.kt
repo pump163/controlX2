@@ -178,7 +178,7 @@ fun CGMActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("CGM 操作")
+                    HeaderLine("CGM 控制")
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")

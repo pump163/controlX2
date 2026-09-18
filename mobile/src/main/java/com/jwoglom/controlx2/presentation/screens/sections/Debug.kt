@@ -2294,9 +2294,9 @@ fun triggerSetPumpAlertSnoozeRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "贪睡已启用（true/false/1/0）"
+    enabledInput.hint = "暂停已启用（true/false/1/0）"
     val durationInput = EditText(context)
-    durationInput.hint = "贪睡时长（分钟）"
+    durationInput.hint = "暂停时长（分钟）"
     durationInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(enabledInput, durationInput).forEach { layout.addView(it) }
     builder.setView(layout)

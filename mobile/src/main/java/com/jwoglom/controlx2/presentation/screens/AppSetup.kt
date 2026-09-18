@@ -147,7 +147,7 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("胰岛素输注操作")
+                    Text("胰岛素输注控制")
                 },
                 supportingContent = {
                     Text("允许通过手机或手表远程输注大剂量")
@@ -376,7 +376,7 @@ fun AppSetup(
             onDismissRequest = { showInsulinWarningDialog = false },
             title = { Text("警告") },
             text = {
-                Text("警告：本软件为非官方实验性软件。启用胰岛素输注操作将允许您的手机或手表向胰岛素泵远程发送大剂量。启用此设置前，请充分了解其安全与安全隐患。为安全起见，请在胰岛素泵上确认大剂量操作。发送大剂量命令时，胰岛素泵会发出提示音。")
+                Text("警告：本软件为非官方实验性软件。启用胰岛素输注将允许您的手机或手表向胰岛素泵远程发送大剂量。启用此设置前，请充分了解其安全与安全隐患。为安全起见，请在胰岛素泵上确认大剂量操作。发送大剂量命令时，胰岛素泵会发出提示音。")
             },
             confirmButton = {
                 Button(onClick = {

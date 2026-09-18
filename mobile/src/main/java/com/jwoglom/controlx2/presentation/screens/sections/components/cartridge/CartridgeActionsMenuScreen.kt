@@ -47,7 +47,7 @@ fun CartridgeActionsMenuScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            HeaderLine("储药器操作")
+            HeaderLine("储药器控制")
             Divider()
 
             val model = determinePumpModel(deviceName)
