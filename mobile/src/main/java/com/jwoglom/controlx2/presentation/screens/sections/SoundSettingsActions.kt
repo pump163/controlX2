@@ -318,7 +318,7 @@ fun SoundSettingsActions(
                 item {
                     ListItem(
                         headlineContent = { Text("应用声音设置") },
-                        supportingContent = { Text("发送 SetPumpSoundsRequest 并使用这些值") },
+                        supportingContent = { Text("发送声音设置并应用这些值") },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         modifier = Modifier.clickable {
                             val message = SetPumpSoundsRequest(
@@ -355,7 +355,7 @@ fun SoundSettingsActions(
                         ListItem(
                             headlineContent = { Text("按键贪睡") },
                             supportingContent = {
-                                Text("配置三击按钮以贪睡警告")
+                                Text("配置连按三次按钮来临时静音警报。")
                             },
                             leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             modifier = Modifier.clickable {
@@ -455,7 +455,7 @@ private fun SoundSettingField(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    label = { Text("值") },
+                    label = { Text("提示音编号") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )

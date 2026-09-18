@@ -152,7 +152,7 @@ fun NotificationItem(
                             notification.description ?: ""
                         )
 
-                        is HighestAamResponse -> Text("此警报无法清除，DIY 应用开发者无法就此问题为您提供帮助。\n如需进一步说明，请联系 Tandem 技术支持并提供上述代码。")
+                        is HighestAamResponse -> Text("此警报无法清除，俺是 DIY 开发者…请联系 Tandem 技术支持…")
                         else -> {}
                     }
                 },

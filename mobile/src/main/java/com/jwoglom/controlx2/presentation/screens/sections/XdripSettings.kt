@@ -173,7 +173,7 @@ fun XdripSettings(
                 ListItem(
                     headlineContent = { Text("发送诊断测试数据") },
                     supportingContent = {
-                        Text("发送一次性测试 SGV 和状态栏广播 intent")
+                        Text("发送一次血糖测试值和状态栏广播。")
                     },
                     leadingContent = {
                         Icon(

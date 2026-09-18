@@ -294,7 +294,7 @@ fun Settings(
                     Divider()
                     ListItem(
                         headlineContent = { Text("重置并在此设备上重新开始") },
-                        supportingContent = { Text("如果卡住时使用。强制此手机作为胰岛素泵主机并清除胰岛素泵配对。") },
+                        supportingContent = { Text("如果卡住了才用。强制此手机作为胰岛素泵主机并清除胰岛素泵配对。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Devices,

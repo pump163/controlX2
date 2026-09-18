@@ -150,7 +150,7 @@ fun AppSetup(
                     Text("胰岛素输注操作")
                 },
                 supportingContent = {
-                    Text("允许通过手机或手表远程发送大剂量。")
+                    Text("允许通过手机或手表远程输注大剂量")
                 },
                 trailingContent = {
                     Switch(

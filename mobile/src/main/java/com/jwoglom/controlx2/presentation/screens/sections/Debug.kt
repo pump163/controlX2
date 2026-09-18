@@ -257,7 +257,7 @@ fun Debug(
                 ) {
                     ListItem(
                         headlineContent = { Text("发送胰岛素泵消息") },
-                        supportingContent = { Text("显示给定请求的响应消息。") },
+                        supportingContent = { Text("查看所发送请求的响应消息。") },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Build,
@@ -898,7 +898,7 @@ fun Debug(
             item {
                 ListItem(
                     headlineContent = { Text("清空数据库") },
-                    supportingContent = { Text("删除 sqlite 中所有已保存的历史记录。") },
+                    supportingContent = { Text("清除数据库中保存的所有历史记录。") },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Close,
@@ -918,8 +918,8 @@ fun Debug(
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件 Toast" else "启用合格事件 Toast") },
-                    supportingContent = { Text("当 CommService 收到合格事件时显示 Toast 通知。") },
+                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件的通知" else "启用合格事件的通知") },
+                    supportingContent = { Text("当后台服务收到符合条件的事件时显示提示。") },
                     leadingContent = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -931,7 +931,7 @@ fun Debug(
                         Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
                         Toast.makeText(
                             context,
-                            "合格事件 Toast 已${if (qualifyingEventToastsEnabled) "启用" else "禁用"}",
+                            "合格事件通知 已${if (qualifyingEventToastsEnabled) "启用" else "禁用"}",
                             Toast.LENGTH_SHORT
                         ).show()
                     }

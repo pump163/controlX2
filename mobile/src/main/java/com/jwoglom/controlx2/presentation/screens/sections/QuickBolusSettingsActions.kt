@@ -232,7 +232,7 @@ fun QuickBolusSettingsActions(
                     ListItem(
                         headlineContent = { Text("应用快捷大剂量设置") },
                         supportingContent = {
-                            Text("发送 SetQuickBolusSettingsRequest 并使用这些值")
+                            Text("发送快捷大剂量设置并应用这些值")
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         modifier = Modifier.clickable {
