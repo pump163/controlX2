@@ -131,24 +131,3 @@ PumpX2 库文件将发布到 `$HOME/.m2/repository/com/jwoglom/pumpx2/`。
 如果重新构建了 PumpX2 库，请同时升级 PumpX2 与 ControlX2 的 Gradle 配置中的版本号，
 或在 ControlX2 中执行 `./gradlew build --refresh-dependencies`。否则，如果版本号未升级，
 重新构建 ControlX2 时可能仍会使用该版本的旧代码缓存。
-
-## Roborazzi 快照基线
-
-两个模块的快照测试均使用 Roborazzi，并将黄金图像写入稳定、带版本号的路径：
-
-* `mobile/src/test/snapshots/roborazzi/ComposePreviewSnapshotTests/*.png`
-* `wear/src/test/snapshots/roborazzi/ComposePreviewSnapshotTests/*.png`
-
-录制快照：
-
-```bash
-./gradlew :mobile:recordRoborazziDebug :wear:recordRoborazziDebug
-```
-
-当 UI 变更是有意为之的，请在同一个 PR 中更新基线：
-
-1. 重新运行录制任务。
-2. 检查变更的快照 PNG 文件。
-3. 将更新后的基线随 UI/代码变更一起提交。
-
-Roborazzi 的 diff/actual 报告产物应保持不被跟踪；`.gitignore` 已做相应配置。
