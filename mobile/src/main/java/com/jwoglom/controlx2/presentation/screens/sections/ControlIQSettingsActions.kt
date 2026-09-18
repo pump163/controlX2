@@ -427,7 +427,7 @@ fun ControlIQSettingsActions(
                     OutlinedTextField(
                         value = sleepDays,
                         onValueChange = { sleepDays = it },
-                        label = { Text("星期掩码(周壹=1,二=2,...日=64, 全=127)") },
+                        label = { Text("星期掩码(Mon=1,二=2,...日=64,全=127)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
