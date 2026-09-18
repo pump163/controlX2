@@ -216,7 +216,7 @@ fun Actions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此设备型号不支持部分控制（${model}），仅支持远程大剂量。")
+                        Line("此型号的设备不支持部分控制（${model}），仅支持远程大剂量。")
                         Line("")
                     }
                 }

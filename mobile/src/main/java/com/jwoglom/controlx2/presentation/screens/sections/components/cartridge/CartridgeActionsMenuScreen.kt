@@ -52,7 +52,7 @@ fun CartridgeActionsMenuScreen(
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("此设备型号不支持胰岛素控制（${model}）。")
+                Line("此型号的设备不支持胰岛素泵控制（${model}）。")
                 Line("")
             }
         }

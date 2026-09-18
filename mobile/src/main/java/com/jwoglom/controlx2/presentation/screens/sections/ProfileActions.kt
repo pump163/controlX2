@@ -215,7 +215,7 @@ fun ProfileActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此设备型号不支持配置文件控制（${model}），仅可查看配置文件。")
+                        Line("此型号的设备不支持配置文件控制（${model}），仅可查看配置文件。")
                         Line("")
                     }
                 }
