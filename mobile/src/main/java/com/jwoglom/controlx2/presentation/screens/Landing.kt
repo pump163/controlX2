@@ -83,6 +83,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.Dashboard
 import com.jwoglom.controlx2.presentation.screens.sections.Debug
 import com.jwoglom.controlx2.presentation.screens.sections.Notifications
 import com.jwoglom.controlx2.presentation.screens.sections.ProfileActions
+import com.jwoglom.controlx2.presentation.screens.sections.QuickBolusSettingsActions
 import com.jwoglom.controlx2.presentation.screens.sections.SafetyLimitsActions
 import com.jwoglom.controlx2.presentation.screens.sections.Settings
 import com.jwoglom.controlx2.presentation.screens.sections.TempRateWindow
@@ -410,6 +411,17 @@ fun Landing(
                                 },
                             )
                         }
+                        LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS -> {
+                            QuickBolusSettingsActions(
+                                innerPadding = innerPadding,
+                                navController = navController,
+                                sendMessage = sendMessage,
+                                sendPumpCommands = sendPumpCommands,
+                                navigateBack = {
+                                    selectedItem = LandingSection.ACTIONS
+                                },
+                            )
+                        }
                         LandingSection.CONTROLIQ_SETTINGS_ACTIONS -> {
                             ControlIQSettingsActions(
                                 innerPadding = innerPadding,
@@ -583,6 +595,7 @@ enum class LandingSection(val label: String, val icon: ImageVector, val showInNa
     CARTRIDGE_ACTIONS("操作", Icons.Filled.Create, false),
     PROFILE_ACTIONS("配置文件", Icons.Filled.Create, false),
     SOUND_SETTINGS_ACTIONS("配置文件", Icons.Filled.Create, false),
+    QUICK_BOLUS_SETTINGS_ACTIONS("操作", Icons.Filled.Create, false),
     CONTROLIQ_SETTINGS_ACTIONS("操作", Icons.Filled.Create, false),
     SAFETY_LIMITS_ACTIONS("操作", Icons.Filled.Create, false),
 

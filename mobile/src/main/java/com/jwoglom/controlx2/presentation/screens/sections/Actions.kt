@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
@@ -697,6 +698,28 @@ fun Actions(
                             },
                             modifier = Modifier.clickable {
                                 navigateToSection(LandingSection.PROFILE_ACTIONS)
+                            }
+                        )
+                    }
+                }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(
+                                "快捷大剂量设置"
+                            )},
+                            supportingContent = {
+                            },
+                            leadingContent = {
+                                Icon(Icons.Filled.Bolt, contentDescription = null)
+                            },
+                            modifier = Modifier.clickable {
+                                navigateToSection(LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS)
                             }
                         )
                     }
