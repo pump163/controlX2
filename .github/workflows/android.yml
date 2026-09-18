@@ -105,11 +105,7 @@ jobs:
 
       - name: Assemble Release
         run: |
-          ./gradlew build assembleRelease \
-            -DRELEASE_STORE_FILE=../release.keystore \
-            -DRELEASE_STORE_PASSWORD='${{ secrets.RELEASE_STORE_PASSWORD }}' \
-            -DRELEASE_KEY_ALIAS='${{ secrets.RELEASE_KEY_ALIAS }}' \
-            -DRELEASE_KEY_PASSWORD='${{ secrets.RELEASE_KEY_PASSWORD }}'
+          ./gradlew build assembleRelease
 
       - name: Upload release mobile APK
         uses: actions/upload-artifact@v4
