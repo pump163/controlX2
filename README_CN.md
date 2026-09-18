@@ -2,16 +2,16 @@
 
 > 面向手机与 Wear OS 手表的安卓应用，可通过 [PumpX2](https://github.com/jwoglom/pumpx2) 控制 Tandem t:slim X2 或 Mobi 胰岛素泵。  
 > PS：仅做了汉化，给界面做了一点点美容，没修改其它任何东西，需要英文原版可以去 https://github.com/jwoglom/pumpx2 下载；  
-> 	图片我没有截图，还是抄的github上的，请自己截吧。汉化本来就是我自己玩的；  
-> 	以下说明都是抄的Github，致敬原作者！  
-  
-> \*\*警告\*\*\\
-> \*\*本应用仅供实验使用，可用于修改胰岛素泵的活性胰岛素输注。\*\*\\
-> \*\*因使用本软件造成的任何后果，均不提供任何明示或默示的担保。\*\*\\
-> \*\*对任何故障、缺陷或胰岛素输注行为，您需自行承担全部风险。\*\*\\
-> \\
-> \*\*本应用与 Tandem、Dexcom 或任何其他制造商无关联，也未获其支持。\*\*\\
-> \*\*本应用未经官方批准用于临床，仅作为研究工具提供。\*\*
+> 图片我没有截图，还是抄的github上的，请自己截吧。汉化本来就是我自己玩的；  
+> 以下说明都是抄的Github，致敬原作者！  
+
+> **警告**\
+> **本应用仅供实验使用，可用于修改胰岛素泵的活性胰岛素输注。**\
+> **因使用本软件造成的任何后果，均不提供任何明示或默示的担保。**\
+> **对任何故障、缺陷或胰岛素输注行为，您需自行承担全部风险。**\
+> \
+> **本应用与 Tandem、Dexcom 或任何其他制造商无关联，也未获其支持。**\
+> **本应用未经官方批准用于临床，仅作为研究工具提供。**
 
 <div>
 <img src="https://user-images.githubusercontent.com/192620/213893870-9a3954db-7482-458f-955a-16e2f13a99d1.png" alt="手机端大剂量" title="手机端大剂量" width=300 />
@@ -80,12 +80,12 @@
 
 ### Wear OS 手表端截图
 
-!\[应用主界面](https://user-images.githubusercontent.com/192620/206879718-91b90287-dbad-4a9d-9905-a43144025a0c.png)
-!\[选择大剂量单位](https://user-images.githubusercontent.com/192620/206879726-5c13adad-0c05-4786-8e1a-b4bd63faae7f.png)
-!\[选择大剂量碳水](https://user-images.githubusercontent.com/192620/206879731-cc83616b-d4f2-4f06-97ae-0577ebe30d94.png)
-!\[输注大剂量](https://user-images.githubusercontent.com/192620/206879740-0f0b2a03-8b9d-4c63-b806-a19b23c44675.png)
-!\[输注大剂量](https://user-images.githubusercontent.com/192620/206879749-5b6f6e32-2573-4f7d-acb4-b18448a5d880.png)
-!\[输注大剂量](https://user-images.githubusercontent.com/192620/206879759-6ec60327-8d6a-45ae-9f94-4900dbbbc6cd.png)
+![应用主界面](https://user-images.githubusercontent.com/192620/206879718-91b90287-dbad-4a9d-9905-a43144025a0c.png)
+![选择大剂量单位](https://user-images.githubusercontent.com/192620/206879726-5c13adad-0c05-4786-8e1a-b4bd63faae7f.png)
+![选择大剂量碳水](https://user-images.githubusercontent.com/192620/206879731-cc83616b-d4f2-4f06-97ae-0577ebe30d94.png)
+![输注大剂量](https://user-images.githubusercontent.com/192620/206879740-0f0b2a03-8b9d-4c63-b806-a19b23c44675.png)
+![输注大剂量](https://user-images.githubusercontent.com/192620/206879749-5b6f6e32-2573-4f7d-acb4-b18448a5d880.png)
+![输注大剂量](https://user-images.githubusercontent.com/192620/206879759-6ec60327-8d6a-45ae-9f94-4900dbbbc6cd.png)
 
 
 
@@ -131,7 +131,7 @@ $ ./gradlew publishToMavenLocal
 
 PumpX2 库文件将发布到 `$HOME/.m2/repository/com/jwoglom/pumpx2/`。
 
-然后，在命令行构建时设置 `use\_local\_pumpx2` Gradle 属性为 `true`：`./gradlew build -Duse\_local\_pumpx2=true`，
+然后，在命令行构建时设置 `use_local_pumpx2` Gradle 属性为 `true`：`./gradlew build -Duse_local_pumpx2=true`，
 或在 Android Studio 中编辑 `local.properties` 文件使其生效。
 
 如果重新构建了 PumpX2 库，请同时升级 PumpX2 与 ControlX2 的 Gradle 配置中的版本号，
