@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,6 +28,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -157,7 +160,6 @@ fun SoundSettingsActions(
     var cgmAText by remember { mutableStateOf("") }
     var cgmBText by remember { mutableStateOf("") }
     var changeBitmaskText by remember { mutableStateOf("") }
-    var globalsText by remember { mutableStateOf("") }
 
     LaunchedEffect(quickBolusText, generalText, reminderText, alertText, alarmText, cgmAText, cgmBText) {
         if (pumpGlobals.value == null) return@LaunchedEffect
@@ -183,15 +185,6 @@ fun SoundSettingsActions(
 
     LaunchedEffect(pumpGlobals.value) {
         pumpGlobals.value?.let { globals ->
-            globalsText = listOf(
-                    "buttonAnnun = ${globals.cargo[7]}",
-                    "quickBolusAnnun = ${globals.cargo[8]}",
-                    "bolusAnnun = ${globals.cargo[9]}",
-                    "reminderAnnun = ${globals.cargo[10]}",
-                    "alertAnnun = ${globals.cargo[11]}",
-                    "alarmAnnun = ${globals.cargo[12]}",
-                    "fillTubingAnnun = ${globals.cargo[13]}",
-                ).joinToString(" \n");
             quickBolusText = globals.quickBolusAnnun.id().toString()
             generalText = globals.fillTubingAnnun.id().toString()
             reminderText = globals.reminderAnnun.id().toString()
@@ -238,9 +231,27 @@ fun SoundSettingsActions(
                         LoadSpinner("Loading sound settings..." )
                     }
                 }
-                
+
                 item {
-                    Text("Globals:\n${globalsText}")
+                    Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 8.dp)) {
+                        Line("Annunciation Number Reference", style = MaterialTheme.typography.bodyMedium, bold = true)
+                        Spacer(Modifier.height(2.dp))
+                        Line(
+                            "General: " + PumpGlobalsResponse.AnnunciationEnum.values().joinToString("  ") { e ->
+                                "${e.id()}=${annunciationEnLabels[e.name] ?: e.name}"
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Line("CGM alert: A is fixed at 0, B selects the sound", style = MaterialTheme.typography.bodySmall)
+                        Line(
+                            SetPumpSoundsRequest.CgmAlertAnnunciationEnum.values().joinToString("  ") { e ->
+                                "B=${e.idB}→${cgmAnnunciationEnLabels[e.name] ?: e.name}"
+                            },
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Divider()
                 }
 
                 item {
@@ -471,6 +482,19 @@ private fun SoundSettingField(
         }
     )
 }
+
+private val annunciationEnLabels = mapOf(
+    "AUDIO_HIGH" to "High volume",
+    "AUDIO_MEDIUM" to "Medium volume",
+    "AUDIO_LOW" to "Low volume",
+    "VIBRATE" to "Vibrate",
+)
+
+private val cgmAnnunciationEnLabels = mapOf(
+    "VIBRATE" to "Vibrate",
+    "BEEP" to "Beep",
+    "HYPO_REPEAT" to "Hypo repeat",
+)
 
 private fun annunciationLabel(value: String): String {
     val parsed = value.toIntOrNull()
