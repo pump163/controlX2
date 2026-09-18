@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -30,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -229,23 +229,21 @@ fun QuickBolusSettingsActions(
                 }
 
                 item {
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                    ) {
-                        TextButton(onClick = {
+                    ListItem(
+                        headlineContent = { Text("应用快捷大剂量设置") },
+                        supportingContent = {
+                            Text("发送 SetQuickBolusSettingsRequest 并使用这些值")
+                        },
+                        leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        modifier = Modifier.clickable {
                             val message = SetQuickBolusSettingsRequest(quickBolusIncrement)
                             sendPumpCommands(SendType.STANDARD, listOf(message))
                             refreshScope.launch {
                                 delay(500)
                                 refresh()
                             }
-                        }) {
-                            Text("应用")
                         }
-                    }
+                    )
                 }
 
                 item {
