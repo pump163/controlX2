@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
@@ -56,7 +57,8 @@ import java.time.format.DateTimeFormatter
 fun NightscoutSettings(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
-    pumpSid: Int = 0
+    pumpSid: Int = 0,
+    navigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("controlx2", android.content.Context.MODE_PRIVATE)
@@ -257,6 +259,14 @@ fun NightscoutSettings(
                     }
                 )
                 Divider()
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("Back") },
+                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = navigateBack),
+                )
             }
         }
     )
