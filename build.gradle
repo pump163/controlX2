@@ -29,6 +29,18 @@ plugins {
     id 'io.github.takahirom.roborazzi' version '1.58.0' apply false
 }
 
+// Custom APK output file names for the 约旦大兵汉化 (Chinese localization) build
+subprojects { subproject ->
+    plugins.withId('com.android.application') {
+        android {
+            applicationVariants.all { variant ->
+                variant.outputs.all { output ->
+                    outputFileName = "controlX2_${subproject.name}-${variant.buildType.name}_约旦大兵汉化.apk"
+                }
+            }
+        }
+    }
+}
 // Connected Android tests can hang on CI when Gradle attempts to exercise
 // every Android subproject (including dependency helper modules that are not
 // meant to run instrumentation tests in automation). The coverage workflow only
