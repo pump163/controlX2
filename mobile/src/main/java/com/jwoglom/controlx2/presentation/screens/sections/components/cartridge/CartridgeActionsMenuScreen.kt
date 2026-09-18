@@ -52,7 +52,7 @@ fun CartridgeActionsMenuScreen(
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("Insulin control is not supported on this device model (${model}).")
+                Line("Insulin pump control is not supported on this device model (${model}).")
                 Line("")
             }
         }
