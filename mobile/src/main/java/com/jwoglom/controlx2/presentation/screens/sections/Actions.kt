@@ -236,9 +236,9 @@ fun Actions(
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> "停止或恢复胰岛素输送"
-                                    BasalStatus.PUMP_SUSPENDED -> "恢复胰岛素输送"
-                                    else -> "停止胰岛素输送"
+                                    BasalStatus.UNKNOWN, null -> "停止或恢复胰岛素输注"
+                                    BasalStatus.PUMP_SUSPENDED -> "恢复胰岛素输注"
+                                    else -> "停止胰岛素输注"
                                 }
                             ) },
                             leadingContent = {
@@ -334,7 +334,7 @@ fun Actions(
                                     Text("停止胰岛素")
                                 },
                                 text = {
-                                    Text("暂停所有胰岛素输送？")
+                                    Text("暂停所有胰岛素输注？")
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -753,7 +753,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "安全上限"
+                                "安全限制"
                             )},
                             supportingContent = {
                             },
@@ -827,7 +827,7 @@ private fun resolveResumeInsulinGuidance(
             } else {
                 ResumeInsulinGuidance(
                     canResume = true,
-                    message = "恢复所有胰岛素输送？",
+                    message = "恢复所有胰岛素输注？",
                 )
             }
         }

@@ -1046,7 +1046,7 @@ fun triggerIDPSegmentDialog(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle("输入 IDP ID")
-    builder.setMessage("输入胰岛素输送配置文件的 ID")
+    builder.setMessage("输入胰岛素输注配置文件的 ID")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
@@ -1055,7 +1055,7 @@ fun triggerIDPSegmentDialog(
         Timber.i("idp id: %s", idpId)
         val builder2 = AlertDialog.Builder(context)
         builder2.setTitle("输入时段索引")
-        builder2.setMessage("输入胰岛素输送配置文件时段的索引")
+        builder2.setMessage("输入胰岛素输注配置文件时段的索引")
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         builder2.setView(input2)
@@ -1088,7 +1088,7 @@ fun triggerIDPSettingsDialog(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle("输入 IDP ID")
-    builder.setMessage("输入胰岛素输送配置文件的 ID")
+    builder.setMessage("输入胰岛素输注配置文件的 ID")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)

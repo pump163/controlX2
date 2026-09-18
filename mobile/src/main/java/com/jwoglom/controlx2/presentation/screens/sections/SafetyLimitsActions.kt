@@ -170,13 +170,13 @@ fun SafetyLimitsActions(
                         modifier = Modifier.clickable { navigateBack() },
                         colors = ListItemDefaults.colors(containerColor = Color.White),
                     )
-                    HeaderLine("安全上限")
+                    HeaderLine("安全限制")
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("正在加载安全上限...")
+                        LoadSpinner("正在加载安全限制...")
                     }
                 }
 

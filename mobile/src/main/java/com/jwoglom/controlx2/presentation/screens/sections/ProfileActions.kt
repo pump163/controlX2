@@ -469,7 +469,7 @@ fun ProfileActions(
                                 )
                             },
                             supportingContent = {
-                                Text("创建新的胰岛素输送配置文件")
+                                Text("创建新的胰岛素输注配置文件")
                             },
                             leadingContent = {
                                 Icon(Icons.Filled.Add, contentDescription = null)
