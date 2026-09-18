@@ -442,6 +442,7 @@ fun Landing(
                                 navigateToFeatureFlags = {
                                     selectedItem = LandingSection.FEATURE_FLAGS
                                 },
+                                navigateBack = { selectedItem = LandingSection.SETTINGS },
                             )
                         }
                         LandingSection.FEATURE_FLAGS -> {
@@ -474,14 +475,16 @@ fun Landing(
                             NightscoutSettings(
                                 innerPadding = innerPadding,
                                 navController = navController,
-                                pumpSid = ds.pumpSid.observeAsState().value ?: 0
+                                pumpSid = ds.pumpSid.observeAsState().value ?: 0,
+                                navigateBack = { selectedItem = LandingSection.SETTINGS }
                             )
                         }
                         LandingSection.XDRIP_SETTINGS -> {
                             XdripSettings(
                                 innerPadding = innerPadding,
                                 navController = navController,
-                                sendMessage = sendMessage
+                                sendMessage = sendMessage,
+                                navigateBack = { selectedItem = LandingSection.SETTINGS }
                             )
                         }
                     }

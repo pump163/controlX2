@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -47,6 +48,7 @@ fun XdripSettings(
     innerPadding: PaddingValues = PaddingValues(),
     navController: NavHostController? = null,
     sendMessage: (String, ByteArray) -> Unit,
+    navigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = Prefs(context).prefs()
@@ -184,6 +186,14 @@ fun XdripSettings(
                     }
                 )
                 Divider()
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("返回") },
+                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = navigateBack),
+                )
             }
         }
     )

@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -160,6 +161,7 @@ fun Debug(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
     historyLogViewModel: HistoryLogViewModel? = null,
     navigateToFeatureFlags: () -> Unit = {},
+    navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
@@ -1033,6 +1035,14 @@ fun Debug(
                         )
                     },
                     modifier = Modifier.clickable { navigateToFeatureFlags() },
+                )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("返回") },
+                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                    modifier = Modifier.clickable(onClick = navigateBack),
                 )
             }
         }
