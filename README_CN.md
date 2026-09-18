@@ -1,9 +1,11 @@
 # ControlX2
 
 > 面向手机与 Wear OS 手表的安卓应用，可通过 [PumpX2](https://github.com/jwoglom/pumpx2) 控制 Tandem t:slim X2 或 Mobi 胰岛素泵。  
-> PS：仅做了汉化，给界面做了一点点美容，没修改其它任何东西，需要英文原版可以去 https://github.com/jwoglom/pumpx2 下载；  
-> 图片我没有截图，还是抄的github上的，请自己截吧。汉化本来就是我自己玩的；  
-> 以下说明都是抄的Github，致敬原作者！  
+
+> PS：仅做了汉化，给界面做了一点点美容，没修改其它任何东西；  
+> 需要英文原版可以去 https://github.com/jwoglom/controlX2 下载；  
+> 图片我懒，No截图，还是抄的github上的，请自己截吧。汉化本来就是我自己玩的；  
+> 以下说明都是抄的Github，致敬原作者！jwoglom 请长命百岁！完善它！！功德无量！！！  
 
 > **警告**\
 > **本应用仅供实验使用，可用于修改胰岛素泵的活性胰岛素输注。**\
