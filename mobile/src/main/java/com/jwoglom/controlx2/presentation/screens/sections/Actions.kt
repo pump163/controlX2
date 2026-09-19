@@ -258,7 +258,7 @@ fun Actions(
                             colors = ListItemDefaults.colors(
                                 containerColor = when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> ListItemDefaults.containerColor
-                                    BasalStatus.PUMP_SUSPENDED -> Color.Red.copy(alpha = 0.7F)
+                                    BasalStatus.PUMP_SUSPENDED -> Color.Green.copy(alpha = 0.5F)
                                     else -> Color(0xFFF4606C)
                                 }
                             ),
