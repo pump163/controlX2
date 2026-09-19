@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -216,7 +218,7 @@ fun Actions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此型号的设备不支持部分控制（${model}），仅支持远程大剂量。")
+                        Line("此型号的设备不支持部分控制（${model}），仅支持远程大剂量。", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
@@ -259,7 +261,7 @@ fun Actions(
                                     else -> Color.Red.copy(alpha = 0.5F)
                                 }
                             ),
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.height(72.dp).clickable {
                                 when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> {}
                                     BasalStatus.PUMP_SUSPENDED -> {
@@ -375,7 +377,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
 
@@ -392,12 +394,14 @@ fun Actions(
                                 when (controlIQMode.value) {
                                     UserMode.EXERCISE -> "关闭运动模式"
                                     else -> "开启运动模式"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             leadingContent = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.DirectionsRun,
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -474,12 +478,14 @@ fun Actions(
                                 when (controlIQMode.value) {
                                     UserMode.SLEEP -> "关闭睡眠模式"
                                     else -> "开启睡眠模式"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Bedtime,
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -537,7 +543,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
 
@@ -559,11 +565,12 @@ fun Actions(
                                 when (tempRateActive.value) {
                                     true -> "停止临时基础率"
                                     else -> "启动临时基础率"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
-                                    true -> Text("进行中：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}")
+                                    true -> Text("进行中：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}", color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
                                     else -> null
                                 }
                             },
@@ -574,9 +581,16 @@ fun Actions(
                                         else -> Icons.Filled.EditNote
                                     },
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
-                            modifier = Modifier.clickable(enabled = isMobi) {
+                            colors = ListItemDefaults.colors(
+                                containerColor = when (tempRateActive.value) {
+                                    true -> Color(0xFFFAF9DE)
+                                    else -> ListItemDefaults.containerColor
+                                }
+                            ),
+                            modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }
                                     false -> { openTempRateWindow() }
@@ -633,7 +647,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
                 item {

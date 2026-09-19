@@ -535,7 +535,7 @@ fun Debug(
                 item {
                     HistoryLogSyncProgressBar(
                         historyLogViewModel = it,
-                        replaceWithPaddingWhenComplete = true
+                        showPlaceholderWhenNoStatus = true
                     )
                 }
                 item {

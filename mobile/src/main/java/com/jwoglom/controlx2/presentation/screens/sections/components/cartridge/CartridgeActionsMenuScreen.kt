@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -52,7 +53,7 @@ fun CartridgeActionsMenuScreen(
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("此型号的设备不支持胰岛素泵控制（${model}）。")
+                Line("此型号的设备不支持胰岛素泵控制（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
                 Line("")
             }
         }

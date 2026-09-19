@@ -183,7 +183,7 @@ fun CGMActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此型号的设备不支持 CGM 控制（${model}）。")
+                        Line("此型号的设备不支持 CGM 控制（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }

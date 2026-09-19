@@ -40,10 +40,49 @@ fun HistoryLogSyncProgressBar(
     historyLogViewModel: HistoryLogViewModel,
     modifier: Modifier = Modifier,
     hideWhenComplete: Boolean = false,
-    replaceWithPaddingWhenComplete: Boolean = false
+    replaceWithPaddingWhenComplete: Boolean = false,
+    showPlaceholderWhenNoStatus: Boolean = false
 ) {
     val ds = LocalDataStore.current
     val historyLogStatus by ds.historyLogStatus.observeAsState()
+
+    if (showPlaceholderWhenNoStatus && historyLogStatus == null) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .height(50.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "历史记录同步",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "等待状态…",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            LinearProgressIndicator(
+                progress = { 0f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+            )
+        }
+        return
+    }
 
     historyLogStatus?.let { status ->
         val pumpMaxSeqNum = status.lastSequenceNum
