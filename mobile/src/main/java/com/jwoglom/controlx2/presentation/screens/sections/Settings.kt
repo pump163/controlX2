@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -140,7 +141,6 @@ fun Settings(
                         }
                     }
                 )
-                Divider()
             }
 
             item {
@@ -166,7 +166,6 @@ fun Settings(
                             }
                         }
                     )
-                    Divider()
                 }
             }
 //            item {
@@ -247,7 +246,6 @@ fun Settings(
                         showPumpSetupConfirmDialog = true
                     }
                 )
-                Divider()
             }
 
             item {
@@ -291,7 +289,6 @@ fun Settings(
                             showDeviceRoleDialog = true
                         }
                     )
-                    Divider()
                     ListItem(
                         headlineContent = { Text("Reset & start over on this device") },
                         supportingContent = { Text("Use if you're stuck. Forces this phone to be pump-host and clears the pump bond.") },
@@ -323,7 +320,7 @@ fun Settings(
                         navigateToNightscoutSettings()
                     }
                 )
-                Divider()
+                Divider(color = Color(0xFF9E9E9E))
             }
 
             item {
@@ -357,7 +354,7 @@ fun Settings(
                         showSyncTimeDialog = true
                     }
                 )
-                Divider()
+                Divider(color = Color(0xFF9E9E9E))
             }
 
             item {
@@ -387,7 +384,7 @@ fun Settings(
                             contentDescription = "Settings icon",
                         )
                     },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.height(72.dp).clickable {
                         navigateToDebugOptions()
                     }
                 )
