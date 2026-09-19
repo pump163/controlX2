@@ -4,6 +4,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.ui.text.font.FontWeight
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -335,8 +336,7 @@ fun Actions(
                                 onDismissRequest = {},
                                 title = {
                                     Text(
-                                        "停止胰岛素",
-                                        color = Color.DarkGray
+                                        "停止胰岛素"
                                     )
                                 },
                                 text = {
