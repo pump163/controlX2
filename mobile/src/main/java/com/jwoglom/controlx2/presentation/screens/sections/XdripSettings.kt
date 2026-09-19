@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -89,7 +90,7 @@ fun XdripSettings(
         content = {
             item {
                 HeaderLine("xDrip Settings")
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -126,7 +127,7 @@ fun XdripSettings(
                         )
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -136,7 +137,7 @@ fun XdripSettings(
                     enabled = config.sendCgmSgv,
                     onToggle = { togglePayload(XdripPayloadGroup.CGM) }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -146,7 +147,7 @@ fun XdripSettings(
                     enabled = config.sendPumpDeviceStatus,
                     onToggle = { togglePayload(XdripPayloadGroup.PUMP_DEVICE_STATUS) }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -156,7 +157,7 @@ fun XdripSettings(
                     enabled = config.sendTreatments,
                     onToggle = { togglePayload(XdripPayloadGroup.TREATMENTS) }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -166,7 +167,7 @@ fun XdripSettings(
                     enabled = config.sendStatusLine,
                     onToggle = { togglePayload(XdripPayloadGroup.STATUS_LINE) }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -185,7 +186,7 @@ fun XdripSettings(
                         sendDiagnosticsPayload(context)
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {

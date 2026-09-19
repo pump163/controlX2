@@ -215,7 +215,7 @@ fun Actions(
             content = {
                 item {
                     HeaderLine("Actions")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
@@ -259,7 +259,7 @@ fun Actions(
                                 containerColor = when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> ListItemDefaults.containerColor
                                     BasalStatus.PUMP_SUSPENDED -> Color.Green.copy(alpha = 0.5F)
-                                    else -> Color(0xFFF4606C)
+                                    else -> Color.Red.copy(alpha = 0.5F)
                                 }
                             ),
                             modifier = Modifier.height(72.dp).clickable {
@@ -392,7 +392,7 @@ fun Actions(
                 }
 
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {
@@ -475,7 +475,7 @@ fun Actions(
                 }
 
                 item {
-                    Divider(color = Color(0xFF9E9E9E))
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
                 }
 
                 item {
@@ -556,7 +556,7 @@ fun Actions(
                 }
 
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {
@@ -598,7 +598,7 @@ fun Actions(
                             },
                             colors = ListItemDefaults.colors(
                                 containerColor = when (tempRateActive.value) {
-                                    true -> Color(0xFFFAF9DE)
+                                    true -> Color.Yellow.copy(alpha = 0.5F)
                                     else -> ListItemDefaults.containerColor
                                 }
                             ),
@@ -659,7 +659,7 @@ fun Actions(
                 }
 
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {
@@ -773,6 +773,10 @@ fun Actions(
                 }
 
                 item {
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
+                }
+
+                item {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -795,7 +799,7 @@ fun Actions(
                 }
 
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {

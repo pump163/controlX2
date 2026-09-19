@@ -49,7 +49,7 @@ fun CartridgeActionsMenuScreen(
     ) {
         item {
             HeaderLine("Cartridge Actions")
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {

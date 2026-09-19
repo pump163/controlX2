@@ -4,6 +4,7 @@
 
 package com.jwoglom.controlx2.presentation.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -132,6 +133,22 @@ fun Landing(
 
     // Local state owns user-driven tab changes, but must reset when parent route changes.
     var selectedItem by remember(sectionState) { mutableStateOf(sectionState) }
+    BackHandler(enabled = selectedItem != LandingSection.DASHBOARD) {
+        selectedItem = when (selectedItem) {
+            LandingSection.CGM_ACTIONS,
+            LandingSection.CARTRIDGE_ACTIONS,
+            LandingSection.PROFILE_ACTIONS,
+            LandingSection.SOUND_SETTINGS_ACTIONS,
+            LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS,
+            LandingSection.CONTROLIQ_SETTINGS_ACTIONS,
+            LandingSection.SAFETY_LIMITS_ACTIONS -> LandingSection.ACTIONS
+            LandingSection.FEATURE_FLAGS -> LandingSection.DEBUG
+            LandingSection.DEBUG,
+            LandingSection.NIGHTSCOUT_SETTINGS,
+            LandingSection.XDRIP_SETTINGS -> LandingSection.SETTINGS
+            else -> LandingSection.DASHBOARD
+        }
+    }
     val bottomSheetState = rememberBottomSheetState(initialValue = bottomScaffoldDisplayState)
     val displayBottomScaffold = rememberBottomSheetScaffoldState(
         bottomSheetState = bottomSheetState

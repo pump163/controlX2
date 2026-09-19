@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -81,7 +82,7 @@ fun NightscoutSettings(
         content = {
             item {
                 HeaderLine("Nightscout Settings")
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Enable/Disable Nightscout sync
@@ -122,7 +123,7 @@ fun NightscoutSettings(
                         syncStatus = NightscoutSyncStatusStore.load(prefs)
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -134,7 +135,7 @@ fun NightscoutSettings(
                         )
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -165,7 +166,7 @@ fun NightscoutSettings(
                         }
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Nightscout URL
@@ -179,7 +180,7 @@ fun NightscoutSettings(
                         showUrlDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // API Secret
@@ -193,7 +194,7 @@ fun NightscoutSettings(
                         showApiSecretDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Enabled Processors
@@ -207,7 +208,7 @@ fun NightscoutSettings(
                         showProcessorsDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Sync Interval
@@ -219,7 +220,7 @@ fun NightscoutSettings(
                         showIntervalDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Lookback Period
@@ -231,7 +232,7 @@ fun NightscoutSettings(
                         showLookbackDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // Sync Now button
@@ -258,7 +259,7 @@ fun NightscoutSettings(
                         }
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {

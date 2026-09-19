@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -165,7 +166,7 @@ fun SafetyLimitsActions(
                 item {
 
                     HeaderLine("Safety Limits")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 if (refreshing) {
@@ -198,7 +199,7 @@ fun SafetyLimitsActions(
                             showMaxBolusDialog = true
                         }
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 // Max Basal Rate Limit
@@ -225,7 +226,7 @@ fun SafetyLimitsActions(
                             showMaxBasalDialog = true
                         }
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {

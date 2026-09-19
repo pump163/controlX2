@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -113,12 +114,12 @@ fun Settings(
         content = {
             item {
                 HeaderLine("Settings")
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
                 VersionInfo(context)
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -210,7 +211,7 @@ fun Settings(
 //                        }
 //                    )
 //                }
-//                Divider()
+//                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 //            }
 
             item {
@@ -227,7 +228,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -263,7 +264,7 @@ fun Settings(
                         navController?.navigate(Screen.AppSetup.route)
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -302,7 +303,7 @@ fun Settings(
                             showRescueDialog = true
                         }
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
             }
 
@@ -320,7 +321,7 @@ fun Settings(
                         navigateToNightscoutSettings()
                     }
                 )
-                Divider(color = Color(0xFF9E9E9E))
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -337,7 +338,7 @@ fun Settings(
                         navigateToXdripSettings()
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -354,7 +355,7 @@ fun Settings(
                         showSyncTimeDialog = true
                     }
                 )
-                Divider(color = Color(0xFF9E9E9E))
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -371,7 +372,7 @@ fun Settings(
                         showPlaySoundDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -384,11 +385,11 @@ fun Settings(
                             contentDescription = "Settings icon",
                         )
                     },
-                    modifier = Modifier.height(72.dp).clickable {
+                    modifier = Modifier.height(80.dp).clickable {
                         navigateToDebugOptions()
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
         }
     )

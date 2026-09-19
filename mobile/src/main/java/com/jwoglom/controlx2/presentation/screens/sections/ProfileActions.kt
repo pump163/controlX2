@@ -5,6 +5,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -211,7 +212,7 @@ fun ProfileActions(
             content = {
                 item {
                     HeaderLine("Profile Actions")
-                    HorizontalDivider()
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
@@ -357,7 +358,7 @@ fun ProfileActions(
                                                     }
 
                                                     item {
-                                                        Divider()
+                                                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                                                     }
 
                                                     item {

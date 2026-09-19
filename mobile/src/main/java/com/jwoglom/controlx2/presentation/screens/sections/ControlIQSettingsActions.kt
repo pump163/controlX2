@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -205,7 +206,7 @@ fun ControlIQSettingsActions(
                 item {
 
                     HeaderLine("Control-IQ Settings")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 if (refreshing) {
@@ -226,14 +227,14 @@ fun ControlIQSettingsActions(
                             showChangeControlIQDialog = true
                         }
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 // Sleep Schedule section header
                 item {
                     Line("\n")
                     HeaderLine("Sleep Schedule")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 // Sleep schedule slots
@@ -283,7 +284,7 @@ fun ControlIQSettingsActions(
                                     showEditSleepScheduleDialog = true
                                 }
                             )
-                            Divider()
+                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                         }
                     }
                 } else if (!refreshing) {

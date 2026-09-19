@@ -223,7 +223,7 @@ fun SoundSettingsActions(
                 item {
 
                     HeaderLine("Sound Settings")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 if (refreshing) {
@@ -251,7 +251,7 @@ fun SoundSettingsActions(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {
@@ -359,7 +359,7 @@ fun SoundSettingsActions(
                     item {
                         Line("\n")
                         HeaderLine("Alert Snooze")
-                        Divider()
+                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     }
 
                     item {
@@ -373,7 +373,7 @@ fun SoundSettingsActions(
                                 showAlertSnoozeDialog = true
                             }
                         )
-                        Divider()
+                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     }
                 }
 

@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,7 +46,7 @@ fun FeatureFlags(
         content = {
             item {
                 HeaderLine("Feature Flags")
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             FeatureFlag.values().forEach { flag ->
@@ -67,7 +68,7 @@ fun FeatureFlags(
                             FeatureFlag.set(context, flag, enabled)
                         },
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
             }
 
