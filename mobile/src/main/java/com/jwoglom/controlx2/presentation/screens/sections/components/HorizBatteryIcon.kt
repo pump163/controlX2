@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,23 +49,12 @@ fun HorizBatteryIcon(
                     modifier = modifier.height(height)
                 )
                 if (batteryCharging == true) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(height)
-                    ) {
-                        Text(
-                            when (batteryCharging) {
-                                true -> " ⚡"
-                                else -> ""
-                            },
-                            color = color,
-                            textAlign = TextAlign.Center,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 24.sp
-                        )
-                    }
+                    Icon(
+                        Icons.Filled.Bolt,
+                        contentDescription = "充电中",
+                        tint = color,
+                        modifier = Modifier.size(12.dp)
+                    )
                 }
             }
             // HACK: text should be aligned with the icon as-is...

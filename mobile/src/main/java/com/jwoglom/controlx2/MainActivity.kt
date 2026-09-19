@@ -100,6 +100,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoAbst
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQSleepScheduleResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBasalStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentEGVGuiDataResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GetSavedG7PairingCodeResponse
@@ -842,6 +843,9 @@ class MainActivity : ComponentActivity() {
         when (message) {
             is CurrentBatteryAbstractResponse -> {
                 dataStore.batteryPercent.value = message.batteryPercent
+                if (message is CurrentBatteryV2Response) {
+                    dataStore.batteryCharging.value = message.isCharging()
+                }
             }
             is ControlIQIOBResponse -> {
                 dataStore.iobUnits.value = InsulinUnit.from1000To1(message.pumpDisplayedIOB)
