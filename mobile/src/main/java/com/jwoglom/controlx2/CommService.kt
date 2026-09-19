@@ -57,6 +57,7 @@ import com.jwoglom.controlx2.util.AppVersionCheck
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.bluetooth.Characteristic
 import com.jwoglom.pumpx2.pump.messages.builders.CurrentBatteryRequestBuilder
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
 import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.models.KnownApiVersion
@@ -165,7 +166,7 @@ class CommService : Service(), CommServiceCallbacks {
 
             Timber.i("running periodicUpdateTask")
             sendPumpCommMessages(PumpMessageSerializer.toBulkBytes(listOf(
-                CurrentBatteryRequestBuilder.create(apiVersion()),
+                CurrentBatteryV2Request(),
                 ControlIQIOBRequest(),
                 InsulinStatusRequest(),
                 HistoryLogStatusRequest()
@@ -542,7 +543,11 @@ class CommService : Service(), CommServiceCallbacks {
     }
 
     override fun showToast(text: String, duration: Int) {
-        Toast.makeText(this, text, duration).show()
+        if (Prefs(applicationContext).pumpToastsEnabled()) {
+            Toast.makeText(this, text, duration).show()
+        } else {
+            Timber.i("pump showToast: %s", text)
+        }
     }
 
     override fun getWearPrefs(): SharedPreferences? {

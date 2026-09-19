@@ -264,7 +264,6 @@ fun Actions(
                             ),
                             modifier = Modifier.height(72.dp).clickable {
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> {}
                                     BasalStatus.PUMP_SUSPENDED -> {
                                         requestResumeLoadStatusCheck()
                                         showResumeInsulinMenu = true
@@ -334,7 +333,6 @@ fun Actions(
 
                             AlertDialog(
                                 onDismissRequest = {},
-                                containerColor = Color(0xFFECAD9E),
                                 title = {
                                     Text(
                                         "Stop insulin",
@@ -596,12 +594,6 @@ fun Actions(
                                     tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
-                            colors = ListItemDefaults.colors(
-                                containerColor = when (tempRateActive.value) {
-                                    true -> Color.Yellow.copy(alpha = 0.5F)
-                                    else -> ListItemDefaults.containerColor
-                                }
-                            ),
                             modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }

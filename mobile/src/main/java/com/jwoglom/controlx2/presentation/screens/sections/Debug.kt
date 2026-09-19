@@ -938,6 +938,29 @@ fun Debug(
             }
 
             item {
+                var pumpToastsEnabled by remember { mutableStateOf(Prefs(context).pumpToastsEnabled()) }
+                ListItem(
+                    headlineContent = { Text(if (pumpToastsEnabled) "Disable pump message popups" else "Enable pump message popups") },
+                    supportingContent = { Text("Show popup when pumpx2 library receives pump messages at low level.") },
+                    leadingContent = {
+                        Icon(
+                            if (pumpToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        pumpToastsEnabled = !pumpToastsEnabled
+                        Prefs(context).setPumpToastsEnabled(pumpToastsEnabled)
+                        Toast.makeText(
+                            context,
+                            "Pump message toasts ${if (pumpToastsEnabled) "enabled" else "disabled"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            }
+
+            item {
                 var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
                 ListItem(
                     headlineContent = { Text(if (httpDebugApiEnabled) "Disable HTTP Debug API" else "Enable HTTP Debug API") },

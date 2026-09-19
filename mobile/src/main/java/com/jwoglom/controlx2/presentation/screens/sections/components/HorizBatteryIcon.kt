@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,19 +40,12 @@ fun HorizBatteryIcon(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    getPainterForBatteryPercent(it),
+                    getPainterForBatteryPercent(it, batteryCharging == true),
                     "Battery icon",
                     tint = color,
                     modifier = modifier.height(height)
                 )
-                if (batteryCharging == true) {
-                    Icon(
-                        Icons.Filled.Bolt,
-                        contentDescription = "充电中",
-                        tint = color,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
+
             }
             // HACK: text should be aligned with the icon as-is...
             Box(
@@ -73,7 +63,8 @@ fun HorizBatteryIcon(
 }
 
 @Composable
-fun getPainterForBatteryPercent(batteryPercent: Int): Painter {
+fun getPainterForBatteryPercent(batteryPercent: Int, charging: Boolean = false): Painter {
+    val suffix = if (charging) "_charging" else ""
     return painterResource(
         when {
             batteryPercent >= 80 -> R.drawable.battery_horiz_100
@@ -82,6 +73,16 @@ fun getPainterForBatteryPercent(batteryPercent: Int): Painter {
             batteryPercent >= 25 -> R.drawable.battery_horiz_025
             batteryPercent >= 10 -> R.drawable.battery_horiz_010
             else -> R.drawable.battery_horiz_000
+        }.let {
+            // 用反射或直接拼接不行，改用 when
+            when (it) {
+                R.drawable.battery_horiz_100 -> if (charging) R.drawable.battery_horiz_100_charging else it
+                R.drawable.battery_horiz_075 -> if (charging) R.drawable.battery_horiz_075_charging else it
+                R.drawable.battery_horiz_050 -> if (charging) R.drawable.battery_horiz_050_charging else it
+                R.drawable.battery_horiz_025 -> if (charging) R.drawable.battery_horiz_025_charging else it
+                R.drawable.battery_horiz_010 -> if (charging) R.drawable.battery_horiz_010_charging else it
+                else -> if (charging) R.drawable.battery_horiz_000_charging else it
+            }
         }
     )
 }
