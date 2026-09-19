@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
@@ -257,8 +258,8 @@ fun Actions(
                             colors = ListItemDefaults.colors(
                                 containerColor = when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> ListItemDefaults.containerColor
-                                    BasalStatus.PUMP_SUSPENDED -> Color.Green.copy(alpha = 0.5F)
-                                    else -> Color.Red.copy(alpha = 0.5F)
+                                    BasalStatus.PUMP_SUSPENDED -> Color.Red.copy(alpha = 0.7F)
+                                    else -> Color(0xFFF4606C)
                                 }
                             ),
                             modifier = Modifier.height(72.dp).clickable {
@@ -333,11 +334,19 @@ fun Actions(
 
                             AlertDialog(
                                 onDismissRequest = {},
+                                containerColor = Color(0xFFECAD9E),
                                 title = {
-                                    Text("停止胰岛素")
+                                    Text(
+                                        "停止胰岛素",
+                                        color = Color.DarkGray
+                                    )
                                 },
                                 text = {
-                                    Text("暂停所有胰岛素输注？")
+                                    Text(
+                                        "暂停所有胰岛素输注？",
+                                        color = Color.Red,
+                                        fontSize = 20.sp
+                                    )
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -346,7 +355,10 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("取消")
+                                        Text(
+                                            "取消",
+                                            color = Color.DarkGray
+                                        )
                                     }
                                 },
                                 confirmButton = {
@@ -366,7 +378,10 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("停止胰岛素")
+                                        Text(
+                                            "停止胰岛素",
+                                            color = Color.Red
+                                        )
                                     }
                                 }
                             )
@@ -460,10 +475,10 @@ fun Actions(
                 }
 
                 item {
-                Divider(color = Color(0xFF9E9E9E))
-            }
+                    Divider(color = Color(0xFF9E9E9E))
+                }
 
-            item {
+                item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
                     val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
                     Box(
