@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -216,7 +218,7 @@ fun Actions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Actions are not supported on this device model (${model}). Only remote bolus is supported.")
+                        Line("Actions are not supported on this device model (${model}). Only remote bolus is supported.", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
@@ -259,7 +261,7 @@ fun Actions(
                                     else -> Color.Red.copy(alpha = 0.5F)
                                 }
                             ),
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.height(72.dp).clickable {
                                 when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> {}
                                     BasalStatus.PUMP_SUSPENDED -> {
@@ -375,7 +377,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
 
@@ -392,12 +394,14 @@ fun Actions(
                                 when (controlIQMode.value) {
                                     UserMode.EXERCISE -> "Disable Exercise Mode"
                                     else -> "Enable Exercise Mode"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             leadingContent = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.DirectionsRun,
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -474,12 +478,14 @@ fun Actions(
                                 when (controlIQMode.value) {
                                     UserMode.SLEEP -> "Disable Sleep Mode"
                                     else -> "Enable Sleep Mode"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Bedtime,
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -537,7 +543,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
 
@@ -559,11 +565,12 @@ fun Actions(
                                 when (tempRateActive.value) {
                                     true -> "Stop Temp Rate"
                                     else -> "Start Temp Rate"
-                                }
+                                },
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
-                                    true -> Text("Active: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} at ${tempRateDetails.value?.startTimeInstant}")
+                                    true -> Text("Active: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} at ${tempRateDetails.value?.startTimeInstant}", color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
                                     else -> null
                                 }
                             },
@@ -574,9 +581,16 @@ fun Actions(
                                         else -> Icons.Filled.EditNote
                                     },
                                     contentDescription = null,
+                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
-                            modifier = Modifier.clickable(enabled = isMobi) {
+                            colors = ListItemDefaults.colors(
+                                containerColor = when (tempRateActive.value) {
+                                    true -> Color(0xFFFAF9DE)
+                                    else -> ListItemDefaults.containerColor
+                                }
+                            ),
+                            modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }
                                     false -> { openTempRateWindow() }
@@ -633,7 +647,7 @@ fun Actions(
                 }
 
                 item {
-                    Line("\n")
+                    Divider()
                 }
 
                 item {

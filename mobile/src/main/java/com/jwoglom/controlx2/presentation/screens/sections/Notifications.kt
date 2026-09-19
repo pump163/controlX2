@@ -172,7 +172,7 @@ fun Notifications(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Notifications cannot be dismissed on this device model (${model}).")
+                        Line("Notifications cannot be dismissed on this device model (${model}).", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }

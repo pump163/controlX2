@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -52,7 +53,7 @@ fun CartridgeActionsMenuScreen(
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("Insulin pump control is not supported on this device model (${model}).")
+                Line("Insulin pump control is not supported on this device model (${model}).", modifier = Modifier.padding(horizontal = 20.dp))
                 Line("")
             }
         }

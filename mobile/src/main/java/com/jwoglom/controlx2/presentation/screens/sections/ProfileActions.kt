@@ -215,7 +215,7 @@ fun ProfileActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Profile control is not supported on this device model (${model}). Profiles can only be viewed.")
+                        Line("Profile control is not supported on this device model (${model}). Profiles can only be viewed.", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }

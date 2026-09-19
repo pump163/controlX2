@@ -183,7 +183,7 @@ fun CGMActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("CGM control is not supported on this device model (${model}).")
+                        Line("CGM control is not supported on this device model (${model}).", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
