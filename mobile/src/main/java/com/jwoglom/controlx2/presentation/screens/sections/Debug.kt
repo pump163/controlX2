@@ -917,8 +917,8 @@ fun Debug(
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件的通知" else "启用合格事件的通知") },
-                    supportingContent = { Text("当后台服务收到符合条件的事件时显示提示。") },
+                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件小弹窗" else "启用合格事件小弹窗") },
+                    supportingContent = { Text("泵状态变化时弹出小弹窗提示（如充电、USB 插拔等）。") },
                     leadingContent = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -931,6 +931,29 @@ fun Debug(
                         Toast.makeText(
                             context,
                             "合格事件通知 已${if (qualifyingEventToastsEnabled) "启用" else "禁用"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            }
+
+            item {
+                var pumpToastsEnabled by remember { mutableStateOf(Prefs(context).pumpToastsEnabled()) }
+                ListItem(
+                    headlineContent = { Text(if (pumpToastsEnabled) "禁用泵消息小弹窗" else "启用泵消息小弹窗") },
+                    supportingContent = { Text("pumpx2 库底层收到泵消息时弹出小弹窗提示。") },
+                    leadingContent = {
+                        Icon(
+                            if (pumpToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        pumpToastsEnabled = !pumpToastsEnabled
+                        Prefs(context).setPumpToastsEnabled(pumpToastsEnabled)
+                        Toast.makeText(
+                            context,
+                            "泵消息 Toast 已${if (pumpToastsEnabled) "启用" else "禁用"}",
                             Toast.LENGTH_SHORT
                         ).show()
                     }

@@ -191,6 +191,17 @@ class Prefs(val context: Context) {
     }
 
     /**
+     * Whether to show pump pump toasts from pumpx2 library.
+     */
+    fun pumpToastsEnabled(): Boolean {
+        return prefs().getBoolean("pump-toasts-enabled", false)
+    }
+
+    fun setPumpToastsEnabled(b: Boolean) {
+        prefs().edit().putBoolean("pump-toasts-enabled", b).commit()
+    }
+
+    /**
      * Whether the HTTP Debug API is enabled
      */
     fun httpDebugApiEnabled(): Boolean {

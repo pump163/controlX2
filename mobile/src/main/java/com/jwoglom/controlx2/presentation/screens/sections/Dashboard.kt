@@ -40,6 +40,7 @@ import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.builders.CurrentBatteryRequestBuilder
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
 import com.jwoglom.pumpx2.pump.messages.builders.LastBolusStatusRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
 import com.jwoglom.pumpx2.pump.messages.models.KnownApiVersion
@@ -99,6 +100,7 @@ fun Dashboard(
             return
         }
         sendPumpCommands(type, dashboardCommands)
+        sendPumpCommands(type, listOf(CurrentBatteryV2Request()))
     }
 
     fun waitForLoaded() = refreshScope.launch {
@@ -261,7 +263,7 @@ fun apiVersion(): ApiVersion {
 }
 
 val dashboardCommands = listOf(
-    CurrentBatteryRequestBuilder.create(apiVersion()),
+    CurrentBatteryV2Request(),
     ControlIQIOBRequest(),
     InsulinStatusRequest(),
     LastBolusStatusRequestBuilder.create(apiVersion()),

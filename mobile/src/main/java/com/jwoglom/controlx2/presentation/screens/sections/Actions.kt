@@ -264,7 +264,6 @@ fun Actions(
                             ),
                             modifier = Modifier.height(72.dp).clickable {
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> {}
                                     BasalStatus.PUMP_SUSPENDED -> {
                                         requestResumeLoadStatusCheck()
                                         showResumeInsulinMenu = true
@@ -334,7 +333,6 @@ fun Actions(
 
                             AlertDialog(
                                 onDismissRequest = {},
-                                containerColor = Color(0xFFECAD9E),
                                 title = {
                                     Text(
                                         "停止胰岛素",
@@ -409,7 +407,8 @@ fun Actions(
                                     UserMode.EXERCISE -> "关闭运动模式"
                                     else -> "开启运动模式"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (controlIQMode.value == UserMode.EXERCISE) FontWeight.Bold else FontWeight.Normal
                             )},
                             leadingContent = {
                                 Icon(
@@ -492,7 +491,8 @@ fun Actions(
                                     UserMode.SLEEP -> "关闭睡眠模式"
                                     else -> "开启睡眠模式"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (controlIQMode.value == UserMode.SLEEP) FontWeight.Bold else FontWeight.Normal
                             )},
                             leadingContent = {
                                 Icon(
@@ -578,7 +578,8 @@ fun Actions(
                                     true -> "停止临时基础率"
                                     else -> "启动临时基础率"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (tempRateActive.value == true) FontWeight.Bold else FontWeight.Normal
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
@@ -596,12 +597,6 @@ fun Actions(
                                     tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
-                            colors = ListItemDefaults.colors(
-                                containerColor = when (tempRateActive.value) {
-                                    true -> Color.Yellow.copy(alpha = 0.5F)
-                                    else -> ListItemDefaults.containerColor
-                                }
-                            ),
                             modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }
