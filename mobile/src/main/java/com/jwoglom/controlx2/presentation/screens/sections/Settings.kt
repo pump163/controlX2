@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -140,7 +141,6 @@ fun Settings(
                         }
                     }
                 )
-                Divider()
             }
 
             item {
@@ -166,7 +166,6 @@ fun Settings(
                             }
                         }
                     )
-                    Divider()
                 }
             }
 //            item {
@@ -247,7 +246,6 @@ fun Settings(
                         showPumpSetupConfirmDialog = true
                     }
                 )
-                Divider()
             }
 
             item {
@@ -291,7 +289,6 @@ fun Settings(
                             showDeviceRoleDialog = true
                         }
                     )
-                    Divider()
                     ListItem(
                         headlineContent = { Text("重置并在此设备上重新开始") },
                         supportingContent = { Text("如果卡住了才用。强制此手机作为胰岛素泵主机并清除胰岛素泵配对。") },
@@ -323,7 +320,7 @@ fun Settings(
                         navigateToNightscoutSettings()
                     }
                 )
-                Divider()
+                Divider(color = Color(0xFF9E9E9E))
             }
 
             item {
@@ -357,7 +354,7 @@ fun Settings(
                         showSyncTimeDialog = true
                     }
                 )
-                Divider()
+                Divider(color = Color(0xFF9E9E9E))
             }
 
             item {
@@ -387,7 +384,7 @@ fun Settings(
                             contentDescription = "设置图标",
                         )
                     },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.height(72.dp).clickable {
                         navigateToDebugOptions()
                     }
                 )

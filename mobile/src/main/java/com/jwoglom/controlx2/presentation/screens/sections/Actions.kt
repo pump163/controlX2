@@ -380,7 +380,6 @@ fun Actions(
                     Divider()
                 }
 
-
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
                     val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
@@ -461,11 +460,10 @@ fun Actions(
                 }
 
                 item {
-                    Divider()
-                }
+                Divider(color = Color(0xFF9E9E9E))
+            }
 
-
-                item {
+            item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
                     val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
                     Box(
@@ -545,7 +543,6 @@ fun Actions(
                 item {
                     Divider()
                 }
-
 
                 item {
                     val tempRateActive = ds.tempRateActive.observeAsState()
@@ -780,6 +777,10 @@ fun Actions(
                             }
                         )
                     }
+                }
+
+                item {
+                    Divider()
                 }
 
                 item {

@@ -428,7 +428,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = Color(0xFF9E9E9E))
             }
 
             item {
@@ -577,9 +577,7 @@ fun Debug(
                 )
             }
 
-            item {
-                Divider()
-            }
+
 
             item {
                 ListItem(
@@ -1022,6 +1020,10 @@ fun Debug(
                         }
                     )
                 }
+            }
+
+            item {
+                Divider()
             }
 
             item {
