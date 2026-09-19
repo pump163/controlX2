@@ -1,6 +1,7 @@
 package com.jwoglom.controlx2.sync.xdrip
 
 import android.content.Context
+import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces
 import com.jwoglom.controlx2.sync.xdrip.models.XdripDeviceStatusSnapshot
 import com.jwoglom.controlx2.sync.xdrip.models.XdripSgvPayload
@@ -46,6 +47,7 @@ class XdripMessageDispatcher(
     )
 
     private val latestPumpSnapshot = XdripDeviceStatusSnapshot()
+    private var lastTreatmentKey: Pair<Int, String>? = null
 
     fun onReceiveMessage(message: Message) {
         onEvent(message.toDispatchEvent())
@@ -81,14 +83,22 @@ class XdripMessageDispatcher(
                     notes = "ControlX2 bolus initiated bolusId=${event.bolusId} status=${event.status}"
                 ).toJsonArrayString()
 
-                is DispatchEvent.TreatmentStatus -> XdripTreatmentPayload
-                    .fromStatus(
-                        bolusId = event.bolusId,
-                        requestedVolumeMilli = event.requestedVolumeMilli,
-                        status = event.status,
-                        timestamp = event.timestamp
-                    )
-                    .toJsonArrayString()
+                is DispatchEvent.TreatmentStatus -> {
+                    val key = event.bolusId to event.status
+                    if (key != lastTreatmentKey) {
+                        lastTreatmentKey = key
+                        XdripTreatmentPayload
+                            .fromStatus(
+                                bolusId = event.bolusId,
+                                requestedVolumeMilli = event.requestedVolumeMilli,
+                                status = event.status,
+                                timestamp = event.timestamp
+                            )
+                            .toJsonArrayString()
+                    } else {
+                        null
+                    }
+                }
 
                 is DispatchEvent.BasalTreatment -> XdripTreatmentPayload
                     .forBasalRate(
@@ -166,7 +176,7 @@ class XdripMessageDispatcher(
                 bolusId = bolusId,
                 requestedVolumeMilli = requestedVolume,
                 status = status.toString(),
-                timestamp = timestampInstant
+                timestamp = pumpTimeToLocalTz(timestampInstant)
             )
             else -> DispatchEvent.Other
         }

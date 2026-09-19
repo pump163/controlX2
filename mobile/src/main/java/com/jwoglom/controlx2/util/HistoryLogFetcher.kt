@@ -155,20 +155,10 @@ class HistoryLogFetcher(
         val dbCount = historyLogRepo.getCount(pumpSid).firstOrNull() ?: 0
         
         val catchupThreshold = message.lastSequenceNum - InitialHistoryLogCount
-        var startId = when {
-            dbLatestId != null && dbLatestId >= catchupThreshold && dbLatestId <= message.lastSequenceNum -> {
-                // Use the catchup threshold if we have far fewer rows than expected,
-                // e.g. when a previous fetch was interrupted mid-way. The DB has the
-                // latest seq but is missing many older entries within the window.
-                val expectedCount = dbLatestId - catchupThreshold
-                if (expectedCount > 0 && dbCount < expectedCount / 2) {
-                    catchupThreshold
-                } else {
-                    dbLatestId
-                }
-            }
-            else -> catchupThreshold
-        }
+        // Always scan the full retained window for gaps, not just from dbLatestId onward.
+        // A hole below dbLatestId (e.g. from an interrupted fetch) would otherwise fall
+        // outside the scan range and never be healed, leaving the sync stuck at <100%.
+        var startId = catchupThreshold
 
         // don't try and fetch earlier than the first available seq number on the pump
         // (this is not always 0; after a pump has been used for a long period old

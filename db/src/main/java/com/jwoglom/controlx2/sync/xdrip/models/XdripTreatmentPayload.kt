@@ -1,5 +1,6 @@
 package com.jwoglom.controlx2.sync.xdrip.models
 
+import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
@@ -45,10 +46,11 @@ data class XdripTreatmentPayload(
         }
 
         fun fromCurrentBolusStatusResponse(response: CurrentBolusStatusResponse): XdripTreatmentPayload {
+            val correctedTimestamp = pumpTimeToLocalTz(response.timestampInstant)
             return XdripTreatmentPayload(
                 eventType = "Bolus",
-                createdAt = response.timestampInstant.toString(),
-                mills = response.timestampInstant.toEpochMilli(),
+                createdAt = correctedTimestamp.toString(),
+                mills = correctedTimestamp.toEpochMilli(),
                 insulin = InsulinUnit.from1000To1(response.requestedVolume),
                 notes = "ControlX2 bolus status bolusId=${response.bolusId} status=${response.status}"
             )
