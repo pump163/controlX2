@@ -49,7 +49,7 @@ fun CartridgeActionsMenuScreen(
     ) {
         item {
             HeaderLine("储药器控制")
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {

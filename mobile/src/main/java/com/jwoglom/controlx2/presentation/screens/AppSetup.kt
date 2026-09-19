@@ -142,7 +142,7 @@ fun AppSetup(
 //                    }
 //                }
 //            )
-//            Divider()
+//            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 //        }
         item {
             ListItem(
@@ -188,7 +188,7 @@ fun AppSetup(
                     }
                 }
             )
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
         }
         item {
             if (insulinDeliveryActions || preview) {
@@ -214,7 +214,7 @@ fun AppSetup(
                         showBolusThresholdDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
         }
         item {
@@ -246,7 +246,7 @@ fun AppSetup(
                         showWearAutoApproveDialog = true
                     }
                 )
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
         }
         item {
@@ -279,7 +279,7 @@ fun AppSetup(
                     }
                 }
             )
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
         }
         item {
             ListItem(
@@ -303,7 +303,7 @@ fun AppSetup(
                     Prefs(context).setAutoFetchHistoryLogs(autoFetchHistoryLogs)
                 }
             )
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
         }
         item {
             ListItem(
@@ -323,7 +323,7 @@ fun AppSetup(
                     showGlucoseUnitDialog = true
                 }
             )
-            Divider()
+            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
         }
     }
 

@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Context
@@ -225,7 +226,7 @@ fun Debug(
         content = {
             item {
                 HeaderLine("调试")
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
@@ -246,7 +247,7 @@ fun Debug(
                             }
                         }
                     )
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
             }
             item {
@@ -420,7 +421,7 @@ fun Debug(
                                 },
                                 leadingIcon = {}
                             )
-                            Divider()
+                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                         }
                     }
 
@@ -428,7 +429,7 @@ fun Debug(
             }
 
             item {
-                Divider(color = Color(0xFF9E9E9E))
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -527,7 +528,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             // History Log Sync Progress Bar
@@ -539,7 +540,7 @@ fun Debug(
                     )
                 }
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
             }
 
@@ -758,7 +759,7 @@ fun Debug(
 
             if (Prefs(context).connectionSharingEnabled()) {
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {
@@ -803,7 +804,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -874,7 +875,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -910,7 +911,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {
@@ -1023,7 +1024,7 @@ fun Debug(
             }
 
             item {
-                Divider()
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {

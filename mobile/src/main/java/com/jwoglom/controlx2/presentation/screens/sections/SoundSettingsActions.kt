@@ -224,7 +224,7 @@ fun SoundSettingsActions(
                 item {
 
                     HeaderLine("声音设置")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 if (refreshing) {
@@ -252,7 +252,7 @@ fun SoundSettingsActions(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
                 
 
@@ -354,7 +354,7 @@ fun SoundSettingsActions(
                     item {
                         Line("\n")
                         HeaderLine("暂停警告音")
-                        Divider()
+                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     }
 
                     item {
@@ -368,7 +368,7 @@ fun SoundSettingsActions(
                                 showAlertSnoozeDialog = true
                             }
                         )
-                        Divider()
+                        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     }
                 }
 

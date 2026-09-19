@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 package com.jwoglom.controlx2.presentation.components
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
@@ -334,7 +335,7 @@ fun PumpSetupStageDescription(
             Line("${pumpCriticalError.value?.first}")
         }
         Spacer(Modifier.height(16.dp))
-        Divider()
+        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
         Spacer(Modifier.height(16.dp))
     }
 }

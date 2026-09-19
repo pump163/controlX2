@@ -2,6 +2,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +27,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -157,7 +157,7 @@ fun QuickBolusSettingsActions(
                 item {
 
                     HeaderLine("快捷大剂量设置")
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 if (refreshing) {
@@ -247,7 +247,7 @@ fun QuickBolusSettingsActions(
                 }
 
                 item {
-                    Divider()
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }
 
                 item {

@@ -70,7 +70,7 @@ fun CartridgeWorkflowScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Divider()
+        Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
         Spacer(modifier = Modifier.height(24.dp))
         Column(
