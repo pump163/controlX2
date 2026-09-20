@@ -237,7 +237,9 @@ fun Actions(
                                     BasalStatus.UNKNOWN, null -> "停止/启动胰岛素"
                                     BasalStatus.PUMP_SUSPENDED -> "启动胰岛素"
                                     else -> "停止胰岛素"
-                                }
+                                },
+                                fontWeight = if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = if (basalStatus.value == BasalStatus.PUMP_SUSPENDED) 18.sp else 14.sp
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
@@ -407,8 +409,9 @@ fun Actions(
                                     UserMode.EXERCISE -> "关闭运动模式"
                                     else -> "开启运动模式"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                fontWeight = if (controlIQMode.value == UserMode.EXERCISE) FontWeight.Bold else FontWeight.Normal
+                                color = if (controlIQMode.value == UserMode.EXERCISE) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (controlIQMode.value == UserMode.EXERCISE) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = if (controlIQMode.value == UserMode.EXERCISE) 18.sp else 14.sp
                             )},
                             leadingContent = {
                                 Icon(

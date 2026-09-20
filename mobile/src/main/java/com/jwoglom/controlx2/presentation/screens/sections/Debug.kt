@@ -574,7 +574,28 @@ fun Debug(
                 )
             }
 
-
+            item {
+                var autoFetchHistoryLogsEnabled by remember { mutableStateOf(Prefs(context).autoFetchHistoryLogs()) }
+                ListItem(
+                    headlineContent = { Text("自动获取历史记录") },
+                    supportingContent = { Text("自动获取历史记录，用于主屏幕绘制 CGM 图。") },
+                    leadingContent = {
+                        Icon(
+                            if (autoFetchHistoryLogsEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        autoFetchHistoryLogsEnabled = !autoFetchHistoryLogsEnabled
+                        Prefs(context).setAutoFetchHistoryLogs(autoFetchHistoryLogsEnabled)
+                        Toast.makeText(
+                            context,
+                            "自动获取历史记录 已${if (autoFetchHistoryLogsEnabled) "启用" else "禁用"}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                )
+            }
 
             item {
                 ListItem(
@@ -603,6 +624,17 @@ fun Debug(
                         var filterFields by remember { mutableStateOf(historyLogCache.value?.entries?.map { shortHistoryLogPumpMessageTitle(it.value) }?.toSet()?.sorted()) }
                         LaunchedEffect (historyLogCache.value) {
                             filterFields = historyLogCache.value?.entries?.map { shortHistoryLogPumpMessageTitle(it.value) }?.toSet()?.sorted()
+                        }
+                        val sortedAndFilteredLogs = remember(historyLogCache.value, filterToType) {
+                            historyLogCache.value?.entries?.sortedBy {
+                                it.key * -1
+                            }?.filter {
+                                if (filterToType == null) {
+                                    true
+                                } else {
+                                    shortHistoryLogPumpMessageTitle(it.value) == filterToType
+                                }
+                            }
                         }
                         Box(
                             modifier = Modifier
@@ -652,7 +684,7 @@ fun Debug(
                                     var textFieldSize by remember { mutableStateOf(Size.Zero)}
 
                                     Box (Modifier
-                                        .background(Color.White)
+                                        
                                         .padding(start = 16.dp, end = 16.dp)
                                     ) {
                                         OutlinedTextField(
@@ -699,7 +731,7 @@ fun Debug(
                                         Text(
                                             "缓存中无历史记录条目。",
                                             modifier = Modifier
-                                                .background(Color.White)
+                                                
                                                 .fillMaxWidth()
                                                 .padding(16.dp)
                                         )
@@ -709,7 +741,7 @@ fun Debug(
                                         Text(
                                             "${historyLogCache.value?.size ?: 0} 条历史记录",
                                             modifier = Modifier
-                                                .background(Color.White)
+                                                
                                                 .fillMaxWidth()
                                                 .padding(16.dp)
                                                 .clickable {
@@ -718,15 +750,7 @@ fun Debug(
                                         )
                                     }
                                 }
-                                historyLogCache.value?.entries?.sortedBy {
-                                    it.key * -1
-                                }?.filter {
-                                    if (filterToType == null) {
-                                        true
-                                    } else {
-                                        shortHistoryLogPumpMessageTitle(it.value) == filterToType
-                                    }
-                                }?.forEach { log ->
+                                sortedAndFilteredLogs?.forEach { log ->
                                     item {
                                         ListItem(
                                             headlineContent = {
@@ -839,7 +863,7 @@ fun Debug(
                                         value = exportedPumpState,
                                         label = { Text("泵状态") },
                                         onValueChange = {v -> },
-                                        modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp).background(Color.White)
+                                        modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp)
                                     )
                                 }
 
@@ -914,7 +938,7 @@ fun Debug(
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
                     headlineContent = { Text(if (qualifyingEventToastsEnabled) "禁用合格事件小弹窗" else "启用合格事件小弹窗") },
-                    supportingContent = { Text("泵状态变化时弹出小弹窗提示（如充电、USB 插拔等）。") },
+                    supportingContent = { Text("泵状态变化时弹出提示（如充电等）。") },
                     leadingContent = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -964,7 +988,7 @@ fun Debug(
                 var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
                 ListItem(
                     headlineContent = { Text(if (httpDebugApiEnabled) "禁用 HTTP 调试 API" else "启用 HTTP 调试 API") },
-                    supportingContent = { Text("切换端口 18282 上的 HTTP 调试 API。需要重启服务。") },
+                    supportingContent = { Text("切换端口 18282 上的 HTTP 调试 API。") },
                     leadingContent = {
                         Icon(
                             if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,

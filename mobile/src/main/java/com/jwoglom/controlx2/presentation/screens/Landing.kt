@@ -52,7 +52,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -132,7 +134,7 @@ fun Landing(
 
 
     // Local state owns user-driven tab changes, but must reset when parent route changes.
-    var selectedItem by remember(sectionState) { mutableStateOf(sectionState) }
+    var selectedItem by rememberSaveable { mutableStateOf(sectionState) }
     BackHandler(enabled = selectedItem != LandingSection.DASHBOARD) {
         selectedItem = when (selectedItem) {
             LandingSection.CGM_ACTIONS,

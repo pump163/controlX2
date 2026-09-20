@@ -16,7 +16,9 @@ import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -776,7 +778,11 @@ class MainActivity : ComponentActivity() {
                      mp = mutableMapOf()
                 }
                 mp.putAll(processed)
-                dataStore.historyLogCache.value = mp
+                // Batch update: delay posting to avoid rebuilding on every chunk
+                Handler(Looper.getMainLooper()).removeCallbacksAndMessages(null)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    dataStore.historyLogCache.value = mp
+                }, 500)
             }
         }
     }
