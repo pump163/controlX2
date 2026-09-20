@@ -51,6 +51,7 @@ import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.dataStore
 import com.jwoglom.controlx2.presentation.components.HeaderLine
+import com.jwoglom.controlx2.presentation.components.Line
 import com.jwoglom.controlx2.presentation.components.LoadSpinner
 import com.jwoglom.controlx2.presentation.screens.LandingSection
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
@@ -58,7 +59,9 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBolusLimitRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
@@ -82,6 +85,7 @@ fun SafetyLimitsActions(
 
     val maxBolusSettings = ds.globalMaxBolusSettingsResponse.observeAsState()
     val basalLimitSettings = ds.basalLimitSettingsResponse.observeAsState()
+    val deviceName = ds.setupDeviceName.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -167,6 +171,12 @@ fun SafetyLimitsActions(
 
                     HeaderLine("安全限制")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+
+                    val model = determinePumpModel(deviceName.value ?: "")
+                    if (model == KnownDeviceModel.TSLIM_X2) {
+                        Line("此型号的设备可能不支持安全限制设置（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("")
+                    }
                 }
 
                 if (refreshing) {

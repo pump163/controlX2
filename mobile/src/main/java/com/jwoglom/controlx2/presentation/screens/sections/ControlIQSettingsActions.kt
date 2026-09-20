@@ -62,8 +62,10 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeControlIQSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetSleepScheduleRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQSleepScheduleRequest
@@ -89,6 +91,7 @@ fun ControlIQSettingsActions(
     val controlIQWeightUnit = ds.controlIQWeightUnit.observeAsState()
     val controlIQTotalDailyInsulin = ds.controlIQTotalDailyInsulin.observeAsState()
     val sleepSchedule = ds.controlIQSleepScheduleResponse.observeAsState()
+    val deviceName = ds.setupDeviceName.observeAsState()
 
     val controlIQSummaryText = remember(
         controlIQEnabled.value,
@@ -207,6 +210,12 @@ fun ControlIQSettingsActions(
 
                     HeaderLine("Control-IQ 设置")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+
+                    val model = determinePumpModel(deviceName.value ?: "")
+                    if (model == KnownDeviceModel.TSLIM_X2) {
+                        Line("此型号的设备可能不支持 Control-IQ 设置（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("")
+                    }
                 }
 
                 if (refreshing) {

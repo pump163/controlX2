@@ -5,8 +5,11 @@ package com.jwoglom.controlx2.presentation.screens.sections
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -24,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.jwoglom.controlx2.presentation.components.HeaderLine
@@ -47,6 +51,15 @@ fun FeatureFlags(
             item {
                 HeaderLine("功能开关")
                 Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+
+                Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 8.dp)) {
+                    Text("功能开关说明", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "BTHostSwitch：蓝牙主机角色切换 (Bluetooth Host Switch)，手表独立连泵用，手机端无需开启。关闭时手机连泵，手表通过手机中转；开启后手表可以直接当蓝牙主机连泵，手机当客户端。",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             FeatureFlag.values().forEach { flag ->

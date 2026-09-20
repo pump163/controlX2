@@ -132,7 +132,7 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "发送 SGV",
+                    title = "发送血糖读数",
                     subtitle = "广播当前血糖读数到 xDrip",
                     enabled = config.sendCgmSgv,
                     onToggle = { togglePayload(XdripPayloadGroup.CGM) }
@@ -236,7 +236,7 @@ private fun sendDiagnosticsPayload(context: Context) {
 
     val message = buildString {
         append("诊断已发送")
-        append(if (sgvSent) "（SGV 正常" else "（SGV 跳过")
+        append(if (sgvSent) "（血糖读数 正常" else "（血糖读数 跳过")
         append(if (statusSent) "，状态栏正常）" else "，状态栏跳过）")
     }
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

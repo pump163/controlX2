@@ -201,7 +201,7 @@ fun InProgressDialogRegion(
     }
 
     AlertDialog(
-        onDismissRequest = {},
+        onDismissRequest = onCancel,
         icon = {
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)

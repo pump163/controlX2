@@ -215,6 +215,7 @@ fun Settings(
 //            }
 
             item {
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 ListItem(
                     headlineContent = { Text("强制重载服务") },
                     supportingContent = { Text("重启后台服务。") },
@@ -228,7 +229,6 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
                     }
                 )
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {

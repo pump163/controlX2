@@ -84,7 +84,7 @@ fun XdripSettingsScreen() {
         }
         item {
             PayloadToggleChip(
-                label = "发送 SGV",
+                label = "发送血糖读数",
                 enabled = config.sendCgmSgv,
                 onClick = { togglePayload(XdripPayloadGroup.CGM) },
             )

@@ -904,10 +904,10 @@ class MainActivity : ComponentActivity() {
                     HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_1, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_2, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_3, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_4 -> "启动中"
                     HomeScreenMirrorResponse.CGMAlertIcon.CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "需要校准"
                     HomeScreenMirrorResponse.CGMAlertIcon.ERROR_HIGH_WEDGE, HomeScreenMirrorResponse.CGMAlertIcon.ERROR_LOW_WEDGE -> "错误"
-                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> "更换探头"
+                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> "更换传感器"
                     HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_TRANSMITTER -> "更换发射器"
                     HomeScreenMirrorResponse.CGMAlertIcon.OUT_OF_RANGE -> "超出范围"
-                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> "探头故障"
+                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> "传感器故障"
                     HomeScreenMirrorResponse.CGMAlertIcon.TRIPLE_DASHES -> "---"
                     else -> ""
                 }

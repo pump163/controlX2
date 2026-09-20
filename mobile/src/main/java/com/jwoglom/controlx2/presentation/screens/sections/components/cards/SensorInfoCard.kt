@@ -67,28 +67,28 @@ fun SensorInfoCard(
                 if (cgmSessionState == CGMSessionState.ACTIVE) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "探头到期",
+                        label = "传感器到期",
                         value = if (!sensorExpiration.isNullOrEmpty()) sensorExpiration else null,
                         color = getSensorExpirationColor(sensorExpiration)
                     )
                 } else if (cgmSessionState == CGMSessionState.STARTING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "探头启动中",
+                        label = "传感器启动中",
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "探头停止中",
+                        label = "传感器停止中",
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPED) {
                     SensorItem(
                         icon = Icons.Default.SensorAlert,
-                        label = "无激活的CGM探头",
+                        label = "无激活的CGM传感器",
                         value = null,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

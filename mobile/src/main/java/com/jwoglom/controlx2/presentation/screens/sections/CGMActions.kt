@@ -199,9 +199,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G6：停止 CGM 探头"
-                                    CGMSessionState.STOPPED -> "Dexcom G6：启动 CGM 探头"
-                                    else -> "Dexcom G6 CGM 探头状态：${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> "Dexcom G6：停止 CGM 传感器"
+                                    CGMSessionState.STOPPED -> "Dexcom G6：启动 CGM 传感器"
+                                    else -> "Dexcom G6 CGM 传感器状态：${cgmSessionState.value?.str}"
                                 }
                             )},
                             supportingContent = {
@@ -403,9 +403,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G7：停止 CGM 探头"
-                                    CGMSessionState.STOPPED -> "Dexcom G7：启动 CGM 探头"
-                                    else -> "Dexcom G7 CGM 探头状态：${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> "Dexcom G7：停止 CGM 传感器"
+                                    CGMSessionState.STOPPED -> "Dexcom G7：启动 CGM 传感器"
+                                    else -> "Dexcom G7 CGM 传感器状态：${cgmSessionState.value?.str}"
                                 }
                             )},
                             supportingContent = {

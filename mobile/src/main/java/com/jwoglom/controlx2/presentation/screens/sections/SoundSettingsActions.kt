@@ -225,6 +225,12 @@ fun SoundSettingsActions(
 
                     HeaderLine("声音设置")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+
+                    val model = determinePumpModel(deviceName.value ?: "")
+                    if (model == KnownDeviceModel.TSLIM_X2) {
+                        Line("此型号的设备可能不支持声音设置（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("")
+                    }
                 }
 
                 if (refreshing) {

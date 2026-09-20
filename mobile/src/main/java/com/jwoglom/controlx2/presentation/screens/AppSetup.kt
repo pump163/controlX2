@@ -311,7 +311,7 @@ fun AppSetup(
                     Text("血糖单位")
                 },
                 supportingContent = {
-                    Text("血糖值单位选择 mg/dL 或 mmol/L")
+                    Text("血糖读数单位选择 mg/dL 或 mmol/L")
                 },
                 trailingContent = {
                     Text(

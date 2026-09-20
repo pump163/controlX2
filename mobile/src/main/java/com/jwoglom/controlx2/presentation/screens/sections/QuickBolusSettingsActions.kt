@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +51,7 @@ import androidx.navigation.NavHostController
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.presentation.components.HeaderLine
+import com.jwoglom.controlx2.presentation.components.Line
 import com.jwoglom.controlx2.presentation.components.LoadSpinner
 import com.jwoglom.controlx2.presentation.screens.LandingSection
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
@@ -57,7 +59,9 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -73,6 +77,8 @@ fun QuickBolusSettingsActions(
     navigateBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val ds = LocalDataStore.current
+    val deviceName = ds.setupDeviceName.observeAsState()
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -158,6 +164,12 @@ fun QuickBolusSettingsActions(
 
                     HeaderLine("快捷大剂量设置")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+
+                    val model = determinePumpModel(deviceName.value ?: "")
+                    if (model == KnownDeviceModel.TSLIM_X2) {
+                        Line("此型号的设备可能不支持快捷大剂量设置（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("")
+                    }
                 }
 
                 if (refreshing) {

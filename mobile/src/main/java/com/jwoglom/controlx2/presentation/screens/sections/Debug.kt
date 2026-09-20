@@ -429,10 +429,6 @@ fun Debug(
             }
 
             item {
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
-            }
-
-            item {
                 ListItem(
                     headlineContent = { Text("查看已接收消息缓存") },
                     supportingContent = { Text("显示最近接收的胰岛素泵消息。") },
@@ -958,6 +954,10 @@ fun Debug(
                         ).show()
                     }
                 )
+            }
+
+            item {
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 
             item {

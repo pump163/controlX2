@@ -220,7 +220,7 @@ fun Actions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此型号的设备不支持部分控制（${model}），仅支持远程大剂量。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("此型号的设备不支持部分控制（${model}），仅支持远程大剂量和查看部分泵状态。", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
@@ -280,7 +280,7 @@ fun Actions(
                         ) {
 
                             AlertDialog(
-                                onDismissRequest = {},
+                                onDismissRequest = { showResumeInsulinMenu = false },
                                 title = {
                                     Text("恢复胰岛素")
                                 },
@@ -333,7 +333,7 @@ fun Actions(
                         ) {
 
                             AlertDialog(
-                                onDismissRequest = {},
+                                onDismissRequest = { showSuspendInsulinMenu = false },
                                 title = {
                                     Text(
                                         "停止胰岛素"
