@@ -70,11 +70,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toDp
 import androidx.navigation.NavHostController
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
@@ -571,20 +571,21 @@ fun Landing(
                         // 可拖动 FAB，位置保存到 Prefs，限制拖动范围
                         val prefs = Prefs(context)
                         val configuration = LocalConfiguration.current
-                        val screenWidth = configuration.screenWidthDp.dp
-                        val screenHeight = configuration.screenHeightDp.dp
-                        val navBarHeight = 80.dp // 底部导航栏高度
+                        val density = LocalDensity.current
+                        val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+                        val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+                        val navBarHeightPx = with(density) { 80.dp.toPx() } // 底部导航栏高度
                         
                         var fabOffsetX by remember { mutableStateOf(prefs.fabOffsetX()) }
                         var fabOffsetY by remember { mutableStateOf(prefs.fabOffsetY()) }
-                        var fabWidth by remember { mutableStateOf(0.dp) }
-                        var fabHeight by remember { mutableStateOf(0.dp) }
+                        var fabWidthPx by remember { mutableStateOf(0f) }
+                        var fabHeightPx by remember { mutableStateOf(0f) }
                         
                         ExtendedFloatingActionButton(
                             modifier = Modifier
                                 .onGloballyPositioned { coordinates ->
-                                    fabWidth = coordinates.size.width.toDp()
-                                    fabHeight = coordinates.size.height.toDp()
+                                    fabWidthPx = coordinates.size.width.toFloat()
+                                    fabHeightPx = coordinates.size.height.toFloat()
                                 }
                                 .offset { IntOffset(fabOffsetX.toInt(), fabOffsetY.toInt()) }
                                 .pointerInput(Unit) {
@@ -595,12 +596,12 @@ fun Landing(
                                         
                                         // 限制不超出屏幕左右边界
                                         val maxX = 0f // FAB 默认在右下角，offset 只能向左/向上
-                                        val minX = -(screenWidth.toPx() - fabWidth.toPx())
+                                        val minX = -(screenWidthPx - fabWidthPx)
                                         newX = newX.coerceIn(minX, maxX)
                                         
                                         // 限制不超出屏幕上边界
                                         val maxY = 0f
-                                        val minY = -(screenHeight.toPx() - fabHeight.toPx() - navBarHeight.toPx())
+                                        val minY = -(screenHeightPx - fabHeightPx - navBarHeightPx)
                                         newY = newY.coerceIn(minY, maxY)
                                         
                                         fabOffsetX = newX
@@ -608,8 +609,7 @@ fun Landing(
                                         prefs.setFabOffsetX(fabOffsetX)
                                         prefs.setFabOffsetY(fabOffsetY)
                                     }
-                                }
-                        )
+                                },
                             onClick = {
                                 coroutineScope.launch {
                                     if (displayBottomScaffold.bottomSheetState.isCollapsed) {
