@@ -21,7 +21,7 @@ enum class FeatureFlag {
 
     val slug: String get() = when (this) {
         BTHostSwitch -> name
-        HistoryLogSyncBarVisible -> "切换首页历史记录..."
+        HistoryLogSyncBarVisible -> "切换首页历史记录进度条的显示"
     }
 
     val defaultValue: Boolean get() = when (this) {

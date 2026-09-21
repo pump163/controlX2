@@ -414,7 +414,7 @@ fun Actions(
                                 Icon(
                                     Icons.AutoMirrored.Filled.DirectionsRun,
                                     contentDescription = null,
-                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    tint = if (isMobi || tempRateActive.value == true) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -499,7 +499,7 @@ fun Actions(
                                 Icon(
                                     Icons.Filled.Bedtime,
                                     contentDescription = null,
-                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    tint = if (isMobi || tempRateActive.value == true) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             trailingContent = {
@@ -596,7 +596,7 @@ fun Actions(
                                         else -> Icons.Filled.EditNote
                                     },
                                     contentDescription = null,
-                                    tint = if (tempRateActive.value == true) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    tint = if (isMobi || tempRateActive.value == true) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {

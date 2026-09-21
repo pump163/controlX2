@@ -287,7 +287,7 @@ fun AppSetup(
                     Text("自动获取历史记录")
                 },
                 supportingContent = {
-                    Text("获取历史记录可在主屏幕上绘制 CGM 图表。")
+                    Text("开启后才能在首页绘制 CGM 图形。")
                 },
                 trailingContent = {
                     Switch(

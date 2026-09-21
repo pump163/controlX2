@@ -161,7 +161,6 @@ fun Debug(
     sendMessage: (String, ByteArray) -> Unit,
     sendPumpCommands: (SendType, List<Message>) -> Unit,
     historyLogViewModel: HistoryLogViewModel? = null,
-    navigateToFeatureFlags: () -> Unit = {},
     navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -1068,24 +1067,6 @@ fun Debug(
                         }
                     )
                 }
-            }
-
-            item {
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text("功能开关") },
-                    supportingContent = { Text("切换实验性功能。") },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Settings,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable { navigateToFeatureFlags() },
-                )
             }
 
             item {

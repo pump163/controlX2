@@ -91,7 +91,8 @@ fun Settings(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
     navigateToDebugOptions: () -> Unit = {},
     navigateToNightscoutSettings: () -> Unit = {},
-    navigateToXdripSettings: () -> Unit = {}
+    navigateToXdripSettings: () -> Unit = {},
+    navigateToFeatureFlags: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -250,6 +251,10 @@ fun Settings(
             }
 
             item {
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+            }
+
+            item {
                 ListItem(
                     headlineContent = { Text("重新配置应用") },
                     supportingContent = { Text("启用或禁用胰岛素输注。") },
@@ -264,6 +269,23 @@ fun Settings(
                         navController?.navigate(Screen.AppSetup.route)
                     }
                 )
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text("功能开关") },
+                    supportingContent = { Text("切换实验性功能。") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable { navigateToFeatureFlags() },
+                )
+            }
+
+            item {
                 Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             }
 

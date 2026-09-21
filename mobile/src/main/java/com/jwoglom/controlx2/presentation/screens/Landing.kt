@@ -276,7 +276,7 @@ fun Landing(
                         )
                     } else {
                         Icon(
-                            painterResource(R.drawable.pump),
+                            painterResource(if (isSystemInDarkTheme()) R.drawable.pump_secondary else R.drawable.pump),
                             tint = Color.Unspecified,
                             contentDescription = "胰岛素泵图标",
                             modifier = Modifier.size(28.dp)
@@ -511,9 +511,6 @@ fun Landing(
                                 sendMessage = sendMessage,
                                 sendPumpCommands = sendPumpCommands,
                                 historyLogViewModel = historyLogViewModel,
-                                navigateToFeatureFlags = {
-                                    selectedItem = LandingSection.FEATURE_FLAGS
-                                },
                                 navigateBack = { selectedItem = LandingSection.SETTINGS },
                             )
                         }
@@ -540,7 +537,10 @@ fun Landing(
                                 },
                                 navigateToXdripSettings = {
                                     selectedItem = LandingSection.XDRIP_SETTINGS
-                                }
+                                },
+                                navigateToFeatureFlags = {
+                                    selectedItem = LandingSection.FEATURE_FLAGS
+                                },
                             )
                         }
                         LandingSection.NIGHTSCOUT_SETTINGS -> {
