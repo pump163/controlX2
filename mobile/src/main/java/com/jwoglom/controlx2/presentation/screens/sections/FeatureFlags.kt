@@ -56,7 +56,7 @@ fun FeatureFlags(
                     Text("功能开关说明", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "BTHostSwitch：蓝牙主机角色切换 (Bluetooth Host Switch)，手表独立连泵用，手机端无需开启。关闭时手机连泵，手表通过手机中转；开启后手表可以直接当蓝牙主机连泵，手机当客户端。",
+                        "BTHostSwitch：蓝牙主机角色切换 ，手表独立连泵用，手机端无需开启。关闭时手机连泵，手表通过手机中转；开启后手表直接当蓝牙主机连泵，手机当客户端。",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -67,9 +67,18 @@ fun FeatureFlags(
                     var enabled by remember { mutableStateOf(FeatureFlag.enabled(context, flag)) }
                     ListItem(
                         headlineContent = { Text(flag.slug) },
-                        supportingContent = if (flag == com.jwoglom.controlx2.shared.FeatureFlag.HistoryLogSyncBarVisible) {
-                            { Text("首页下方的历史记录进度条的显示。") }
-                        } else null,
+                        supportingContent = when (flag) {
+                            com.jwoglom.controlx2.shared.FeatureFlag.CgmChartVisible -> {
+                                { Text("切换首页的CGM图表和图例显示。") }
+                            }
+                            com.jwoglom.controlx2.shared.FeatureFlag.SensorInfoCardVisible -> {
+                                { Text("切换首页的传感器信息卡片显示。") }
+                            }
+                            com.jwoglom.controlx2.shared.FeatureFlag.HistoryLogSyncBarVisible -> {
+                                { Text("切换首页下方的历史记录进度条的显示。") }
+                            }
+                            else -> null
+                        },
                         trailingContent = {
                             Switch(
                                 checked = enabled,
@@ -93,7 +102,7 @@ fun FeatureFlags(
                 var fabEnabled by remember { mutableStateOf(com.jwoglom.controlx2.Prefs(context).fabEnabled()) }
                 ListItem(
                     headlineContent = { Text("浮动大剂量按钮") },
-                    supportingContent = { Text("切换浮动大剂量按钮的显示。") },
+                    supportingContent = { Text("切换浮动大剂量按钮的显示模式。") },
                     trailingContent = {
                         Switch(
                             checked = fabEnabled,

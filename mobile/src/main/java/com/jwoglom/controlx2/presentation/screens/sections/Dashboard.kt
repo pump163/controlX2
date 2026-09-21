@@ -226,10 +226,12 @@ fun Dashboard(
 
 
                 // CGM Chart with Vico - shows glucose, boluses, basal, carbs
-                item {
-                    VicoCgmChartCard(
-                        historyLogViewModel = historyLogViewModel
-                    )
+                if (com.jwoglom.controlx2.shared.FeatureFlag.cgmChartVisibleState.value) {
+                    item {
+                        VicoCgmChartCard(
+                            historyLogViewModel = historyLogViewModel
+                        )
+                    }
                 }
 
                 // Active Therapy Card - Basal, Last Bolus, Mode
@@ -238,8 +240,10 @@ fun Dashboard(
                 }
 
                 // Sensor Info Card - Sensor expiration, Transmitter status
-                item {
-                    SensorInfoCardFromDataStore()
+                if (com.jwoglom.controlx2.shared.FeatureFlag.sensorInfoCardVisibleState.value) {
+                    item {
+                        SensorInfoCardFromDataStore()
+                    }
                 }
 
                 // History Log Sync Progress

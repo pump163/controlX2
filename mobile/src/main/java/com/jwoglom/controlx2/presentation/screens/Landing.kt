@@ -575,7 +575,7 @@ fun Landing(
                         val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
                         val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
                         val navBarHeightPx = with(density) { 80.dp.toPx() } // 底部导航栏高度
-                        val topPaddingPx = with(density) { 80.dp.toPx() } // 顶部边距（避开电池图标）
+                        val topPaddingPx = with(density) { 120.dp.toPx() } // 顶部边距（避开电池图标）
                         
                         var fabOffsetX by remember { mutableStateOf(prefs.fabOffsetX()) }
                         var fabOffsetY by remember { mutableStateOf(prefs.fabOffsetY()) }
@@ -665,11 +665,9 @@ fun Landing(
                             icon = {
                                 Image(
                                     if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) {
-                                        if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
-                                        else painterResource(R.drawable.bolus_icon_secondary)
+                                        painterResource(R.drawable.bolus_icon)
                                     } else {
-                                        if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_x)
-                                        else painterResource(R.drawable.bolus_x_secondary)
+                                        painterResource(R.drawable.bolus_x)
                                     },
                                     contentDescription = "大剂量",
                                     modifier = Modifier.size(28.dp)
