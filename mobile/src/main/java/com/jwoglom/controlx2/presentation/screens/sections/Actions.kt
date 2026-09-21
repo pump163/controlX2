@@ -394,6 +394,7 @@ fun Actions(
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
+                    val tempRateActive = ds.tempRateActive.observeAsState()
                     val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
                     Box(
                         modifier = Modifier
@@ -479,6 +480,7 @@ fun Actions(
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
+                    val tempRateActive = ds.tempRateActive.observeAsState()
                     val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
                     Box(
                         modifier = Modifier
