@@ -241,7 +241,6 @@ fun ControlIQSettingsActions(
 
                 // Sleep Schedule section header
                 item {
-                    Line("\n")
                     HeaderLine("睡眠计划")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 }

@@ -89,12 +89,8 @@ fun Dashboard(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val pumpConnected = ds.pumpConnected.observeAsState()
-    val showHistoryLogSyncBar = remember {
-        com.jwoglom.controlx2.shared.FeatureFlag.enabled(
-            context,
-            com.jwoglom.controlx2.shared.FeatureFlag.HistoryLogSyncBarVisible
-        )
-    }
+    // 实时响应开关变化
+    val showHistoryLogSyncBar = com.jwoglom.controlx2.shared.FeatureFlag.historyLogSyncBarVisibleState.value
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

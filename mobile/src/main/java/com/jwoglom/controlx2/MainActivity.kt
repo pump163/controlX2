@@ -163,6 +163,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("mobile UIActivity onCreate $savedInstanceState")
         super.onCreate(savedInstanceState)
+        // 初始化 FeatureFlag 全局状态
+        com.jwoglom.controlx2.shared.FeatureFlag.initState(this)
         setupTimber(
             "MUA",
             context = this,
