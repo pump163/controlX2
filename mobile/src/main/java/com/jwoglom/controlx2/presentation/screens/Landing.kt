@@ -6,9 +6,12 @@ package com.jwoglom.controlx2.presentation.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,7 +20,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -55,13 +60,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toDp
 import androidx.navigation.NavHostController
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
@@ -133,7 +146,13 @@ fun Landing(
 
 
     // Local state owns user-driven tab changes, but must reset when parent route changes.
-    var selectedItem by rememberSaveable { mutableStateOf(sectionState) }
+    val prefs = Prefs(context)
+    var selectedItem by remember { mutableStateOf(runCatching { LandingSection.valueOf(prefs.lastSelectedTab()) }.getOrDefault(sectionState)) }
+
+    // Save tab state when it changes
+    LaunchedEffect(selectedItem) {
+        prefs.setLastSelectedTab(selectedItem.name)
+    }
     BackHandler(enabled = selectedItem != LandingSection.DASHBOARD) {
         selectedItem = when (selectedItem) {
             LandingSection.CGM_ACTIONS,
@@ -154,6 +173,13 @@ fun Landing(
     val displayBottomScaffold = rememberBottomSheetScaffoldState(
         bottomSheetState = bottomSheetState
     )
+
+    // Back handler for BottomSheet (大剂量/临时基础率弹窗)
+    BackHandler(enabled = displayBottomScaffold.bottomSheetState.isExpanded) {
+        coroutineScope.launch {
+            displayBottomScaffold.bottomSheetState.collapse()
+        }
+    }
     // Local state owns in-screen sheet toggles, while parent can still force a new initial sheet.
     var bottomScaffoldState by remember(_bottomScaffoldState) { mutableStateOf(_bottomScaffoldState) }
     var bolusPrefill by remember { mutableStateOf<BolusInputPrefill?>(null) }
@@ -279,7 +305,23 @@ fun Landing(
         content = { innerPadding ->
             BottomSheetScaffold(
                 scaffoldState = displayBottomScaffold,
+                sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                sheetElevation = 8.dp,
                 sheetContent = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // 拖拽把手
+                        Box(
+                            modifier = Modifier
+                                .padding(top = 8.dp, bottom = 4.dp)
+                                .width(40.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                                .align(Alignment.CenterHorizontally)
+                        )
+                    }
                     LazyColumn(
                         contentPadding = PaddingValues(all = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -522,9 +564,52 @@ fun Landing(
             }
         },
         floatingActionButton = {
-            when (selectedItem) {
-                LandingSection.DASHBOARD ->
+            // FAB 在首页或 BottomSheet 展开时显示（展开时所有 tab 都显示，方便取消）
+            // 根据 Prefs 设置决定是否显示
+            val fabEnabled = Prefs(context).fabEnabled()
+            if (fabEnabled && (selectedItem == LandingSection.DASHBOARD || selectedItem == LandingSection.NOTIFICATIONS || showBottomScaffold())) {
+                        // 可拖动 FAB，位置保存到 Prefs，限制拖动范围
+                        val prefs = Prefs(context)
+                        val configuration = LocalConfiguration.current
+                        val screenWidth = configuration.screenWidthDp.dp
+                        val screenHeight = configuration.screenHeightDp.dp
+                        val navBarHeight = 80.dp // 底部导航栏高度
+                        
+                        var fabOffsetX by remember { mutableStateOf(prefs.fabOffsetX()) }
+                        var fabOffsetY by remember { mutableStateOf(prefs.fabOffsetY()) }
+                        var fabWidth by remember { mutableStateOf(0.dp) }
+                        var fabHeight by remember { mutableStateOf(0.dp) }
+                        
                         ExtendedFloatingActionButton(
+                            modifier = Modifier
+                                .onGloballyPositioned { coordinates ->
+                                    fabWidth = coordinates.size.width.toDp()
+                                    fabHeight = coordinates.size.height.toDp()
+                                }
+                                .offset { IntOffset(fabOffsetX.toInt(), fabOffsetY.toInt()) }
+                                .pointerInput(Unit) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        var newX = fabOffsetX + dragAmount.x
+                                        var newY = fabOffsetY + dragAmount.y
+                                        
+                                        // 限制不超出屏幕左右边界
+                                        val maxX = 0f // FAB 默认在右下角，offset 只能向左/向上
+                                        val minX = -(screenWidth.toPx() - fabWidth.toPx())
+                                        newX = newX.coerceIn(minX, maxX)
+                                        
+                                        // 限制不超出屏幕上边界
+                                        val maxY = 0f
+                                        val minY = -(screenHeight.toPx() - fabHeight.toPx() - navBarHeight.toPx())
+                                        newY = newY.coerceIn(minY, maxY)
+                                        
+                                        fabOffsetX = newX
+                                        fabOffsetY = newY
+                                        prefs.setFabOffsetX(fabOffsetX)
+                                        prefs.setFabOffsetY(fabOffsetY)
+                                    }
+                                }
+                        )
                             onClick = {
                                 coroutineScope.launch {
                                     if (displayBottomScaffold.bottomSheetState.isCollapsed) {
@@ -563,39 +648,74 @@ fun Landing(
                                 )
                             }
                         )
-                else -> {}
             }
         },
         bottomBar = {
             NavigationBar {
-                LandingSection.values()
-                    .filter { item -> item.showInNav }
-                    .forEach { item ->
+                val navItems = LandingSection.values().filter { item -> item.showInNav }
+                val middleIndex = navItems.size / 2
+                
+                navItems.forEachIndexed { index, item ->
+                    // 在中间插入大剂量按钮（FAB 关闭时显示，防止误触）
+                    val fabEnabled = Prefs(context).fabEnabled()
+                    if (index == middleIndex && !fabEnabled) {
+                        // 大剂量按钮
                         NavigationBarItem(
                             icon = {
-                                BadgedBox(
-                                    badge = {
-                                        notificationBundle.value?.get()?.count()?.let { count ->
-                                            if (item.label == LandingSection.NOTIFICATIONS.label && count > 0) {
-                                                Badge(
-                                                    containerColor = Color.Red,
-                                                    contentColor = Color.White
-                                                ) {
-                                                    Text("$count")
-                                                }
-                                            }
-                                        }
+                                Image(
+                                    if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) {
+                                        if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
+                                        else painterResource(R.drawable.bolus_icon_secondary)
+                                    } else {
+                                        if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_x)
+                                        else painterResource(R.drawable.bolus_x_secondary)
                                     },
-                                    content = {
-                                        Icon(item.icon, contentDescription = item.label)
-                                    }
+                                    contentDescription = "大剂量",
+                                    modifier = Modifier.size(28.dp)
                                 )
-                           },
-                            label = { Text(item.label) },
-                            selected = selectedItem.label == item.label,
-                            onClick = { selectedItem = item }
+                            },
+                            label = { Text(if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) "大剂量" else "取消") },
+                            selected = showBottomScaffold(),
+                            onClick = {
+                                coroutineScope.launch {
+                                    if (displayBottomScaffold.bottomSheetState.isCollapsed) {
+                                        bolusPrefill = null
+                                        bottomScaffoldState = BottomScaffoldState.BOLUS_WINDOW
+                                        displayBottomScaffold.bottomSheetState.expand()
+                                    } else {
+                                        displayBottomScaffold.bottomSheetState.collapse()
+                                        bottomScaffoldState = BottomScaffoldState.NONE
+                                    }
+                                }
+                            }
                         )
                     }
+                    
+                    NavigationBarItem(
+                        icon = {
+                            BadgedBox(
+                                badge = {
+                                    notificationBundle.value?.get()?.count()?.let { count ->
+                                        if (item.label == LandingSection.NOTIFICATIONS.label && count > 0) {
+                                            Badge(
+                                                containerColor = Color.Red,
+                                                contentColor = Color.White
+                                            ) {
+                                                Text("$count")
+                                            }
+                                        }
+                                    }
+                                },
+                                content = {
+                                    Icon(item.icon, contentDescription = item.label)
+                                }
+                            )
+                       },
+                        label = { Text(item.label) },
+                        selected = selectedItem.label == item.label,
+                        onClick = { selectedItem = item }
+                    )
+                }
             }
         }
     )

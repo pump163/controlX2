@@ -276,4 +276,36 @@ class Prefs(val context: Context) {
     fun prefs(): SharedPreferences {
         return context.getSharedPreferences("WearX2", WearableListenerService.MODE_PRIVATE)
     }
+
+    fun lastSelectedTab(): String {
+        return prefs().getString("last-selected-tab", "DASHBOARD") ?: "DASHBOARD"
+    }
+
+    fun setLastSelectedTab(tab: String) {
+        prefs().edit().putString("last-selected-tab", tab).commit()
+    }
+
+    fun fabEnabled(): Boolean {
+        return prefs().getBoolean("fab-enabled", true)
+    }
+
+    fun setFabEnabled(enabled: Boolean) {
+        prefs().edit().putBoolean("fab-enabled", enabled).commit()
+    }
+
+    fun fabOffsetX(): Float {
+        return prefs().getFloat("fab-offset-x", 0f)
+    }
+
+    fun setFabOffsetX(x: Float) {
+        prefs().edit().putFloat("fab-offset-x", x).commit()
+    }
+
+    fun fabOffsetY(): Float {
+        return prefs().getFloat("fab-offset-y", 0f)
+    }
+
+    fun setFabOffsetY(y: Float) {
+        prefs().edit().putFloat("fab-offset-y", y).commit()
+    }
 }

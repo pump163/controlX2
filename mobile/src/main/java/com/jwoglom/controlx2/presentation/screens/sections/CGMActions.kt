@@ -179,12 +179,12 @@ fun CGMActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("CGM 控制")
+                    HeaderLine("CGM 设置")
                     Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此型号的设备不支持 CGM 控制（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("此型号的设备不支持 CGM 设置（${model}）。", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
@@ -515,6 +515,7 @@ fun CGMActions(
 
 
                 item {
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

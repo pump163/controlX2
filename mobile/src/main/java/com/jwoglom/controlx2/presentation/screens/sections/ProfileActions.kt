@@ -211,12 +211,12 @@ fun ProfileActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("配置文件控制")
+                    HeaderLine("配置文件设置")
                     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("此型号的设备不支持配置文件控制（${model}），仅可查看配置文件。", modifier = Modifier.padding(horizontal = 20.dp))
+                        Line("此型号的设备不支持配置文件设置（${model}），仅可查看配置文件。", modifier = Modifier.padding(horizontal = 20.dp))
                         Line("")
                     }
                 }
@@ -483,6 +483,7 @@ fun ProfileActions(
                 }
 
                 item {
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

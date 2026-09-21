@@ -293,7 +293,6 @@ fun ControlIQSettingsActions(
                                     showEditSleepScheduleDialog = true
                                 }
                             )
-                            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                         }
                     }
                 } else if (!refreshing) {
@@ -303,6 +302,7 @@ fun ControlIQSettingsActions(
                 }
 
                 item {
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                     ListItem(
                         headlineContent = { Text("返回") },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },

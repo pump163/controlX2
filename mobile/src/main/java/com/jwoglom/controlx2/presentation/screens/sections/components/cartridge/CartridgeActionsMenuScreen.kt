@@ -48,7 +48,7 @@ fun CartridgeActionsMenuScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            HeaderLine("储药器控制")
+            HeaderLine("储药器设置")
             Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
 
             val model = determinePumpModel(deviceName)
@@ -86,6 +86,7 @@ fun CartridgeActionsMenuScreen(
         }
 
         item {
+                    Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
             ListItem(
                 headlineContent = { Text("返回") },
                 leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },

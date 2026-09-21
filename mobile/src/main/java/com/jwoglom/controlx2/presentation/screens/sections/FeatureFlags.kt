@@ -86,6 +86,29 @@ fun FeatureFlags(
             }
 
             item {
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
+                var fabEnabled by remember { mutableStateOf(com.jwoglom.controlx2.Prefs(context).fabEnabled()) }
+                ListItem(
+                    headlineContent = { Text("首页大剂量按钮") },
+                    supportingContent = { Text("切换浮动大剂量按钮的显示。") },
+                    trailingContent = {
+                        Switch(
+                            checked = fabEnabled,
+                            onCheckedChange = {
+                                fabEnabled = it
+                                com.jwoglom.controlx2.Prefs(context).setFabEnabled(it)
+                            }
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        fabEnabled = !fabEnabled
+                        com.jwoglom.controlx2.Prefs(context).setFabEnabled(fabEnabled)
+                    },
+                )
+            }
+
+            item {
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 ListItem(
                     headlineContent = { Text("返回") },
                     leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },

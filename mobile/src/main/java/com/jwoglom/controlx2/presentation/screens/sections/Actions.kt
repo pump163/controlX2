@@ -355,10 +355,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text(
-                                            "取消",
-                                            color = Color.DarkGray
-                                        )
+                                        Text("取消")
                                     }
                                 },
                                 confirmButton = {
@@ -494,8 +491,9 @@ fun Actions(
                                     UserMode.SLEEP -> "关闭睡眠模式"
                                     else -> "开启睡眠模式"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                fontWeight = if (controlIQMode.value == UserMode.SLEEP) FontWeight.Bold else FontWeight.Normal
+                                color = if (controlIQMode.value == UserMode.SLEEP) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (controlIQMode.value == UserMode.SLEEP) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = if (controlIQMode.value == UserMode.SLEEP) 18.sp else 14.sp
                             )},
                             leadingContent = {
                                 Icon(
@@ -581,12 +579,13 @@ fun Actions(
                                     true -> "停止临时基础率"
                                     else -> "启动临时基础率"
                                 },
-                                color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                                fontWeight = if (tempRateActive.value == true) FontWeight.Bold else FontWeight.Normal
+                                color = if (tempRateActive.value == true) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                fontWeight = if (tempRateActive.value == true) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = if (tempRateActive.value == true) 18.sp else 14.sp
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
-                                    true -> Text("进行中：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}", color = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
+                                    true -> Text("进行中：${tempRateDetails.value?.percentage}%，持续 ${prettyDuration(tempRateDetails.value?.duration?.div(60))}，开始于 ${tempRateDetails.value?.startTimeInstant}", color = if (tempRateActive.value == true) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f))
                                     else -> null
                                 }
                             },
@@ -597,7 +596,7 @@ fun Actions(
                                         else -> Icons.Filled.EditNote
                                     },
                                     contentDescription = null,
-                                    tint = if (isMobi) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    tint = if (tempRateActive.value == true) Color.Unspecified else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 )
                             },
                             modifier = Modifier.height(72.dp).clickable(enabled = isMobi) {
