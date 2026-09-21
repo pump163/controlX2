@@ -640,7 +640,7 @@ fun Debug(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .wrapContentSize(Alignment.TopStart)
-                                .background(Color.DarkGray.copy(alpha = 0.3f))
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
                             LazyColumn {
                                 item {
@@ -852,7 +852,7 @@ fun Debug(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .wrapContentSize(Alignment.TopStart)
-                                .background(Color.DarkGray.copy(alpha = 0.7f))
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
                             LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                                 item {

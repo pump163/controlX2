@@ -575,6 +575,7 @@ fun Landing(
                         val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
                         val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
                         val navBarHeightPx = with(density) { 80.dp.toPx() } // 底部导航栏高度
+                        val topPaddingPx = with(density) { 80.dp.toPx() } // 顶部边距（避开电池图标）
                         
                         var fabOffsetX by remember { mutableStateOf(prefs.fabOffsetX()) }
                         var fabOffsetY by remember { mutableStateOf(prefs.fabOffsetY()) }
@@ -599,9 +600,9 @@ fun Landing(
                                         val minX = -(screenWidthPx - fabWidthPx)
                                         newX = newX.coerceIn(minX, maxX)
                                         
-                                        // 限制不超出屏幕上边界
+                                        // 限制不超出屏幕上边界（避开电池图标）
                                         val maxY = 0f
-                                        val minY = -(screenHeightPx - fabHeightPx - navBarHeightPx)
+                                        val minY = -(screenHeightPx - fabHeightPx - navBarHeightPx - topPaddingPx)
                                         newY = newY.coerceIn(minY, maxY)
                                         
                                         fabOffsetX = newX

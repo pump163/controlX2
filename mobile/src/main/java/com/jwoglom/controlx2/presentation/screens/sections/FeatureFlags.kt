@@ -67,6 +67,9 @@ fun FeatureFlags(
                     var enabled by remember { mutableStateOf(FeatureFlag.enabled(context, flag)) }
                     ListItem(
                         headlineContent = { Text(flag.slug) },
+                        supportingContent = if (flag == com.jwoglom.controlx2.shared.FeatureFlag.HistoryLogSyncBarVisible) {
+                            { Text("首页下方的历史记录进度条的显示。") }
+                        } else null,
                         trailingContent = {
                             Switch(
                                 checked = enabled,
@@ -89,7 +92,7 @@ fun FeatureFlags(
                 Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))
                 var fabEnabled by remember { mutableStateOf(com.jwoglom.controlx2.Prefs(context).fabEnabled()) }
                 ListItem(
-                    headlineContent = { Text("首页大剂量按钮") },
+                    headlineContent = { Text("浮动大剂量按钮") },
                     supportingContent = { Text("切换浮动大剂量按钮的显示。") },
                     trailingContent = {
                         Switch(
