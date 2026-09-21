@@ -14,9 +14,18 @@ import android.content.Context
  */
 enum class FeatureFlag {
     BTHostSwitch,
+    HistoryLogSyncBarVisible,
     ;
 
-    val slug: String get() = name
+    val slug: String get() = when (this) {
+        BTHostSwitch -> name
+        HistoryLogSyncBarVisible -> "切换历史记录同步条显示"
+    }
+
+    val defaultValue: Boolean get() = when (this) {
+        BTHostSwitch -> false
+        HistoryLogSyncBarVisible -> true
+    }
 
     companion object {
         private const val PREFS_NAME = "WearX2"
@@ -26,7 +35,7 @@ enum class FeatureFlag {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         fun enabled(context: Context, flag: FeatureFlag): Boolean =
-            prefs(context).getBoolean(PREFIX + flag.slug, false)
+            prefs(context).getBoolean(PREFIX + flag.slug, flag.defaultValue)
 
         fun set(context: Context, flag: FeatureFlag, value: Boolean) {
             prefs(context).edit().putBoolean(PREFIX + flag.slug, value).commit()

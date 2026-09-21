@@ -89,6 +89,12 @@ fun Dashboard(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val pumpConnected = ds.pumpConnected.observeAsState()
+    val showHistoryLogSyncBar = remember {
+        com.jwoglom.controlx2.shared.FeatureFlag.enabled(
+            context,
+            com.jwoglom.controlx2.shared.FeatureFlag.HistoryLogSyncBarVisible
+        )
+    }
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -241,12 +247,14 @@ fun Dashboard(
                 }
 
                 // History Log Sync Progress
-                historyLogViewModel?.let {
-                    item {
-                        HistoryLogSyncProgressBar(
-                            historyLogViewModel = it,
-                            replaceWithPaddingWhenComplete = true
-                        )
+                if (showHistoryLogSyncBar) {
+                    historyLogViewModel?.let {
+                        item {
+                            HistoryLogSyncProgressBar(
+                                historyLogViewModel = it,
+                                hideWhenComplete = true
+                            )
+                        }
                     }
                 }
             }
