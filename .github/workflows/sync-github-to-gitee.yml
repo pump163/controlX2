@@ -37,5 +37,18 @@ jobs:
           set -euo pipefail
           git remote add gitee "https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/pumppan/control-x2-upstream.git"
           # 只镜像需要的分支与标签，强制覆盖，保持与上游完全一致（纯镜像，不做 merge）
-          git push gitee --force refs/heads/main:refs/heads/main refs/heads/dev:refs/heads/dev
-          git push gitee --tags --force
+          # GitHub runner 到 Gitee 偶发 SSL timeout，最多重试 3 次，间隔 30s
+          push_with_retry() {
+            for i in 1 2 3; do
+              if git push gitee --force refs/heads/main:refs/heads/main refs/heads/dev:refs/heads/dev \
+                 && git push gitee --tags --force; then
+                echo "push succeeded on attempt $i"
+                return 0
+              fi
+              echo "push attempt $i failed, retrying in 30s..."
+              sleep 30
+            done
+            echo "ERROR: all 3 push attempts failed"
+            return 1
+          }
+          push_with_retry
