@@ -2,7 +2,7 @@ name: sync-github-to-gitee
 
 # 将上游 jwoglom/controlX2 纯镜像同步到 Gitee 中转站。
 # 注意：
-# 1. schedule 只在仓库默认分支（main）上生效，本文件必须推送到 fork 的 main 分支
+# 1. schedule 只在仓库默认分支（zh）上生效，本文件必须推送到 fork 的 zh 分支
 # 2. fork 仓库的定时任务默认禁用，首次需在 GitHub 仓库 Actions 页面手动 Enable
 # 3. 公共仓库 60 天无活动定时任务会被自动禁用，届时可手动 workflow_dispatch 或重新 Enable
 on:
