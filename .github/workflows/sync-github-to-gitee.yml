@@ -1,29 +1,41 @@
 name: sync-github-to-gitee
 
+# 将上游 jwoglom/controlX2 纯镜像同步到 Gitee 中转站。
+# 注意：
+# 1. schedule 只在仓库默认分支（main）上生效，本文件必须推送到 fork 的 main 分支
+# 2. fork 仓库的定时任务默认禁用，首次需在 GitHub 仓库 Actions 页面手动 Enable
+# 3. 公共仓库 60 天无活动定时任务会被自动禁用，届时可手动 workflow_dispatch 或重新 Enable
 on:
   schedule:
-    - cron: '0 0 * * 1'  # 每周一 UTC 0:00
-  workflow_dispatch:  # 手动触发
+    - cron: '0 20 * * *'   # 每天 UTC 20:00（北京时间 04:00），错峰避免整点延迟
+  workflow_dispatch:      # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-gitee
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITEE_PRIVATE_KEY }}
-
-      - name: Sync from GitHub upstream
+      - name: Bare clone upstream from GitHub
         run: |
-          git remote add upstream https://github.com/jwoglom/pumpx2.git
-          git fetch upstream
-          git checkout main
-          git merge upstream/main --no-edit
-          git push origin main
+          set -euo pipefail
+          git clone --bare https://github.com/jwoglom/controlX2.git mirror
+          cd mirror
+          git fetch origin '+refs/heads/*:refs/heads/*' --tags --prune --force
 
-      - name: Sync tags
+      - name: Push mirror to Gitee
+        working-directory: mirror
+        env:
+          GITEE_USERNAME: ${{ secrets.GITEE_USERNAME }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          git fetch upstream --tags
-          git push origin --tags
+          set -euo pipefail
+          git remote add gitee "https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/pumppan/control-x2-upstream.git"
+          # 只镜像需要的分支与标签，强制覆盖，保持与上游完全一致（纯镜像，不做 merge）
+          git push gitee --force refs/heads/main:refs/heads/main refs/heads/dev:refs/heads/dev
+          git push gitee --tags --force
