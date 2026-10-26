@@ -75,6 +75,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import com.jwoglom.controlx2.R
 
 @Composable
 fun CGMActions(
@@ -178,12 +179,12 @@ fun CGMActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("CGM Actions")
+                    HeaderLine(context.getString(R.string.cgm_actions))
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("CGM control is not supported on this device model (${model}).")
+                        Line(context.getString(R.string.cgm_control_is_not_supported_on_device_model, model))
                         Line("")
                     }
                 }
@@ -198,9 +199,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G6: Stop CGM Sensor"
-                                    CGMSessionState.STOPPED -> "Dexcom G6: Start CGM Sensor"
-                                    else -> "Dexcom G6 CGM Sensor State: ${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> context.getString(R.string.cgm_dexcom_g6_stop_cgm_sensor)
+                                    CGMSessionState.STOPPED -> context.getString(R.string.cgm_dexcom_g6_start_cgm_sensor)
+                                    else -> context.getString(R.string.cgm_dexcom_g6_cgm_sensor_state, cgmSessionState.value?.str ?: "")
                                 }
                             )},
                             supportingContent = {
@@ -232,7 +233,7 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStartG6CgmSessionMenu = false},
                                 title = {
-                                    Text("Start G6 CGM Session")
+                                    Text(context.getString(R.string.cgm_start_g6_cgm_session))
                                 },
                                 text = {
                                     LazyColumn(
@@ -244,13 +245,13 @@ fun CGMActions(
                                         content = {
                                             if (startG6CgmSessionInProgressTxId == null) {
                                                 item {
-                                                    Text("To start the CGM session, confirm the transmitter ID and sensor code:")
+                                                    Text(context.getString(R.string.cgm_to_start_cgm_session_confirm))
                                                     Text("\n")
                                                 }
 
                                                 item {
                                                     DexcomG6TransmitterCode(
-                                                        title = "Transmitter ID",
+                                                        title = context.getString(R.string.cgm_transmitter_id),
                                                         value = cgmSetupG6TxId.value,
                                                         onValueChange = { it ->
                                                             ds.cgmSetupG6TxId.value = it
@@ -260,13 +261,13 @@ fun CGMActions(
 
                                                 item {
                                                     Text("\n")
-                                                    Text("To connect to an existing G6 CGM session or if no code is available, use '0000'")
+                                                    Text(context.getString(R.string.cgm_to_conn_to_an_existing_g6_cgm))
                                                     Text("\n")
                                                 }
 
                                                 item {
                                                     DexcomG6SensorCode(
-                                                        title = "Sensor Code",
+                                                        title = context.getString(R.string.cgm_sensor_code),
                                                         value = cgmSetupG6SensorCode.value,
                                                         onValueChange = { it ->
                                                             ds.cgmSetupG6SensorCode.value = it
@@ -275,7 +276,7 @@ fun CGMActions(
                                                 }
                                             } else {
                                                 item {
-                                                    Text("Setting Transmitter ID to ${startG6CgmSessionInProgressTxId}...")
+                                                    Text(context.getString(R.string.cgm_setting_transmitter_id_to, startG6CgmSessionInProgressTxId))
                                                 }
                                             }
                                         }
@@ -288,7 +289,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(context.getString(R.string.cgm_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -327,7 +328,7 @@ fun CGMActions(
                                         enabled = startG6CgmSessionInProgressTxId == null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Start Sensor")
+                                        Text(context.getString(R.string.cgm_start_sensor))
                                     }
                                 }
                             )
@@ -343,10 +344,10 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStopG6CgmSessionMenu = false},
                                 title = {
-                                    Text("Stop G6 CGM Session")
+                                    Text(context.getString(R.string.cgm_stop_g6_cgm_session))
                                 },
                                 text = {
-                                    Text("The Dexcom G6 sensor will be stopped.")
+                                    Text(context.getString(R.string.cgm_dexcom_g6_sensor_will_be_stopped))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -355,7 +356,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(context.getString(R.string.cgm_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -378,7 +379,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop Sensor")
+                                        Text(context.getString(R.string.cgm_stop_sensor))
                                     }
                                 }
                             )
@@ -402,9 +403,9 @@ fun CGMActions(
                         ListItem(
                             headlineContent = { Text(
                                 when (cgmSessionState.value) {
-                                    CGMSessionState.ACTIVE -> "Dexcom G7: Stop CGM Sensor"
-                                    CGMSessionState.STOPPED -> "Dexcom G7: Start CGM Sensor"
-                                    else -> "Dexcom G7 CGM Sensor State: ${cgmSessionState.value?.str}"
+                                    CGMSessionState.ACTIVE -> context.getString(R.string.cgm_dexcom_g7_stop_cgm_sensor)
+                                    CGMSessionState.STOPPED -> context.getString(R.string.cgm_dexcom_g7_start_cgm_sensor)
+                                    else -> context.getString(R.string.cgm_dexcom_g7_cgm_sensor_state, cgmSessionState.value?.str ?: "")
                                 }
                             )},
                             supportingContent = {
@@ -435,7 +436,7 @@ fun CGMActions(
                             AlertDialog(
                                 onDismissRequest = {showStartG7CgmSessionMenu = false},
                                 title = {
-                                    Text("Start G7 CGM Session")
+                                    Text(context.getString(R.string.cgm_start_g7_cgm_session))
                                 },
                                 text = {
                                     LazyColumn(
@@ -446,13 +447,13 @@ fun CGMActions(
                                             .padding(horizontal = 0.dp),
                                         content = {
                                             item {
-                                                Text("To start the CGM session, enter the sensor code:")
+                                                Text(context.getString(R.string.cgm_to_start_cgm_session_enter_sensor_code))
                                                 Text("\n")
                                             }
 
                                             item {
                                                 DexcomG6SensorCode(
-                                                    title = "Sensor Code",
+                                                    title = context.getString(R.string.cgm_sensor_code),
                                                     value = cgmSetupG7SensorCode.value,
                                                     onValueChange = { it ->
                                                         ds.cgmSetupG7SensorCode.value = it
@@ -469,7 +470,7 @@ fun CGMActions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(context.getString(R.string.cgm_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -504,7 +505,7 @@ fun CGMActions(
                                         enabled = cgmSetupG7SensorCode.value != null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Start Sensor")
+                                        Text(context.getString(R.string.cgm_start_sensor))
                                     }
                                 }
                             )
@@ -522,7 +523,7 @@ fun CGMActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Back"
+                                    context.getString(R.string.cgm_back)
                                 )
                             },
                             supportingContent = {

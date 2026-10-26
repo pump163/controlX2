@@ -37,8 +37,8 @@
     <string name="profile_add_new_profile">添加新配置文件</string>
     <string name="profile_name">配置文件名称</string>
     <string name="profile_default_settings_for_first_segment">第一个时段的默认设置</string>
-    <string name="profile_carb_ratio_g_u">碳水化合物比（g/u）</string>
-    <string name="profile_example_10_1_10_ratio">示例：10 = 1:10 比例</string>
+    <string name="profile_carb_ratio_g_u">碳水系数比（g/u）</string>
+    <string name="profile_example_10_1_10_ratio">示例：10 = 10:1 比例</string>
     <string name="profile_basal_rate_u_hr">基础率（u/hr）</string>
     <string name="profile_example_1_0">示例：1.0</string>
     <string name="profile_target_bg_unit_abbrev">目标血糖（%1$s）</string>
