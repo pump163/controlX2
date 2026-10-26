@@ -28,6 +28,8 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
 import com.jwoglom.controlx2.shared.util.GlucoseConverter
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun AddProfileDialog(
@@ -55,7 +57,7 @@ fun AddProfileDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Add New Profile")
+            Text(stringResource(R.string.profile_add_new_profile))
         },
         text = {
             LazyColumn(
@@ -68,13 +70,13 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = profileName,
                         onValueChange = { profileName = it },
-                        label = { Text("Profile Name") },
+                        label = { Text(stringResource(R.string.profile_name)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 item {
                     Text(
-                        "Default Settings for First Segment",
+                        stringResource(R.string.profile_default_settings_for_first_segment),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -83,8 +85,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
+                        label = { Text(stringResource(R.string.profile_carb_ratio_g_u)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_10_1_10_ratio)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -93,8 +95,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        supportingText = { Text("Example: 1.0") },
+                        label = { Text(stringResource(R.string.profile_basal_rate_u_hr)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_1_0)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -103,10 +105,10 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG ($unitAbbrev)") },
+                        label = { Text(stringResource(R.string.profile_target_bg_unit_abbrev, unitAbbrev)) },
                         supportingText = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "Example: 110"
-                            GlucoseUnit.MMOL -> "Example: 6.1"
+                            GlucoseUnit.MGDL -> stringResource(R.string.profile_example_110)
+                            GlucoseUnit.MMOL -> stringResource(R.string.profile_example_6_1)
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -116,11 +118,11 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF ($unitAbbrev per u)") },
+                        label = { Text(stringResource(R.string.profile_isf_unit_abbrev_per_u, unitAbbrev)) },
                         supportingText = {
                             Text(when (glucoseUnit) {
-                                GlucoseUnit.MGDL -> "Example: 50 = 1u:50 mg/dL"
-                                GlucoseUnit.MMOL -> "Example: 2.8 = 1u:2.8 mmol/L"
+                                GlucoseUnit.MGDL -> stringResource(R.string.profile_example_50_1u_50_mgdl)
+                                GlucoseUnit.MMOL -> stringResource(R.string.profile_example_2_8_1u_2_8_mmol)
                             })
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -131,8 +133,8 @@ fun AddProfileDialog(
                     OutlinedTextField(
                         value = insulinDuration,
                         onValueChange = { insulinDuration = it },
-                        label = { Text("Insulin Duration (minutes)") },
-                        supportingText = { Text("Example: 240 = 4 hours") },
+                        label = { Text(stringResource(R.string.profile_insulin_duration_minutes)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_240_4_hours)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -173,14 +175,14 @@ fun AddProfileDialog(
                 },
                 enabled = profileName.isNotBlank()
             ) {
-                Text("Create")
+                Text(stringResource(R.string.profile_create))
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.profile_cancel))
             }
         }
     )

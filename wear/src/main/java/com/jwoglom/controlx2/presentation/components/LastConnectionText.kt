@@ -9,6 +9,8 @@ import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch port of [com.jwoglom.controlx2.presentation.components.LastConnectionUpdatedTimestamp]
@@ -37,10 +39,10 @@ fun LastConnectionText(
             // last successful connect) over the last-message timestamp since
             // the latter is typically older and more confusing than useful.
             val instant = pumpLastConnectionTimestamp.value ?: pumpLastMessageTimestamp.value
-            instant?.let { "Last seen ${shortTimeAgo(it, nowThresholdSeconds = 1)}" }
+            instant?.let { stringResource(R.string.comm_last_seen_stime, shortTimeAgo(it, nowThresholdSeconds = 1)) }
         }
         pumpLastMessageTimestamp.value != null ->
-            "Last updated ${shortTimeAgo(pumpLastMessageTimestamp.value!!, nowThresholdSeconds = 1)}"
+            stringResource(R.string.comm_last_updated_stime, (shortTimeAgo(pumpLastMessageTimestamp.value!!, nowThresholdSeconds = 1) ?: ""))
         else -> null
     }
 

@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.jwoglom.controlx2.R
 
 @Composable
 fun NightscoutSettings(
@@ -80,7 +81,7 @@ fun NightscoutSettings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Nightscout Settings")
+                HeaderLine(context.getString(R.string.nightscout_settings))
                 Divider()
             }
 
@@ -88,21 +89,21 @@ fun NightscoutSettings(
             item {
                 ListItem(
                     headlineContent = {
-                        Text(if (config.enabled) "Disable Nightscout Sync" else "Enable Nightscout Sync")
+                        Text(if (config.enabled) context.getString(R.string.nightscout_disable_nightscout_sync) else context.getString(R.string.nightscout_enable_nightscout_sync))
                     },
                     supportingContent = {
                         Text(
                             if (config.enabled) {
-                                "Stops automatic upload to Nightscout"
+                                context.getString(R.string.nightscout_stops_auto_upload_to_nightscout)
                             } else {
-                                "Starts automatic upload of pump data to Nightscout"
+                                context.getString(R.string.nightscout_start_auto_upload_pump_data)
                             }
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (config.enabled) Icons.Filled.Close else Icons.Filled.Check,
-                            contentDescription = if (config.enabled) "Disable" else "Enable"
+                            contentDescription = if (config.enabled) context.getString(R.string.nightscout_disable) else context.getString(R.string.nightscout_enable)
                         )
                     },
                     modifier = Modifier.clickable {
@@ -113,10 +114,10 @@ fun NightscoutSettings(
                         // Start/stop worker
                         if (newConfig.enabled) {
                             NightscoutSyncWorker.startIfEnabled(context, prefs, pumpSid)
-                            Toast.makeText(context, "Nightscout sync enabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.nightscout_sync_enabled), Toast.LENGTH_SHORT).show()
                         } else {
                             NightscoutSyncWorker.stopIfRunning()
-                            Toast.makeText(context, "Nightscout sync disabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.nightscout_sync_disabled), Toast.LENGTH_SHORT).show()
                         }
 
                         syncStatus = NightscoutSyncStatusStore.load(prefs)
@@ -127,10 +128,10 @@ fun NightscoutSettings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Last successful sync") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_last_successful_sync)) },
                     supportingContent = {
                         Text(
-                            syncStatus.lastSuccessfulSyncMillis?.let { formatTimestamp(it) } ?: "Never"
+                            syncStatus.lastSuccessfulSyncMillis?.let { formatTimestamp(it) } ?: context.getString(R.string.nightscout_never)
                         )
                     }
                 )
@@ -139,13 +140,13 @@ fun NightscoutSettings(
 
             item {
                 val connectionMessage = if (!config.enabled) {
-                    "Nightscout sync is disabled"
+                    context.getString(R.string.nightscout_sync_is_disabled)
                 } else if (!config.isValid()) {
-                    "Nightscout config is incomplete"
+                    context.getString(R.string.nightscout_config_is_incomplete)
                 } else if (!syncStatus.lastError.isNullOrBlank()) {
-                    syncStatus.lastError ?: "Connection error"
+                    syncStatus.lastError ?: context.getString(R.string.nightscout_connection_error)
                 } else {
-                    "Connected"
+                    context.getString(R.string.nightscout_connected)
                 }
 
                 val supportingMessage = if (config.enabled && !syncStatus.lastError.isNullOrBlank()) {
@@ -155,7 +156,7 @@ fun NightscoutSettings(
                 }
 
                 ListItem(
-                    headlineContent = { Text("Connection status") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_connection_status)) },
                     supportingContent = {
                         Column {
                             Text(connectionMessage)
@@ -171,9 +172,9 @@ fun NightscoutSettings(
             // Nightscout URL
             item {
                 ListItem(
-                    headlineContent = { Text("Nightscout URL") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_url)) },
                     supportingContent = {
-                        Text(config.nightscoutUrl.ifBlank { "Not configured" })
+                        Text(config.nightscoutUrl.ifBlank { context.getString(R.string.nightscout_not_configured) })
                     },
                     modifier = Modifier.clickable {
                         showUrlDialog = true
@@ -185,9 +186,9 @@ fun NightscoutSettings(
             // API Secret
             item {
                 ListItem(
-                    headlineContent = { Text("API Secret") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_api_secret)) },
                     supportingContent = {
-                        Text(if (config.apiSecret.isNotBlank()) "••••••••" else "Not configured")
+                        Text(if (config.apiSecret.isNotBlank()) "••••••••" else context.getString(R.string.nightscout_not_configured))
                     },
                     modifier = Modifier.clickable {
                         showApiSecretDialog = true
@@ -199,7 +200,7 @@ fun NightscoutSettings(
             // Enabled Processors
             item {
                 ListItem(
-                    headlineContent = { Text("Data Types") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_data_types)) },
                     supportingContent = {
                         Text("${config.enabledProcessors.size} of ${ProcessorType.all().size} enabled")
                     },
@@ -213,8 +214,8 @@ fun NightscoutSettings(
             // Sync Interval
             item {
                 ListItem(
-                    headlineContent = { Text("Sync Interval") },
-                    supportingContent = { Text("${config.syncIntervalMinutes} minutes") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_sync_interval)) },
+                    supportingContent = { Text(context.getString(R.string.nightscout_minutes, config.syncIntervalMinutes)) },
                     modifier = Modifier.clickable {
                         showIntervalDialog = true
                     }
@@ -225,8 +226,8 @@ fun NightscoutSettings(
             // Lookback Period
             item {
                 ListItem(
-                    headlineContent = { Text("Initial Lookback") },
-                    supportingContent = { Text("${config.initialLookbackHours} hours on first sync") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_initial_lookback)) },
+                    supportingContent = { Text(context.getString(R.string.nightscout_hours_on_first_sync, config.initialLookbackHours)) },
                     modifier = Modifier.clickable {
                         showLookbackDialog = true
                     }
@@ -237,22 +238,22 @@ fun NightscoutSettings(
             // Sync Now button
             item {
                 ListItem(
-                    headlineContent = { Text("Sync Now") },
-                    supportingContent = { Text("Trigger immediate sync") },
+                    headlineContent = { Text(context.getString(R.string.nightscout_sync_now)) },
+                    supportingContent = { Text(context.getString(R.string.nightscout_trigger_immediate_sync)) },
                     leadingContent = {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Sync")
+                        Icon(Icons.Filled.Refresh, contentDescription = context.getString(R.string.nightscout_sync))
                     },
                     modifier = Modifier.clickable {
                         if (config.enabled && config.isValid()) {
                             coroutineScope.launch {
                                 NightscoutSyncWorker.getInstance(context, prefs, pumpSid).syncNow()
                                 syncStatus = NightscoutSyncStatusStore.load(prefs)
-                                Toast.makeText(context, "Sync triggered", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.nightscout_sync_triggered), Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Toast.makeText(
                                 context,
-                                "Please enable and configure Nightscout first",
+                                context.getString(R.string.nightscout_enable_and_config_first),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -277,7 +278,7 @@ fun NightscoutSettings(
         var urlError by remember { mutableStateOf<String?>(null) }
         AlertDialog(
             onDismissRequest = { showUrlDialog = false },
-            title = { Text("Nightscout URL") },
+            title = { Text(context.getString(R.string.nightscout_url)) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -286,7 +287,7 @@ fun NightscoutSettings(
                             urlInput = it
                             urlError = null
                         },
-                        label = { Text("URL") },
+                        label = { Text(context.getString(R.string.nightscout_url_2)) },
                         placeholder = { Text("https://your-nightscout.herokuapp.com") },
                         isError = urlError != null,
                         modifier = Modifier.fillMaxWidth()
@@ -304,7 +305,7 @@ fun NightscoutSettings(
                 TextButton(onClick = {
                     val normalizedUrl = normalizeNightscoutUrl(urlInput)
                     if (normalizedUrl == null) {
-                        urlError = "Please enter a valid Nightscout URL"
+                        urlError = context.getString(R.string.nightscout_enter_valid_nightscout_url)
                         return@TextButton
                     }
 
@@ -313,12 +314,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showUrlDialog = false
                 }) {
-                    Text("Save")
+                    Text(context.getString(R.string.nightscout_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUrlDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.nightscout_cancel))
                 }
             }
         )
@@ -329,12 +330,12 @@ fun NightscoutSettings(
         var secretInput by remember { mutableStateOf(config.apiSecret) }
         AlertDialog(
             onDismissRequest = { showApiSecretDialog = false },
-            title = { Text("API Secret") },
+            title = { Text(context.getString(R.string.nightscout_api_secret)) },
             text = {
                 OutlinedTextField(
                     value = secretInput,
                     onValueChange = { secretInput = it },
-                    label = { Text("API Secret") },
+                    label = { Text(context.getString(R.string.nightscout_api_secret)) },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -346,12 +347,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showApiSecretDialog = false
                 }) {
-                    Text("Save")
+                    Text(context.getString(R.string.nightscout_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showApiSecretDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.nightscout_cancel))
                 }
             }
         )
@@ -362,7 +363,7 @@ fun NightscoutSettings(
         var selectedProcessors by remember { mutableStateOf(config.enabledProcessors) }
         AlertDialog(
             onDismissRequest = { showProcessorsDialog = false },
-            title = { Text("Select Data Types") },
+            title = { Text(context.getString(R.string.nightscout_select_data_types)) },
             text = {
                 LazyColumn {
                     items(ProcessorType.all().toList()) { processorType ->
@@ -398,12 +399,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showProcessorsDialog = false
                 }) {
-                    Text("Save")
+                    Text(context.getString(R.string.nightscout_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showProcessorsDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.nightscout_cancel))
                 }
             }
         )
@@ -414,12 +415,12 @@ fun NightscoutSettings(
         var intervalInput by remember { mutableStateOf(config.syncIntervalMinutes.toString()) }
         AlertDialog(
             onDismissRequest = { showIntervalDialog = false },
-            title = { Text("Sync Interval") },
+            title = { Text(context.getString(R.string.nightscout_sync_interval)) },
             text = {
                 OutlinedTextField(
                     value = intervalInput,
                     onValueChange = { intervalInput = it },
-                    label = { Text("Minutes") },
+                    label = { Text(context.getString(R.string.nightscout_minutes_2)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -439,12 +440,12 @@ fun NightscoutSettings(
 
                     showIntervalDialog = false
                 }) {
-                    Text("Save")
+                    Text(context.getString(R.string.nightscout_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showIntervalDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.nightscout_cancel))
                 }
             }
         )
@@ -455,14 +456,14 @@ fun NightscoutSettings(
         var lookbackInput by remember { mutableStateOf(config.initialLookbackHours.toString()) }
         AlertDialog(
             onDismissRequest = { showLookbackDialog = false },
-            title = { Text("Initial Lookback Period") },
+            title = { Text(context.getString(R.string.nightscout_initial_lookback_period)) },
             text = {
                 Column {
-                    Text("How far back to sync when first enabled (hours)")
+                    Text(context.getString(R.string.nightscout_initial_sync_lookback_hours))
                     OutlinedTextField(
                         value = lookbackInput,
                         onValueChange = { lookbackInput = it },
-                        label = { Text("Hours") },
+                        label = { Text(context.getString(R.string.nightscout_hours)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -476,12 +477,12 @@ fun NightscoutSettings(
                     NightscoutSyncConfig.save(prefs, newConfig)
                     showLookbackDialog = false
                 }) {
-                    Text("Save")
+                    Text(context.getString(R.string.nightscout_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLookbackDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.nightscout_cancel))
                 }
             }
         )

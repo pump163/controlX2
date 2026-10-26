@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun Settings(
@@ -111,7 +112,7 @@ fun Settings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Settings")
+                HeaderLine(context.getString(R.string.settings_settings))
                 Divider()
             }
 
@@ -122,8 +123,8 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Send Support Bundle") },
-                    supportingContent = { Text("Generates a zip file with ControlX2 debug logs.") },
+                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
+                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Help,
@@ -133,7 +134,7 @@ fun Settings(
                     modifier = Modifier.clickable {
                         val summary = getSupportBundleSummary(context)
                         if (summary == null) {
-                            Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
                         } else {
                             supportBundleSummary = summary
                             showSupportBundleDialog = true
@@ -146,12 +147,12 @@ fun Settings(
             item {
                 if (!Prefs(context).serviceEnabled()) {
                     ListItem(
-                        headlineContent = { Text("Enable ControlX2 service") },
-                        supportingContent = { Text("Starts the background service and enables it to start automatically when the app is opened.") },
+                        headlineContent = { Text(context.getString(R.string.settings_enable_ctrl_x2_service)) },
+                        supportingContent = { Text(context.getString(R.string.settings_start_background_service)) },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Check,
-                                contentDescription = "Start icon",
+                                contentDescription = context.getString(R.string.settings_start_icon),
                             )
                         },
                         modifier = Modifier.clickable {
@@ -216,12 +217,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Force service reload") },
-                    supportingContent = { Text("Restarts the background service.") },
+                    headlineContent = { Text(context.getString(R.string.settings_force_service_reload)) },
+                    supportingContent = { Text(context.getString(R.string.settings_restarts_background_service)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Refresh,
-                            contentDescription = "Reload icon",
+                            contentDescription = context.getString(R.string.settings_reload_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -283,13 +284,13 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Reconfigure pump") },
-                    supportingContent = { Text("Disconnect and re-pair with a pump.") },
+                    headlineContent = { Text(context.getString(R.string.settings_reconfigure_pump)) },
+                    supportingContent = { Text(context.getString(R.string.settings_disconnect_and_re_pair_with_pump)) },
                     leadingContent = {
                         Icon(
                             painterResource(R.drawable.pump),
                             tint = Color.Unspecified,
-                            contentDescription = "Settings icon",
+                            contentDescription = context.getString(R.string.settings_icon),
                             modifier = Modifier.size(24.dp),
                         )
                     },
@@ -302,12 +303,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Reconfigure app") },
-                    supportingContent = { Text("Enable or disable insulin delivery actions.") },
+                    headlineContent = { Text(context.getString(R.string.settings_reconfigure_app)) },
+                    supportingContent = { Text(context.getString(R.string.settings_toggle_insulin_delivery_actions)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Settings,
-                            contentDescription = "Settings icon",
+                            contentDescription = context.getString(R.string.settings_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -325,16 +326,16 @@ fun Settings(
 
                 if (ffEnabled) {
                     val roleLabel = when (currentDeviceRole) {
-                        DeviceRole.PUMP_HOST -> "Phone (pump-host)"
-                        DeviceRole.CLIENT -> "Watch (pump-host)"
+                        DeviceRole.PUMP_HOST -> context.getString(R.string.settings_phone_pump_host)
+                        DeviceRole.CLIENT -> context.getString(R.string.settings_watch_pump_host)
                     }
                     ListItem(
-                        headlineContent = { Text("Pump-host device") },
-                        supportingContent = { Text("Currently: $roleLabel.") },
+                        headlineContent = { Text(context.getString(R.string.settings_pump_host_device)) },
+                        supportingContent = { Text(context.getString(R.string.settings_currently_role_label, roleLabel)) },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Devices,
-                                contentDescription = "Device role icon",
+                                contentDescription = context.getString(R.string.settings_device_role_icon),
                             )
                         },
                         modifier = Modifier.clickable {
@@ -343,12 +344,12 @@ fun Settings(
                     )
                     Divider()
                     ListItem(
-                        headlineContent = { Text("Reset & start over on this device") },
-                        supportingContent = { Text("Use if you're stuck. Forces this phone to be pump-host and clears the pump bond.") },
+                        headlineContent = { Text(context.getString(R.string.settings_reset_start_over_on_device)) },
+                        supportingContent = { Text(context.getString(R.string.settings_force_pump_host_clear_bond)) },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Devices,
-                                contentDescription = "Reset icon",
+                                contentDescription = context.getString(R.string.settings_reset_icon),
                             )
                         },
                         modifier = Modifier.clickable {
@@ -361,12 +362,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Nightscout") },
-                    supportingContent = { Text("Configure Nightscout sync to upload pump data.") },
+                    headlineContent = { Text(context.getString(R.string.settings_nightscout)) },
+                    supportingContent = { Text(context.getString(R.string.settings_config_nightscout_sync)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.CloudSync,
-                            contentDescription = "Nightscout icon",
+                            contentDescription = context.getString(R.string.settings_nightscout_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -379,11 +380,11 @@ fun Settings(
             item {
                 ListItem(
                     headlineContent = { Text("xDrip") },
-                    supportingContent = { Text("Configure xDrip broadcasts for pump and CGM data.") },
+                    supportingContent = { Text(context.getString(R.string.settings_config_xdrip_broadcasts)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Sync,
-                            contentDescription = "xDrip icon",
+                            contentDescription = context.getString(R.string.settings_x_drip_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -395,12 +396,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Sync pump time") },
-                    supportingContent = { Text("Set the pump's clock to the current phone time.") },
+                    headlineContent = { Text(context.getString(R.string.settings_sync_pump_time)) },
+                    supportingContent = { Text(context.getString(R.string.settings_set_pump_s_clock_to)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Timer,
-                            contentDescription = "Sync time icon",
+                            contentDescription = context.getString(R.string.settings_sync_time_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -412,12 +413,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Find my pump") },
-                    supportingContent = { Text("Play a sound on the pump to help locate it.") },
+                    headlineContent = { Text(context.getString(R.string.settings_find_my_pump)) },
+                    supportingContent = { Text(context.getString(R.string.settings_play_sound_on_pump_to_help_locate)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.NotificationsActive,
-                            contentDescription = "Play sound icon",
+                            contentDescription = context.getString(R.string.settings_play_sound_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -429,12 +430,12 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Debug options") },
-                    supportingContent = { Text("Perform debug options.") },
+                    headlineContent = { Text(context.getString(R.string.settings_debug_options)) },
+                    supportingContent = { Text(context.getString(R.string.settings_perform_debug_opts)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.DeveloperMode,
-                            contentDescription = "Settings icon",
+                            contentDescription = context.getString(R.string.settings_icon),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -449,9 +450,9 @@ fun Settings(
     if (showPumpSetupConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showPumpSetupConfirmDialog = false },
-            title = { Text("Forget pump?") },
+            title = { Text(context.getString(R.string.settings_forget_pump_query)) },
             text = {
-                Text("Clears the pump bond on this phone. Place the Mobi on the charging pad to re-pair.")
+                Text(context.getString(R.string.settings_clears_pump_bond_on_this_phone))
             },
             confirmButton = {
                 TextButton(
@@ -466,12 +467,12 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_APP_RELOAD, "".toByteArray())
                     }
                 ) {
-                    Text("Disconnect")
+                    Text(context.getString(R.string.settings_disconnect))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPumpSetupConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
@@ -484,7 +485,7 @@ fun Settings(
                 showSupportBundleDialog = false
                 supportBundleSummary = null
             },
-            title = { Text("Send PumpX2 Support Bundle") },
+            title = { Text(context.getString(R.string.settings_send_pump_x2_support_bundle)) },
             text = {
                 Text("Send ${summary.debugFileCount} debug files with ${formatLogLineCount(summary.totalLogLines)} total logs from ${summary.rangeStart} - ${summary.rangeEnd} to the developers for assistance?")
             },
@@ -494,7 +495,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Send email")
+                    Text(context.getString(R.string.settings_send_email))
                 }
 
                 TextButton(onClick = {
@@ -502,7 +503,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Share")
+                    Text(context.getString(R.string.settings_share))
                 }
             },
             dismissButton = {
@@ -510,7 +511,7 @@ fun Settings(
                     showSupportBundleDialog = false
                     supportBundleSummary = null
                 }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
@@ -520,8 +521,8 @@ fun Settings(
     if (showSyncTimeDialog) {
         AlertDialog(
             onDismissRequest = { showSyncTimeDialog = false },
-            title = { Text("Sync Pump Time") },
-            text = { Text("Set the pump's internal clock to the current phone time?") },
+            title = { Text(context.getString(R.string.settings_sync_pump_time_2)) },
+            text = { Text(context.getString(R.string.settings_set_pump_s_internal_clock_to_query)) },
             confirmButton = {
                 TextButton(onClick = {
                     sendPumpCommands(
@@ -529,14 +530,14 @@ fun Settings(
                         listOf(ChangeTimeDateRequest(Instant.now()))
                     )
                     showSyncTimeDialog = false
-                    Toast.makeText(context, "Pump time sync sent", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_pump_time_sync_sent), Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("Sync")
+                    Text(context.getString(R.string.settings_sync))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSyncTimeDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
@@ -548,18 +549,18 @@ fun Settings(
             DeviceRole.CLIENT -> DeviceRole.PUMP_HOST
         }
         val newRoleLabel = when (newRole) {
-            DeviceRole.PUMP_HOST -> "Phone (pump-host)"
-            DeviceRole.CLIENT -> "Watch (pump-host)"
+            DeviceRole.PUMP_HOST -> context.getString(R.string.settings_phone_pump_host)
+            DeviceRole.CLIENT -> context.getString(R.string.settings_watch_pump_host)
         }
         val walkthrough = when (newRole) {
             DeviceRole.CLIENT ->
-                "The phone restarts as client and the watch takes over as pump-host. Place the Mobi on the charging pad to re-pair."
+                stringResource(R.string.settings_phone_restarts_as_client_and)
             DeviceRole.PUMP_HOST ->
-                "The phone restarts as pump-host and the watch flips to client. Place the Mobi on the charging pad to re-pair."
+                stringResource(R.string.settings_phone_restarts_as_pump_host_and)
         }
         AlertDialog(
             onDismissRequest = { showDeviceRoleDialog = false },
-            title = { Text("Switch pump-host to $newRoleLabel?") },
+            title = { Text(context.getString(R.string.settings_switch_pump_host_to_new_role_query, newRoleLabel)) },
             text = { Text(walkthrough) },
             confirmButton = {
                 TextButton(onClick = {
@@ -573,15 +574,15 @@ fun Settings(
                         // the fresh pref.
                         switchDeviceRole(activity, newRole)
                     } else {
-                        Toast.makeText(context, "Unable to switch role: no activity context", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.settings_switch_role_no_activity_context), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Switch")
+                    Text(context.getString(R.string.settings_switch))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeviceRoleDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
@@ -590,9 +591,9 @@ fun Settings(
     if (showRescueDialog) {
         AlertDialog(
             onDismissRequest = { showRescueDialog = false },
-            title = { Text("Reset & start over?") },
+            title = { Text(context.getString(R.string.settings_reset_start_over_query)) },
             text = {
-                Text("Forces this phone to pump-host, clears the pump bond, and asks the watch to flip to client. Place the Mobi on the charging pad to re-pair.")
+                Text(context.getString(R.string.settings_force_pump_host_watch_client))
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -601,15 +602,15 @@ fun Settings(
                     if (activity != null) {
                         rescueResetThisDevice(activity)
                     } else {
-                        Toast.makeText(context, "Unable to rescue: no activity context", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.settings_unable_to_rescue_no_activity_context), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Reset")
+                    Text(context.getString(R.string.settings_reset))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRescueDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
@@ -619,8 +620,8 @@ fun Settings(
     if (showPlaySoundDialog) {
         AlertDialog(
             onDismissRequest = { showPlaySoundDialog = false },
-            title = { Text("Find My Pump") },
-            text = { Text("Play a sound on the pump?") },
+            title = { Text(context.getString(R.string.settings_find_my_pump_2)) },
+            text = { Text(context.getString(R.string.settings_play_sound_on_pump_query)) },
             confirmButton = {
                 TextButton(onClick = {
                     sendPumpCommands(
@@ -628,14 +629,14 @@ fun Settings(
                         listOf(PlaySoundRequest())
                     )
                     showPlaySoundDialog = false
-                    Toast.makeText(context, "Playing sound on pump", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_playing_sound_on_pump), Toast.LENGTH_SHORT).show()
                 }) {
-                    Text("Play Sound")
+                    Text(context.getString(R.string.settings_play_sound))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPlaySoundDialog = false }) {
-                    Text("Cancel")
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )

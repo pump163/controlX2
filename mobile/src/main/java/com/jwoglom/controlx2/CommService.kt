@@ -76,6 +76,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
 import java.time.Instant
+import com.jwoglom.controlx2.R
 
 
 class CommService : Service(), CommServiceCallbacks {
@@ -419,8 +420,8 @@ class CommService : Service(), CommServiceCallbacks {
                         "CommService".toByteArray()
                     )
                     NotificationCompat.Builder(this)
-                        .setContentTitle("Bolus Blocked")
-                        .setContentText("Bolus message was blocked due to an invalid signature.")
+                        .setContentTitle(this.getString(R.string.comm_bolus_blocked))
+                        .setContentText(this.getString(R.string.comm_bolus_mess_blocked_invalid))
                         .build()
                     return
                 }
@@ -563,7 +564,7 @@ class CommService : Service(), CommServiceCallbacks {
         }
 
         started = true
-        Toast.makeText(this, "ControlX2 service starting", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_service_starting), Toast.LENGTH_SHORT).show()
 
         updateNotification("Initializing...")
 
@@ -602,7 +603,7 @@ class CommService : Service(), CommServiceCallbacks {
             Timber.e(e, "Unable to start foreground service: missing connectedDevice permissions")
             Toast.makeText(
                 this,
-                "ControlX2 needs Bluetooth permissions before starting the background service",
+                this.getString(R.string.comm_ctrl_x2_needs_bt_server_start),
                 Toast.LENGTH_LONG
             ).show()
             stopSelf()
@@ -623,7 +624,7 @@ class CommService : Service(), CommServiceCallbacks {
         super.onTaskRemoved(rootIntent)
         Timber.w("CommService onTaskRemoved")
         triggerAppReload(applicationContext)
-        Toast.makeText(this, "ControlX2 service removed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_service_removed), Toast.LENGTH_SHORT).show()
         stopSelf()
     }
 
@@ -818,7 +819,7 @@ class CommService : Service(), CommServiceCallbacks {
         scope.cancel()
         messageBus.close()
         httpDebugApiService?.stop()
-        Toast.makeText(this, "ControlX2 service destroyed", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_service_destroyed), Toast.LENGTH_SHORT).show()
     }
 
     private fun createNotification(): Notification {
@@ -827,10 +828,10 @@ class CommService : Service(), CommServiceCallbacks {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
         val channel = NotificationChannel(
             notificationChannelId,
-            "Endless Service notifications channel",
+            this.getString(R.string.comm_endless_service_notice_channel),
             NotificationManager.IMPORTANCE_NONE
         ).let {
-            it.description = "Endless Service channel"
+            it.description = this.getString(R.string.comm_endless_service_channel)
             it.setShowBadge(false)
             it.lockscreenVisibility = 0
 
@@ -855,21 +856,21 @@ class CommService : Service(), CommServiceCallbacks {
             if (atTime == null || it.isAfter(atTime)) atTime = it
         }
         atTime?.let {
-            title += " at ${shortTime(it)}"
+            title += this.getString(R.string.comm_at_stime, shortTime(it))
         }
 
         var contentText = ""
         if (currentPumpData.batteryPercent != null) {
-            contentText += "Battery: ${currentPumpData.batteryPercent}%\u00A0\u00A0\u00A0"
+            contentText += this.getString(R.string.comm_battery, currentPumpData.batteryPercent)
         }
         if (currentPumpData.iobUnits != null) {
-            contentText += "IOB: ${currentPumpData.iobUnits}u\u00A0\u00A0\u00A0"
+            contentText += this.getString(R.string.comm_iob_u, currentPumpData.iobUnits)
         }
         if (currentPumpData.cartridgeRemainingUnits != null) {
-            contentText += "Cartridge: ${currentPumpData.cartridgeRemainingUnits}u"
+            contentText += this.getString(R.string.comm_cartridge_u, currentPumpData.cartridgeRemainingUnits)
         }
         currentPumpData.connectionTime?.let {
-            contentText += "    \nConnection established at: ${shortTime(it)}"
+            contentText += this.getString(R.string.comm_conn_established_at_stime, shortTime(it))
         }
 
         builder

@@ -64,6 +64,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun QuickBolusSettingsActions(
@@ -163,7 +165,7 @@ fun QuickBolusSettingsActions(
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading quick bolus settings...")
+                        LoadSpinner(stringResource(R.string.profile_back_3))
                     }
                 }
 

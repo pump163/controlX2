@@ -29,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BolusApprovedPhase(
@@ -49,8 +50,8 @@ fun BolusApprovedPhase(
             title = {
                 Text(
                     text = when {
-                        bolusInitiateResponse.value != null -> if (bolusInitiateResponse.value!!.wasBolusInitiated()) "Bolus Initiated" else "Bolus Rejected by Pump"
-                        else -> "Fetching Bolus Status..."
+                        bolusInitiateResponse.value != null -> if (bolusInitiateResponse.value!!.wasBolusInitiated()) stringResource(R.string.bolus_initiated) else stringResource(R.string.bolus_rejected_by_pump)
+                        else -> stringResource(R.string.bolus_fetching_bolus_stat)
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -62,12 +63,12 @@ fun BolusApprovedPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.bolus_cancel))
                 }
             },
             positiveButton = {},
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), stringResource(R.string.bolus_icon), Modifier.size(24.dp))
             },
             scrollState = scrollState,
         ) {
@@ -111,7 +112,7 @@ fun BolusApprovedPhase(
                         "The bolus could not be delivered: ${bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }}"
                     }
 
-                    else -> "The bolus status is unknown. Please check your pump to identify the status of the bolus."
+                    else -> stringResource(R.string.bolus_status_is_unknown_please_check)
                 },
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.body2,

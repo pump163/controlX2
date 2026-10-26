@@ -26,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
 import java.time.Instant
+import com.jwoglom.controlx2.R
 
 /**
  * Service that runs on the phone when the watch is the pump-host.
@@ -134,7 +135,7 @@ class MobileClientService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             channelId,
-            "Client Service notifications",
+            this.getString(R.string.comm_client_service_notice),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "ControlX2 client service channel"
@@ -147,15 +148,15 @@ class MobileClientService : Service() {
         }
 
         val stateText = when (connectionState) {
-            ClientConnectionState.HOST_CONNECTED_PUMP_CONNECTED -> "Watch connected to pump"
-            ClientConnectionState.HOST_CONNECTED_PUMP_DISCONNECTED -> "Watch connected, pump disconnected"
-            ClientConnectionState.HOST_DISCONNECTED -> "Watch disconnected"
-            ClientConnectionState.UNKNOWN -> "Connecting to watch..."
+            ClientConnectionState.HOST_CONNECTED_PUMP_CONNECTED -> this.getString(R.string.comm_watch_conn_to_pump)
+            ClientConnectionState.HOST_CONNECTED_PUMP_DISCONNECTED -> this.getString(R.string.comm_watch_conn_pump_disc)
+            ClientConnectionState.HOST_DISCONNECTED -> this.getString(R.string.comm_watch_disconnected)
+            ClientConnectionState.UNKNOWN -> this.getString(R.string.comm_connecting_to_watch)
         }
 
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("ControlX2 Client: $stateText")
-            .setContentText("Watch is managing the pump connection")
+            .setContentTitle(this.getString(R.string.comm_ctrl_x2_client_state_text, stateText))
+            .setContentText(this.getString(R.string.comm_watch_is_managing_pump_conn))
             .setContentIntent(pendingIntent)
             .setSmallIcon(IconCompat.createWithResource(this, R.drawable.pump))
             .setPriority(NotificationCompat.PRIORITY_LOW)

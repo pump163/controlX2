@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.shared.FeatureFlag
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun FeatureFlags(
@@ -44,7 +46,7 @@ fun FeatureFlags(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Feature Flags")
+                HeaderLine(stringResource(R.string.feature_flags_feature_flags))
                 Divider()
             }
 
@@ -73,7 +75,7 @@ fun FeatureFlags(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Back") },
+                    headlineContent = { Text(context.getString(R.string.feature_flags_back)) },
                     leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = navigateBack),
                 )

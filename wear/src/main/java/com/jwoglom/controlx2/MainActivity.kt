@@ -96,6 +96,7 @@ import timber.log.Timber
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
+import com.jwoglom.controlx2.R
 
 var dataStore = DataStore()
 val LocalDataStore = compositionLocalOf { dataStore }
@@ -414,25 +415,25 @@ class MainActivity : ComponentActivity() {
                 dataStore.cartridgeRemainingUnits.value = message.currentInsulinAmount
             }
             is LastBolusStatusAbstractResponse -> {
-                dataStore.lastBolusStatus.value = "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant))}"
+                dataStore.lastBolusStatus.value = this.getString(R.string.app_twodecimal_u_at_stime, twoDecimalPlaces1000Unit(message.deliveredVolume), shortTime(pumpTimeToLocalTz(message.timestampInstant)))
                 dataStore.lastBolusStatusResponse.value = message
             }
             is HomeScreenMirrorResponse -> {
                 dataStore.controlIQStatus.value = when (message.apControlStateIcon) {
-                    ApControlStateIcon.STATE_GRAY -> "On"
-                    ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "Suspended"
-                    ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "Increase"
-                    ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "Reduced"
-                    else -> "CIQ Off"
+                    ApControlStateIcon.STATE_GRAY -> this.getString(R.string.app_on)
+                    ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> this.getString(R.string.app_suspended)
+                    ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> this.getString(R.string.app_increase)
+                    ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> this.getString(R.string.app_reduced)
+                    else -> this.getString(R.string.app_ciq_off)
                 }
                 dataStore.cgmStatusText.value = when (message.cgmAlertIcon) {
-                    CGMAlertIcon.STARTUP_1, CGMAlertIcon.STARTUP_2, CGMAlertIcon.STARTUP_3, CGMAlertIcon.STARTUP_4 -> "Starting up"
-                    CGMAlertIcon.CALIBRATE, CGMAlertIcon.STARTUP_CALIBRATE, CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "Calibration Needed"
-                    CGMAlertIcon.ERROR_HIGH_WEDGE, CGMAlertIcon.ERROR_LOW_WEDGE -> "Error"
-                    CGMAlertIcon.REPLACE_SENSOR -> "Replace Sensor"
-                    CGMAlertIcon.REPLACE_TRANSMITTER -> "Replace Transmitter"
-                    CGMAlertIcon.OUT_OF_RANGE -> "Out Of Range"
-                    CGMAlertIcon.FAILED_SENSOR -> "Sensor Failed"
+                    CGMAlertIcon.STARTUP_1, CGMAlertIcon.STARTUP_2, CGMAlertIcon.STARTUP_3, CGMAlertIcon.STARTUP_4 -> this.getString(R.string.app_starting_up)
+                    CGMAlertIcon.CALIBRATE, CGMAlertIcon.STARTUP_CALIBRATE, CGMAlertIcon.CHECKMARK_BLOOD_DROP -> this.getString(R.string.app_calibration_needed)
+                    CGMAlertIcon.ERROR_HIGH_WEDGE, CGMAlertIcon.ERROR_LOW_WEDGE -> this.getString(R.string.app_error)
+                    CGMAlertIcon.REPLACE_SENSOR -> this.getString(R.string.app_replace_sensor)
+                    CGMAlertIcon.REPLACE_TRANSMITTER -> this.getString(R.string.app_replace_transmitter)
+                    CGMAlertIcon.OUT_OF_RANGE -> this.getString(R.string.app_out_of_range)
+                    CGMAlertIcon.FAILED_SENSOR -> this.getString(R.string.app_sensor_failed)
                     CGMAlertIcon.TRIPLE_DASHES -> "---"
                     else -> ""
                 }
@@ -464,17 +465,17 @@ class MainActivity : ComponentActivity() {
             }
             is CGMStatusResponse -> {
                 dataStore.cgmSessionState.value = when (message.sessionState) {
-                    SessionState.SESSION_ACTIVE -> "Active"
-                    SessionState.SESSION_STOPPED -> "Stopped"
-                    SessionState.SESSION_START_PENDING -> "Starting"
-                    SessionState.SESSION_STOP_PENDING -> "Stopping"
-                    else -> "Unknown"
+                    SessionState.SESSION_ACTIVE -> this.getString(R.string.app_active)
+                    SessionState.SESSION_STOPPED -> this.getString(R.string.app_stopped)
+                    SessionState.SESSION_START_PENDING -> this.getString(R.string.app_starting)
+                    SessionState.SESSION_STOP_PENDING -> this.getString(R.string.app_stopping)
+                    else -> this.getString(R.string.app_unknown)
                 }
                 dataStore.cgmSessionExpireRelative.value = when (message.sessionState) {
                     SessionState.SESSION_ACTIVE -> shortTimeAgo(
                         pumpTimeToLocalTz(message.sensorStartedTimestampInstant)
                             .plus(10, ChronoUnit.DAYS),
-                        suffix = "left")
+                        suffix = this.getString(R.string.app_left))
                     else -> ""
                 }
                 dataStore.cgmSessionExpireExact.value = when (message.sessionState) {
@@ -484,11 +485,11 @@ class MainActivity : ComponentActivity() {
                     else -> ""
                 }
                 dataStore.cgmTransmitterStatus.value = when (message.transmitterBatteryStatus) {
-                    TransmitterBatteryStatus.ERROR -> "Error"
-                    TransmitterBatteryStatus.EXPIRED -> "Expired"
-                    TransmitterBatteryStatus.OK -> "OK"
+                    TransmitterBatteryStatus.ERROR -> this.getString(R.string.app_error)
+                    TransmitterBatteryStatus.EXPIRED -> this.getString(R.string.app_expired)
+                    TransmitterBatteryStatus.OK -> this.getString(R.string.app_ok)
                     TransmitterBatteryStatus.OUT_OF_RANGE -> "OOR"
-                    else -> "Unknown"
+                    else -> this.getString(R.string.app_unknown)
                 }
             }
             is CurrentEGVGuiDataResponse -> {
@@ -549,7 +550,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-phone-connected".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Waiting to find pump"
+                dataStore.connectionStatus.value = this.getString(R.string.app_waiting_to_find_pump)
             }
             MessagePaths.TO_CLIENT_BOLUS_MIN_NOTIFY_THRESHOLD -> {
                 dataStore.bolusMinNotifyThreshold.value = String(data).toDoubleOrNull()
@@ -622,7 +623,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-pump-model".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Connecting to pump"
+                dataStore.connectionStatus.value = this.getString(R.string.app_connecting_to_pump)
             }
             MessagePaths.FROM_PUMP_ENTERED_PAIRING_CODE -> {
                 if (inWaitingState()) {
@@ -631,7 +632,7 @@ class MainActivity : ComponentActivity() {
                     }
                     sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-entered-pairing-code".toByteArray())
                 }
-                dataStore.connectionStatus.value = "Pairing to pump"
+                dataStore.connectionStatus.value = this.getString(R.string.app_pairing_to_pump)
             }
             MessagePaths.FROM_PUMP_MISSING_PAIRING_CODE -> {
                 if (StatePrefs(applicationContext).deviceRole() == DeviceRole.PUMP_HOST) {
@@ -657,7 +658,7 @@ class MainActivity : ComponentActivity() {
                         }
                         sendMessage(MessagePaths.TO_SERVER_IS_PUMP_CONNECTED, "on-missing-pairing-code".toByteArray())
                     }
-                    dataStore.connectionStatus.value = "Missing pairing code"
+                    dataStore.connectionStatus.value = this.getString(R.string.app_missing_pair_code)
                 }
             }
             MessagePaths.FROM_PUMP_PUMP_CONNECTED -> {
@@ -679,12 +680,12 @@ class MainActivity : ComponentActivity() {
                 } else {
                     if (dataStore.connectionStatus.value == "") {
                         runOnUiThread {
-                            Toast.makeText(applicationContext, "Disconnected", Toast.LENGTH_SHORT)
+                            Toast.makeText(applicationContext, this.getString(R.string.app_disconnected), Toast.LENGTH_SHORT)
                                 .show()
                         }
                     }
                 }
-                dataStore.connectionStatus.value = "Reconnecting"
+                dataStore.connectionStatus.value = this.getString(R.string.app_reconnecting)
                 dataStore.pumpConnected.value = false
             }
             MessagePaths.FROM_PUMP_PUMP_CRITICAL_ERROR -> {
@@ -771,7 +772,7 @@ class MainActivity : ComponentActivity() {
                 if (StatePrefs(applicationContext).deviceRole() == DeviceRole.PUMP_HOST) {
                     Timber.w("watch pump-host: invalid pairing code, prompting re-entry")
                     com.jwoglom.pumpx2.pump.PumpState.setPairingCode(applicationContext, "")
-                    dataStore.pumpPairingError.value = "Invalid code, try again"
+                    dataStore.pumpPairingError.value = this.getString(R.string.app_invalid_code_try_again)
                     dataStore.pumpSetupStage.value = PumpSetupStage.PUMPX2_INVALID_PAIRING_CODE
                     sendMessage(MessagePaths.TO_SERVER_STOP_COMM, "invalid_pairing_code".toByteArray())
                     runOnUiThread {

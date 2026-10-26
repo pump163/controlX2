@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun TempRateWindow(
@@ -297,7 +298,7 @@ fun TempRateWindow(
         effectivePercentPreview = result.effectivePercent?.let { "Effective percent: ${"%.0f".format(it)}%" }
     }
 
-    HeaderLine("Temp Rate")
+    HeaderLine(stringResource(R.string.temp_basal_temp_rate))
 
     Row(
         modifier = Modifier
@@ -308,13 +309,13 @@ fun TempRateWindow(
         FilterChip(
             selected = inputMode == TempRateInputMode.PERCENT,
             onClick = { inputMode = TempRateInputMode.PERCENT },
-            label = { Text("Percent") },
+            label = { Text(stringResource(R.string.temp_basal_percent_2)) },
             modifier = Modifier.padding(end = 8.dp)
         )
         FilterChip(
             selected = inputMode == TempRateInputMode.UNITS,
             onClick = { inputMode = TempRateInputMode.UNITS },
-            label = { Text("Units (U/hr)") }
+            label = { Text(stringResource(R.string.temp_basal_units_u_hr)) }
         )
     }
 
@@ -451,12 +452,12 @@ fun TempRateWindow(
             ) {
                 Image(
                     painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    stringResource(R.string.temp_basal_bolus_icon),
                     Modifier.size(ButtonDefaults.IconSize)
                 )
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text(
-                    "Set temp rate",
+                    stringResource(R.string.temp_basal_set_temp_rate),
                     fontSize = 18.sp
                 )
             }
@@ -483,13 +484,13 @@ fun TempRateWindow(
                 showPermissionCheckDialog = false
             },
             title = {
-                Text("Set ${tempRate?.percent}% temp rate for ${prettyDuration(tempRate?.minutes)}?")
+                Text(stringResource(R.string.temp_basal_set_temp_rate_for_query, (tempRate?.percent ?: ""), (prettyDuration(tempRate?.minutes) ?: "")))
             },
             icon = {
                 Image(
                     if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                     else painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    stringResource(R.string.temp_basal_bolus_icon),
                     Modifier.size(ButtonDefaults.IconSize)
                 )
             },
@@ -500,7 +501,7 @@ fun TempRateWindow(
                         resetTempRateDataStoreState(dataStore)
                     },
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.temp_basal_cancel))
                 }
 
             },
@@ -528,7 +529,7 @@ fun TempRateWindow(
                         tempRate != null
                     )
                 ) {
-                    Text("Set temp rate")
+                    Text(stringResource(R.string.temp_basal_set_temp_rate))
                 }
             }
         )

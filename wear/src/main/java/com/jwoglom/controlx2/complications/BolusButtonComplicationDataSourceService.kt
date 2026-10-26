@@ -20,7 +20,7 @@ class BolusButtonComplicationDataSourceService : SuspendingComplicationDataSourc
     private fun complicationData(): ButtonComplicationData {
         return ButtonComplicationData(
             tag,
-            "Bolus",
+            this.getString(R.string.complication_bolus),
             Icon.createWithResource(this, R.drawable.bolus_icon)
         )
     }

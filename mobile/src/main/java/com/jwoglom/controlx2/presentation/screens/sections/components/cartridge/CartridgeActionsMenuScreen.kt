@@ -25,6 +25,8 @@ import com.jwoglom.controlx2.presentation.components.Line
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun CartridgeActionsMenuScreen(
@@ -47,19 +49,19 @@ fun CartridgeActionsMenuScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            HeaderLine("Cartridge Actions")
+            HeaderLine(stringResource(R.string.cartridge_actions))
             Divider()
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line("Insulin control is not supported on this device model (${model}).")
+                Line(stringResource(R.string.cartridge_insulin_control_unsupported_model, model))
                 Line("")
             }
         }
 
         item {
             MenuActionItem(
-                title = "Change Cartridge",
+                title = stringResource(R.string.cartridge_change_cartridge),
                 enabled = changeCartridgeEnabled,
                 disabledReason = changeCartridgeDisabledReason,
                 onClick = onChangeCartridge,
@@ -68,7 +70,7 @@ fun CartridgeActionsMenuScreen(
 
         item {
             MenuActionItem(
-                title = "Fill Tubing",
+                title = stringResource(R.string.cartridge_fill_tubing),
                 enabled = fillTubingEnabled,
                 disabledReason = fillTubingDisabledReason,
                 onClick = onFillTubing,
@@ -77,7 +79,7 @@ fun CartridgeActionsMenuScreen(
 
         item {
             MenuActionItem(
-                title = "Fill Cannula",
+                title = stringResource(R.string.cartridge_fill_cannula),
                 enabled = fillCannulaEnabled,
                 disabledReason = fillCannulaDisabledReason,
                 onClick = onFillCannula,

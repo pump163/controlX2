@@ -37,6 +37,8 @@ import com.jwoglom.controlx2.presentation.theme.InsulinColors
 import com.jwoglom.controlx2.presentation.theme.CarbColor
 import com.jwoglom.controlx2.presentation.theme.Spacing
 import com.jwoglom.controlx2.presentation.theme.SurfaceBackground
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Therapy Metrics Card displaying IOB
@@ -69,22 +71,22 @@ fun TherapyMetricsCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 MetricDisplay(
-                    label = "IOB",
-                    value = iob?.let { "%.2f U".format(it) } ?: "--",
+                    label = stringResource(R.string.dashboard_iob),
+                    value = iob?.let { stringResource(R.string.dashboard_2f_u).format(it) } ?: "--",
                     color = InsulinColors.Bolus
                 )
 
                 if (cob != null) {
                     MetricDisplay(
-                        label = "COB",
-                        value = cob?.let { "%.0f g".format(it) } ?: "--",
+                        label = stringResource(R.string.dashboard_cob),
+                        value = cob?.let { stringResource(R.string.dashboard_0f_g).format(it) } ?: "--",
                         color = CarbColor
                     )
                 }
 
                 if (timeInRange != null) {
                     MetricDisplay(
-                        label = "TIR",
+                        label = stringResource(R.string.dashboard_tir),
                         value = timeInRange?.let { "${it.toInt()}%" } ?: "--",
                         color = GlucoseColors.InRange
                     )

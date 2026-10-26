@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+import com.jwoglom.controlx2.R
 
 data class SupportBundleSummary(
     val debugFileCount: Int,
@@ -87,7 +88,7 @@ private fun createSupportBundleZip(context: Context, timestamp: String, debugLog
 fun shareSupportBundle(context: Context) {
     val supportBundleData = getSupportBundleData(context)
     if (supportBundleData == null) {
-        Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.app_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
         return
     }
 
@@ -97,7 +98,7 @@ fun shareSupportBundle(context: Context) {
     val bundleFile = createSupportBundleZip(context, filenameTimestamp, supportBundleData.debugLogs)
     Toast.makeText(
         context,
-        "${supportBundleData.summary.debugFileCount} debug logs found",
+        context.getString(R.string.app_debug_logs_found, supportBundleData.summary.debugFileCount),
         Toast.LENGTH_SHORT
     ).show()
 
@@ -108,13 +109,13 @@ fun shareSupportBundle(context: Context) {
         .putExtra(Intent.EXTRA_SUBJECT, "PumpX2 Support Bundle - $subjectTimestamp")
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-    context.startActivity(Intent.createChooser(intent, "Send PumpX2 Support Bundle"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.app_send_pump_x2_support_bundle)))
 }
 
 fun sendSupportBundleEmail(context: Context) {
     val supportBundleData = getSupportBundleData(context)
     if (supportBundleData == null) {
-        Toast.makeText(context, "No debug logs are available to share.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.app_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
         return
     }
 
@@ -124,7 +125,7 @@ fun sendSupportBundleEmail(context: Context) {
     val bundleFile = createSupportBundleZip(context, filenameTimestamp, supportBundleData.debugLogs)
     Toast.makeText(
         context,
-        "${supportBundleData.summary.debugFileCount} debug logs found",
+        context.getString(R.string.app_debug_logs_found, supportBundleData.summary.debugFileCount),
         Toast.LENGTH_SHORT
     ).show()
 
@@ -139,5 +140,5 @@ fun sendSupportBundleEmail(context: Context) {
         .putExtra(Intent.EXTRA_STREAM, uri)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-    context.startActivity(Intent.createChooser(intent, "Send PumpX2 Support Bundle Email"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.app_send_pump_x2_support_bundle_email)))
 }

@@ -16,6 +16,8 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Alert
 import androidx.wear.compose.material.dialog.Dialog
 import com.jwoglom.controlx2.presentation.DataStore
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusConditionsPromptPhase(
@@ -67,12 +69,12 @@ fun BolusConditionsPromptPhase(
             },
             negativeButton = {
                 Button(onClick = { handlePromptAction(true) }, colors = ButtonDefaults.secondaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Do not apply")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.bolus_do_not_apply))
                 }
             },
             positiveButton = {
                 Button(onClick = { handlePromptAction(false) }, colors = ButtonDefaults.primaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Apply")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.bolus_apply))
                 }
             },
             scrollState = scrollState,

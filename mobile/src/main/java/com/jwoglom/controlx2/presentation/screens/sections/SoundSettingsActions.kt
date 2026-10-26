@@ -72,6 +72,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun SoundSettingsActions(
@@ -229,13 +231,13 @@ fun SoundSettingsActions(
             content = {
                 item {
 
-                    HeaderLine("Sound Settings")
+                    HeaderLine(stringResource(R.string.sound_settings))
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading sound settings..." )
+                        LoadSpinner(stringResource(R.string.sound_loading_sound_settings) )
                     }
                 }
                 
@@ -245,7 +247,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Quick bolus annunciation",
+                        label = stringResource(R.string.sound_quick_bolus_annunciation),
                         value = quickBolusText,
                         onValueChange = { quickBolusText = it },
                         enumValue = annunciationLabel(quickBolusText)
@@ -254,7 +256,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "General annunciation",
+                        label = stringResource(R.string.sound_general_annunciation),
                         value = generalText,
                         onValueChange = { generalText = it },
                         enumValue = annunciationLabel(generalText)
@@ -263,7 +265,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Reminder annunciation",
+                        label = stringResource(R.string.sound_remind_annunciation),
                         value = reminderText,
                         onValueChange = { reminderText = it },
                         enumValue = annunciationLabel(reminderText)
@@ -272,7 +274,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Alert annunciation",
+                        label = stringResource(R.string.sound_alert_annunciation),
                         value = alertText,
                         onValueChange = { alertText = it },
                         enumValue = annunciationLabel(alertText)
@@ -281,7 +283,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Alarm annunciation",
+                        label = stringResource(R.string.sound_alarm_annunciation),
                         value = alarmText,
                         onValueChange = { alarmText = it },
                         enumValue = annunciationLabel(alarmText)
@@ -290,7 +292,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "CGM alert annunciation A",
+                        label = stringResource(R.string.sound_cgm_alert_annunciation),
                         value = cgmAText,
                         onValueChange = { cgmAText = it },
                         enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
@@ -299,7 +301,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "CGM alert annunciation B",
+                        label = stringResource(R.string.sound_cgm_alert_annunciation_b),
                         value = cgmBText,
                         onValueChange = { cgmBText = it },
                         enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
@@ -308,7 +310,7 @@ fun SoundSettingsActions(
 
                 item {
                     SoundSettingField(
-                        label = "Change bitmask",
+                        label = stringResource(R.string.sound_change_bitmask),
                         value = changeBitmaskText,
                         onValueChange = { changeBitmaskText = it },
                         enumValue = ""
@@ -317,8 +319,8 @@ fun SoundSettingsActions(
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Apply sound settings") },
-                        supportingContent = { Text("Send SetPumpSoundsRequest with these values") },
+                        headlineContent = { Text(context.getString(R.string.sound_apply_sound_settings)) },
+                        supportingContent = { Text(context.getString(R.string.sound_send_set_pump_sounds_request_withse)) },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         modifier = Modifier.clickable {
                             val message = SetPumpSoundsRequest(
@@ -347,15 +349,15 @@ fun SoundSettingsActions(
                 if (model == KnownDeviceModel.MOBI) {
                     item {
                         Line("\n")
-                        HeaderLine("Alert Snooze")
+                        HeaderLine(stringResource(R.string.sound_alert_snooze))
                         Divider()
                     }
 
                     item {
                         ListItem(
-                            headlineContent = { Text("Button Snooze") },
+                            headlineContent = { Text(context.getString(R.string.sound_button_snooze)) },
                             supportingContent = {
-                                Text("Configure triple-press button to snooze alerts")
+                                Text(context.getString(R.string.sound_config_triple_press_snooze))
                             },
                             leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             modifier = Modifier.clickable {
@@ -368,7 +370,7 @@ fun SoundSettingsActions(
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text(context.getString(R.string.sound_back)) },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
@@ -381,21 +383,21 @@ fun SoundSettingsActions(
     if (showAlertSnoozeDialog) {
         AlertDialog(
             onDismissRequest = { showAlertSnoozeDialog = false },
-            title = { Text("Alert Snooze Settings") },
+            title = { Text(stringResource(R.string.sound_alert_snooze_settings)) },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Snooze Enabled", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.sound_snooze_enabled), modifier = Modifier.weight(1f))
                         Switch(
                             checked = alertSnoozeEnabled,
                             onCheckedChange = { alertSnoozeEnabled = it }
                         )
                     }
                     if (alertSnoozeEnabled) {
-                        Text("Duration:", modifier = Modifier.padding(top = 8.dp))
+                        Text(stringResource(R.string.sound_duration), modifier = Modifier.padding(top = 8.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(top = 4.dp)
@@ -405,7 +407,7 @@ fun SoundSettingsActions(
                                     onClick = { alertSnoozeDuration = mins },
                                 ) {
                                     Text(
-                                        "${mins} min",
+                                        stringResource(R.string.sound_min, mins),
                                         color = if (alertSnoozeDuration == mins) Color.Blue else Color.Gray
                                     )
                                 }
@@ -425,12 +427,12 @@ fun SoundSettingsActions(
                         refresh()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.sound_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAlertSnoozeDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.sound_cancel))
                 }
             }
         )
@@ -455,7 +457,7 @@ private fun SoundSettingField(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    label = { Text("Value") },
+                    label = { Text(stringResource(R.string.sound_value)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )

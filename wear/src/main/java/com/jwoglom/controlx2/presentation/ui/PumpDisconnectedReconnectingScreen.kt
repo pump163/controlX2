@@ -22,6 +22,8 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.MainActivity
 import com.jwoglom.controlx2.presentation.components.LastConnectionText
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Shown when the pump-host watch has lost its BT connection and the service is
@@ -50,11 +52,11 @@ fun PumpDisconnectedReconnectingScreen() {
     ) {
         Icon(
             imageVector = Icons.Filled.Warning,
-            contentDescription = "Disconnected",
+            contentDescription = stringResource(R.string.setup_disconnected),
             modifier = Modifier.size(24.dp),
         )
         Text(
-            text = "Disconnected, reconnecting…",
+            text = stringResource(R.string.setup_disconnected_reconnecting),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -64,7 +66,7 @@ fun PumpDisconnectedReconnectingScreen() {
 
         Chip(
             onClick = { (context as? MainActivity)?.stopPumpService() },
-            label = { Text("Stop", fontSize = 12.sp) },
+            label = { Text(stringResource(R.string.setup_stop), fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

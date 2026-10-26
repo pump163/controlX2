@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 private const val LONG_PAIRING_CODE_LENGTH = 16
 private const val SHORT_PAIRING_CODE_LENGTH = 6
@@ -227,7 +229,7 @@ fun ShortPairingCodeInput(
 
         if (hasInvalidSavedValue) {
             Text(
-                text = "Saved PIN was invalid and has been sanitized.",
+                text = stringResource(R.string.setup_saved_pin_was_invalid_been_sanitized),
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.error,
             )
@@ -235,7 +237,7 @@ fun ShortPairingCodeInput(
 
         if (code.isNotEmpty() || hasInvalidSavedValue) {
             TextButton(onClick = onClearSavedPin) {
-                Text("Clear saved PIN")
+                Text(stringResource(R.string.setup_clear_saved_pin))
             }
         }
     }

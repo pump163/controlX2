@@ -71,6 +71,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun ControlIQSettingsActions(
@@ -96,7 +98,7 @@ fun ControlIQSettingsActions(
         controlIQTotalDailyInsulin.value,
     ) {
         if (controlIQEnabled.value == null) {
-            "Loading..."
+            context.getString(R.string.ciq_loading)
         } else {
             "Status: ${if (controlIQEnabled.value == true) "Enabled" else "Disabled"}\n" +
                 "Weight: ${controlIQWeight.value ?: "?"} ${controlIQWeightUnit.value ?: ""}\n" +
@@ -204,13 +206,13 @@ fun ControlIQSettingsActions(
             content = {
                 item {
 
-                    HeaderLine("Control-IQ Settings")
+                    HeaderLine(stringResource(R.string.ciq_settings))
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading Control-IQ settings...")
+                        LoadSpinner(stringResource(R.string.ciq_loading_ciq_settings))
                     }
                 }
 
@@ -232,7 +234,7 @@ fun ControlIQSettingsActions(
                 // Sleep Schedule section header
                 item {
                     Line("\n")
-                    HeaderLine("Sleep Schedule")
+                    HeaderLine(stringResource(R.string.ciq_sleep_schedule))
                     Divider()
                 }
 
@@ -249,7 +251,7 @@ fun ControlIQSettingsActions(
                         item {
                             val enabled = slot.enabled != 0
                             ListItem(
-                                headlineContent = { Text("Schedule ${index + 1}") },
+                                headlineContent = { Text(context.getString(R.string.ciq_schedule, index + 1)) },
                                 supportingContent = {
                                     if (enabled) {
                                         val days = slot.activeDays().joinToString(", ") { it.name.take(3) }
@@ -257,10 +259,10 @@ fun ControlIQSettingsActions(
                                             "Enabled\n" +
                                             "${String.format("%02d:%02d", slot.startTime().hour(), slot.startTime().min())} - " +
                                             "${String.format("%02d:%02d", slot.endTime().hour(), slot.endTime().min())}\n" +
-                                            "Days: $days"
+                                            context.getString(R.string.ciq_days_days, days)
                                         )
                                     } else {
-                                        Text("Disabled")
+                                        Text(context.getString(R.string.ciq_disabled))
                                     }
                                 },
                                 leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -288,13 +290,13 @@ fun ControlIQSettingsActions(
                     }
                 } else if (!refreshing) {
                     item {
-                        Line("Sleep schedule data not available.")
+                        Line(stringResource(R.string.ciq_sleep_sched_data_not_available))
                     }
                 }
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text(context.getString(R.string.ciq_back)) },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
@@ -307,14 +309,14 @@ fun ControlIQSettingsActions(
     if (showChangeControlIQDialog) {
         AlertDialog(
             onDismissRequest = { showChangeControlIQDialog = false },
-            title = { Text("Change Control-IQ Settings") },
+            title = { Text(stringResource(R.string.ciq_change_ciq_settings)) },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enabled", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.ciq_enabled), modifier = Modifier.weight(1f))
                         Switch(
                             checked = ciqEnabled,
                             onCheckedChange = { ciqEnabled = it }
@@ -323,14 +325,14 @@ fun ControlIQSettingsActions(
                     OutlinedTextField(
                         value = weightText,
                         onValueChange = { weightText = it },
-                        label = { Text("Weight (lbs)") },
+                        label = { Text(stringResource(R.string.ciq_weight_lbs)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = tdiText,
                         onValueChange = { tdiText = it },
-                        label = { Text("Total Daily Insulin (units)") },
+                        label = { Text(stringResource(R.string.ciq_total_daily_insulin_units_2)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -351,15 +353,15 @@ fun ControlIQSettingsActions(
                             refresh()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter valid numbers", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.ciq_enter_valid_numbers), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.ciq_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showChangeControlIQDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.ciq_cancel))
                 }
             }
         )
@@ -369,14 +371,14 @@ fun ControlIQSettingsActions(
     if (showEditSleepScheduleDialog) {
         AlertDialog(
             onDismissRequest = { showEditSleepScheduleDialog = false },
-            title = { Text("Sleep Schedule ${editingSlot + 1}") },
+            title = { Text(stringResource(R.string.ciq_sleep_schedule_next, editingSlot + 1)) },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enabled", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.ciq_enabled), modifier = Modifier.weight(1f))
                         Switch(
                             checked = sleepEnabled,
                             onCheckedChange = { sleepEnabled = it }
@@ -389,14 +391,14 @@ fun ControlIQSettingsActions(
                         OutlinedTextField(
                             value = sleepStartHour,
                             onValueChange = { sleepStartHour = it },
-                            label = { Text("Start Hour") },
+                            label = { Text(stringResource(R.string.ciq_start_hour)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = sleepStartMin,
                             onValueChange = { sleepStartMin = it },
-                            label = { Text("Start Min") },
+                            label = { Text(stringResource(R.string.ciq_start_min)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
@@ -408,14 +410,14 @@ fun ControlIQSettingsActions(
                         OutlinedTextField(
                             value = sleepEndHour,
                             onValueChange = { sleepEndHour = it },
-                            label = { Text("End Hour") },
+                            label = { Text(stringResource(R.string.ciq_end_hour)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = sleepEndMin,
                             onValueChange = { sleepEndMin = it },
-                            label = { Text("End Min") },
+                            label = { Text(stringResource(R.string.ciq_end_min)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f)
                         )
@@ -423,7 +425,7 @@ fun ControlIQSettingsActions(
                     OutlinedTextField(
                         value = sleepDays,
                         onValueChange = { sleepDays = it },
-                        label = { Text("Active days bitmask (Mon=1,Tue=2,...Sun=64, all=127)") },
+                        label = { Text(stringResource(R.string.ciq_active_days_bitmask)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -456,12 +458,12 @@ fun ControlIQSettingsActions(
                         refresh()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.ciq_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditSleepScheduleDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.ciq_cancel))
                 }
             }
         )

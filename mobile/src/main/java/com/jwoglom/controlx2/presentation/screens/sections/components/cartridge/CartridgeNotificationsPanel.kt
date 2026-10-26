@@ -23,6 +23,8 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.Notificati
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import kotlinx.coroutines.Job
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun CartridgeNotificationsPanel(
@@ -43,9 +45,9 @@ fun CartridgeNotificationsPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Active Notifications", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.cartridge_active_notifications), style = MaterialTheme.typography.titleSmall)
                 TextButton(onClick = { refreshNotifications() }, enabled = !refreshing) {
-                    Text(if (refreshing) "Refreshing..." else "Refresh")
+                    Text(if (refreshing) stringResource(R.string.cartridge_refreshing) else stringResource(R.string.cartridge_refresh))
                 }
             }
 
@@ -57,7 +59,7 @@ fun CartridgeNotificationsPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CircularProgressIndicator(strokeWidth = 2.dp)
-                        Text("Checking notifications...", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.cartridge_checking_notice), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 notifications.isEmpty() -> {
@@ -67,7 +69,7 @@ fun CartridgeNotificationsPanel(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                        Text("No active notifications", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.cartridge_no_active_notice), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 else -> {

@@ -6,13 +6,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.presentation.components.LineInfoChip
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 fun LandingCgmBatteryRow() {
     val ds = LocalDataStore.current
     val status = ds.cgmTransmitterStatus.observeAsState().value
-    LineInfoChip("CGM Battery", status?.toString() ?: "?")
+    LineInfoChip(stringResource(R.string.dashboard_cgm_battery), status?.toString() ?: "?")
 }
 
 @Preview

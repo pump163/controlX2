@@ -55,6 +55,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.function.Supplier
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusWindow(
@@ -79,9 +81,9 @@ fun BolusWindow(
     val carbsRawValue = dataStore.bolusCarbsRawValue.observeAsState()
     val glucoseRawValue = dataStore.bolusGlucoseRawValue.observeAsState()
 
-    var unitsSubtitle by remember { mutableStateOf<String>("Units") }
-    var carbsSubtitle by remember { mutableStateOf<String>("Carbs (g)") }
-    var glucoseSubtitle by remember { mutableStateOf<String>("BG ($unitAbbrev)") }
+    var unitsSubtitle by remember { mutableStateOf<String>(context.getString(R.string.bolus_units)) }
+    var carbsSubtitle by remember { mutableStateOf<String>(context.getString(R.string.bolus_carbs_g)) }
+    var glucoseSubtitle by remember { mutableStateOf<String>(context.getString(R.string.bolus_bg_unit_abbrev, unitAbbrev)) }
 
     var unitsHumanEntered by remember { mutableStateOf<Double?>(null) }
     var unitsHumanFocus by remember { mutableStateOf(false) }
@@ -262,11 +264,11 @@ fun BolusWindow(
         // TODO: invalid logic for attributing override vs pre-filled units
         unitsSubtitle = when {
             unitsHumanEntered == null -> when {
-                dataStore.bolusCurrentParameters.value == null -> "Units"
-                dataStore.bolusCurrentParameters.value?.units == 0.0 -> "Units"
-                else -> "Calculated"
+                dataStore.bolusCurrentParameters.value == null -> context.getString(R.string.bolus_units)
+                dataStore.bolusCurrentParameters.value?.units == 0.0 -> context.getString(R.string.bolus_units)
+                else -> context.getString(R.string.bolus_calculated)
             }
-            else -> "Override"
+            else -> context.getString(R.string.bolus_override)
         }
 
         val autofilledBg = dataStore.bolusCalculatorBuilder.value?.glucoseMgdl?.orElse(null)
@@ -277,9 +279,9 @@ fun BolusWindow(
             dataStore.bolusGlucoseRawValue.value = GlucoseConverter.format(autofilledBg, glucoseUnit)
         }
         glucoseSubtitle = when {
-            glucoseHumanEntered != null -> "Entered ($unitAbbrev)"
-            autofilledBg != null -> "CGM ($unitAbbrev)"
-            else -> "BG ($unitAbbrev)"
+            glucoseHumanEntered != null -> context.getString(R.string.bolus_entered_unit_abbrev, unitAbbrev)
+            autofilledBg != null -> context.getString(R.string.bolus_cgm_unit_abbrev, unitAbbrev)
+            else -> context.getString(R.string.bolus_bg_unit_abbrev, unitAbbrev)
         }
     }
 
@@ -313,7 +315,7 @@ fun BolusWindow(
         recalculate()
     }
 
-    HeaderLine("Bolus")
+    HeaderLine(stringResource(R.string.bolus_bolus))
 
     BolusEntryFormRegion(
         unitsSubtitle = unitsSubtitle,

@@ -26,6 +26,8 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.DetectingCartridgeStateStreamResponse
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.EnterChangeCartridgeModeStateStreamResponse
 import kotlinx.coroutines.Job
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun ChangeCartridgeWorkflowScreen(
@@ -73,7 +75,7 @@ fun ChangeCartridgeWorkflowScreen(
     }
 
     CartridgeWorkflowScreen(
-        title = "Change Cartridge",
+        title = stringResource(R.string.cartridge_change_cartridge),
         innerPadding = innerPadding,
         stepInfo = WizardStepInfo(step.stepNumber, 6),
         canCancel = true,
@@ -87,17 +89,17 @@ fun ChangeCartridgeWorkflowScreen(
         body = {
             when (step) {
                 ChangeCartridgeStep.SUSPEND -> {
-                    Text("Important", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_important), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Changing your cartridge requires suspending insulin delivery first.",
+                        stringResource(R.string.cartridge_change_requires_suspend),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 ChangeCartridgeStep.ENTER_MODE -> {
-                    Text("Step 2: Prepare Pump", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_step_2_prepare_pump), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Clear all active pump notifications before continuing.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_clear_active_notifications_first), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     CartridgeNotificationsPanel(
                         notifications = activeNotifications,
@@ -106,20 +108,20 @@ fun ChangeCartridgeWorkflowScreen(
                         refreshNotifications = refreshNotifications,
                     )
                     if (hasActiveNotifications) {
-                        NotificationsBlockingWarning("Clear all notifications before starting cartridge change.")
+                        NotificationsBlockingWarning(stringResource(R.string.cartridge_clear_notifications_before_change))
                     }
                 }
                 ChangeCartridgeStep.WAITING_FOR_READY -> {
-                    Text("Step 3: Waiting for Pump", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_step_3_waiting_for_pump), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("The pump is preparing for cartridge change.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_pump_preparing_for_change), style = MaterialTheme.typography.bodyLarge)
                 }
                 ChangeCartridgeStep.PHYSICAL_CHANGE -> {
-                    Text("Step 4: Replace Cartridge", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_step_4_replace_cartridge), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("1. Remove the old cartridge.", style = MaterialTheme.typography.bodyLarge)
-                    Text("2. Insert a new cartridge and secure it.", style = MaterialTheme.typography.bodyLarge)
-                    Text("3. Press 'New Cartridge Inserted' when complete.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_remove_old_cartridge), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_insert_new_cartridge_and_secure), style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_press_new_cartridge_inserted), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     CartridgeNotificationsPanel(
                         notifications = activeNotifications,
@@ -128,23 +130,23 @@ fun ChangeCartridgeWorkflowScreen(
                         refreshNotifications = refreshNotifications,
                     )
                     if (hasActiveNotifications) {
-                        NotificationsBlockingWarning("Clear all notifications before continuing.")
+                        NotificationsBlockingWarning(stringResource(R.string.cartridge_clear_all_notice_before_continuing))
                     }
                 }
                 ChangeCartridgeStep.DETECTING -> {
-                    Text("Step 5: Detecting", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_step_5_detecting), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Detecting insulin in cartridge...", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_detecting_insulin_in_cartridge), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "${detectingCartridgeState?.percentComplete ?: 0}% complete",
+                        stringResource(R.string.cartridge_complete, (detectingCartridgeState?.percentComplete ?: 0 ?: "")),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 ChangeCartridgeStep.DONE -> {
-                    Text("Cartridge change complete!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_change_complete), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("You can now fill tubing and fill cannula.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_can_now_fill_tubing_and_cannula), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },
@@ -152,14 +154,14 @@ fun ChangeCartridgeWorkflowScreen(
             when (step) {
                 ChangeCartridgeStep.SUSPEND -> {
                     PrimaryActionButton(
-                        text = "Suspend insulin delivery",
+                        text = stringResource(R.string.cartridge_suspend_insulin_delivery),
                         loading = loadingSuspend,
                         onClick = { showSuspendConfirm = true },
                     )
                 }
                 ChangeCartridgeStep.ENTER_MODE -> {
                     PrimaryActionButton(
-                        text = "Start cartridge change",
+                        text = stringResource(R.string.cartridge_start_cartridge_change),
                         loading = loadingEnterMode,
                         enabled = !hasActiveNotifications,
                         onClick = {
@@ -170,27 +172,27 @@ fun ChangeCartridgeWorkflowScreen(
                 }
                 ChangeCartridgeStep.WAITING_FOR_READY -> {
                     PrimaryActionButton(
-                        text = "Waiting for pump...",
+                        text = stringResource(R.string.cartridge_waiting_for_pump),
                         enabled = false,
                         onClick = {},
                     )
                 }
                 ChangeCartridgeStep.PHYSICAL_CHANGE -> {
                     PrimaryActionButton(
-                        text = "New Cartridge Inserted",
+                        text = stringResource(R.string.cartridge_new_cartridge_inserted),
                         enabled = !hasActiveNotifications,
                         onClick = onExit,
                     )
                 }
                 ChangeCartridgeStep.DETECTING -> {
                     PrimaryActionButton(
-                        text = "Detecting...",
+                        text = stringResource(R.string.cartridge_detecting),
                         enabled = false,
                         onClick = {},
                     )
                 }
                 ChangeCartridgeStep.DONE -> {
-                    PrimaryActionButton("Done", onClick = onDone)
+                    PrimaryActionButton(stringResource(R.string.cartridge_done), onClick = onDone)
                 }
             }
         }
@@ -199,11 +201,11 @@ fun ChangeCartridgeWorkflowScreen(
     if (showSuspendConfirm) {
         AlertDialog(
             onDismissRequest = { showSuspendConfirm = false },
-            title = { Text("Suspend insulin delivery?") },
-            text = { Text("This will stop all insulin delivery until you resume.") },
+            title = { Text(stringResource(R.string.cartridge_suspend_insulin_delivery_query)) },
+            text = { Text(stringResource(R.string.cartridge_stop_delivery_until_resume)) },
             dismissButton = {
                 TextButton(onClick = { showSuspendConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cartridge_cancel))
                 }
             },
             confirmButton = {
@@ -212,7 +214,7 @@ fun ChangeCartridgeWorkflowScreen(
                     loadingSuspend = true
                     onSuspend()
                 }) {
-                    Text("Suspend")
+                    Text(stringResource(R.string.cartridge_suspend))
                 }
             },
         )
@@ -221,11 +223,11 @@ fun ChangeCartridgeWorkflowScreen(
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
-            title = { Text("Cancel cartridge change?") },
-            text = { Text("The cartridge change is not complete. The app will try to exit change mode.") },
+            title = { Text(stringResource(R.string.cartridge_cancel_cartridge_change_query)) },
+            text = { Text(stringResource(R.string.cartridge_change_is_not_complete)) },
             dismissButton = {
                 TextButton(onClick = { showCancelConfirm = false }) {
-                    Text("No, continue")
+                    Text(stringResource(R.string.cartridge_no_continue))
                 }
             },
             confirmButton = {
@@ -234,7 +236,7 @@ fun ChangeCartridgeWorkflowScreen(
                     onCancelInProgress()
                     onDismiss()
                 }) {
-                    Text("Yes, cancel")
+                    Text(stringResource(R.string.cartridge_yes_cancel))
                 }
             },
         )

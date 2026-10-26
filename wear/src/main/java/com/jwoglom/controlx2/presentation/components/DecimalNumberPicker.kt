@@ -60,6 +60,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.math.max
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -276,7 +278,7 @@ fun DecimalNumberPicker(
             }) {
                 Icon(
                     imageVector = Icons.Filled.Check,
-                    contentDescription = "Confirm",
+                    contentDescription = stringResource(R.string.common_confirm),
                     modifier = Modifier
                         .size(24.dp)
                         .wrapContentSize(align = Alignment.Center)

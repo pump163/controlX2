@@ -27,6 +27,8 @@ import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.ExitFillTubingModeStateStreamResponse
 import kotlinx.coroutines.Job
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun FillTubingWorkflowScreen(
@@ -87,7 +89,7 @@ fun FillTubingWorkflowScreen(
     }
 
     CartridgeWorkflowScreen(
-        title = "Fill Tubing",
+        title = stringResource(R.string.cartridge_fill_tubing),
         innerPadding = innerPadding,
         stepInfo = WizardStepInfo(step.stepNumber, 5),
         canCancel = true,
@@ -101,15 +103,15 @@ fun FillTubingWorkflowScreen(
         body = {
             when (step) {
                 FillTubingStep.SUSPEND -> {
-                    Text("Important", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_important), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Filling tubing requires suspending insulin delivery. You will use the pump button to fill.",
+                        stringResource(R.string.cartridge_fill_tubing_requires_suspend),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 FillTubingStep.ENTER_MODE -> {
-                    Text("Clear all active pump notifications before continuing.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_clear_active_notifications_first), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     CartridgeNotificationsPanel(
                         notifications = activeNotifications,
@@ -118,22 +120,22 @@ fun FillTubingWorkflowScreen(
                         refreshNotifications = refreshNotifications,
                     )
                     if (hasActiveNotifications) {
-                        NotificationsBlockingWarning("Clear all notifications before starting tubing fill.")
+                        NotificationsBlockingWarning(stringResource(R.string.cartridge_clear_notifications_before_tubing))
                     }
                 }
                 FillTubingStep.FILLING -> {
-                    Text("Press and hold the button on your pump to fill tubing.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_press_and_hold_button_on), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Release the button when you see insulin at the end of the tubing.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_release_button_when_you_see_insulin), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(12.dp))
                     when (fillTubingButtonDown) {
                         true -> {
-                            Text("FILLING... keep holding the pump button.", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.cartridge_filling_keep_holding_pump_button), style = MaterialTheme.typography.bodyLarge)
                             Spacer(modifier = Modifier.height(8.dp))
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         }
-                        false -> Text("Pump button released. Can you see insulin at the end of the tubing?", style = MaterialTheme.typography.bodyLarge)
-                        null -> Text("Waiting for tubing fill input...", style = MaterialTheme.typography.bodyLarge)
+                        false -> Text(stringResource(R.string.cartridge_see_insulin_at_tubing_end_query), style = MaterialTheme.typography.bodyLarge)
+                        null -> Text(stringResource(R.string.cartridge_waiting_for_tubing_fill_input), style = MaterialTheme.typography.bodyLarge)
                     }
                     if (hasActiveNotifications) {
                         Spacer(modifier = Modifier.height(12.dp))
@@ -143,14 +145,14 @@ fun FillTubingWorkflowScreen(
                             sendPumpCommands = sendPumpCommands,
                             refreshNotifications = refreshNotifications,
                         )
-                        NotificationsBlockingWarning("Clear all notifications before completing tubing fill.")
+                        NotificationsBlockingWarning(stringResource(R.string.cartridge_clear_notifications_complete_tubing))
                     }
                 }
                 FillTubingStep.EXITING -> {
-                    Text("Finalizing tubing fill process...", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_finalizing_tubing_fill_process), style = MaterialTheme.typography.bodyLarge)
                 }
                 FillTubingStep.DONE -> {
-                    Text("You can now fill cannula and resume insulin.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_fill_cannula_resume_insulin), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },
@@ -158,14 +160,14 @@ fun FillTubingWorkflowScreen(
             when (step) {
                 FillTubingStep.SUSPEND -> {
                     PrimaryActionButton(
-                        text = "Suspend insulin delivery",
+                        text = stringResource(R.string.cartridge_suspend_insulin_delivery),
                         loading = loadingSuspend,
                         onClick = { showSuspendConfirm = true },
                     )
                 }
                 FillTubingStep.ENTER_MODE -> {
                     PrimaryActionButton(
-                        text = "Start tubing fill",
+                        text = stringResource(R.string.cartridge_start_tubing_fill),
                         loading = loadingEnterMode,
                         enabled = !hasActiveNotifications,
                         onClick = {
@@ -178,14 +180,14 @@ fun FillTubingWorkflowScreen(
                     when {
                         fillTubingButtonDown == true -> {
                             PrimaryActionButton(
-                                text = "Filling...",
+                                text = stringResource(R.string.cartridge_filling),
                                 enabled = false,
                                 onClick = {},
                             )
                         }
                         hasDisplayedFlow -> {
                             PrimaryActionButton(
-                                text = "Complete tubing fill",
+                                text = stringResource(R.string.cartridge_complete_tubing_fill),
                                 loading = loadingExitMode,
                                 enabled = !hasActiveNotifications,
                                 onClick = {
@@ -196,7 +198,7 @@ fun FillTubingWorkflowScreen(
                         }
                         else -> {
                             PrimaryActionButton(
-                                text = "Hold pump button to fill",
+                                text = stringResource(R.string.cartridge_hold_pump_button_to_fill),
                                 enabled = false,
                                 onClick = {},
                             )
@@ -205,12 +207,12 @@ fun FillTubingWorkflowScreen(
                 }
                 FillTubingStep.EXITING -> {
                     PrimaryActionButton(
-                        text = "Exiting fill mode...",
+                        text = stringResource(R.string.cartridge_exiting_fill_mode),
                         enabled = false,
                         onClick = {},
                     )
                 }
-                FillTubingStep.DONE -> PrimaryActionButton("Done", onClick = onDone)
+                FillTubingStep.DONE -> PrimaryActionButton(stringResource(R.string.cartridge_done), onClick = onDone)
             }
         }
     )
@@ -218,11 +220,11 @@ fun FillTubingWorkflowScreen(
     if (showSuspendConfirm) {
         AlertDialog(
             onDismissRequest = { showSuspendConfirm = false },
-            title = { Text("Suspend insulin delivery?") },
-            text = { Text("This will stop all insulin delivery until you resume.") },
+            title = { Text(stringResource(R.string.cartridge_suspend_insulin_delivery_query)) },
+            text = { Text(stringResource(R.string.cartridge_stop_delivery_until_resume)) },
             dismissButton = {
                 TextButton(onClick = { showSuspendConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cartridge_cancel))
                 }
             },
             confirmButton = {
@@ -231,7 +233,7 @@ fun FillTubingWorkflowScreen(
                     loadingSuspend = true
                     onSuspend()
                 }) {
-                    Text("Suspend")
+                    Text(stringResource(R.string.cartridge_suspend))
                 }
             },
         )
@@ -240,11 +242,11 @@ fun FillTubingWorkflowScreen(
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
-            title = { Text("Cancel tubing fill?") },
-            text = { Text("The tubing fill is not complete. The app will try to exit fill mode.") },
+            title = { Text(stringResource(R.string.cartridge_cancel_tubing_fill_query)) },
+            text = { Text(stringResource(R.string.cartridge_tubing_fill_is_not_complete)) },
             dismissButton = {
                 TextButton(onClick = { showCancelConfirm = false }) {
-                    Text("No, continue")
+                    Text(stringResource(R.string.cartridge_no_continue))
                 }
             },
             confirmButton = {
@@ -253,7 +255,7 @@ fun FillTubingWorkflowScreen(
                     onCancelInProgress()
                     onDismiss()
                 }) {
-                    Text("Yes, cancel")
+                    Text(stringResource(R.string.cartridge_yes_cancel))
                 }
             },
         )

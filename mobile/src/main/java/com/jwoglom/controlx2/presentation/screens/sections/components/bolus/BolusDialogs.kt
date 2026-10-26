@@ -45,6 +45,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatu
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BolusDeliverActionRegion(
@@ -81,7 +82,7 @@ fun BolusDeliverActionRegion(
             ) {
                 Image(
                     painterResource(R.drawable.bolus_icon),
-                    "Bolus icon",
+                    stringResource(R.string.bolus_icon),
                     Modifier.size(ButtonDefaults.IconSize)
                 )
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
@@ -136,13 +137,13 @@ fun BolusPermissionDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                stringResource(R.string.bolus_icon),
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.bolus_cancel))
             }
         },
         confirmButton = {
@@ -167,7 +168,7 @@ fun BolusPermissionDialogRegion(
                         bolusFinalParameters.value?.takeIf { it.units >= 0.05 } != null
                     )
             ) {
-                Text("Deliver")
+                Text(stringResource(R.string.bolus_deliver))
             }
         }
     )
@@ -206,7 +207,7 @@ fun InProgressDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                stringResource(R.string.bolus_icon),
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
@@ -216,12 +217,12 @@ fun InProgressDialogRegion(
         text = {
             Text(
                 when {
-                    bolusInitiateResponse.value != null -> "Bolus request received by pump, waiting for response..."
+                    bolusInitiateResponse.value != null -> stringResource(R.string.bolus_request_recv_by_pump_waiting_for_resp)
                     bolusFinalParameters.value != null -> when {
-                        bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold -> "A notification was sent to approve the request."
-                        else -> "Sending request to pump..."
+                        bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold -> stringResource(R.string.bolus_notice_was_sent_to_approve_request)
+                        else -> stringResource(R.string.bolus_sending_request_to_pump)
                     }
-                    else -> "Sending request to pump..."
+                    else -> stringResource(R.string.bolus_sending_request_to_pump)
                 }
             )
         },
@@ -230,7 +231,7 @@ fun InProgressDialogRegion(
                 onClick = onCancel,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text("Cancel Bolus Delivery")
+                Text(stringResource(R.string.bolus_cancel_bolus_delivery))
             }
         },
         confirmButton = {}
@@ -255,7 +256,7 @@ fun ApprovedDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                stringResource(R.string.bolus_icon),
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
@@ -263,10 +264,10 @@ fun ApprovedDialogRegion(
             Text(
                 when {
                     bolusInitiateResponse.value != null -> when {
-                        bolusInitiateResponse.value!!.wasBolusInitiated() -> "Bolus Initiated"
-                        else -> "Bolus Rejected by Pump"
+                        bolusInitiateResponse.value!!.wasBolusInitiated() -> stringResource(R.string.bolus_initiated)
+                        else -> stringResource(R.string.bolus_rejected_by_pump_2)
                     }
-                    else -> "Fetching Bolus Status..."
+                    else -> stringResource(R.string.bolus_fetching_bolus_stat)
                 }
             )
         },
@@ -322,7 +323,7 @@ fun ApprovedDialogRegion(
                             bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }
                         }"
                     }
-                    else -> "The bolus status is unknown. Please check your pump to identify the status of the bolus."
+                    else -> stringResource(R.string.bolus_status_is_unknown_please_check)
                 }
             )
         },
@@ -336,7 +337,7 @@ fun ApprovedDialogRegion(
                     onClick = onCancel,
                     modifier = Modifier.padding(top = 16.dp)
                 ) {
-                    Text("Cancel Bolus Delivery")
+                    Text(stringResource(R.string.bolus_cancel_bolus_delivery))
                 }
             }
         },
@@ -351,7 +352,7 @@ fun ApprovedDialogRegion(
                             it != CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING &&
                             it != CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING
                         } == true
-                    ) "Done" else "OK"
+                    ) stringResource(R.string.bolus_done) else stringResource(R.string.bolus_ok)
                 )
             }
         }
@@ -378,15 +379,15 @@ fun CancellingDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                stringResource(R.string.bolus_icon),
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         title = {
-            Text("Cancelling..")
+            Text(stringResource(R.string.bolus_cancelling))
         },
         text = {
-            Text("The bolus is being cancelled...")
+            Text(stringResource(R.string.bolus_is_being_cancelled))
         },
         confirmButton = {}
     )
@@ -442,20 +443,20 @@ fun CancelledDialogRegion(
             Image(
                 if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon_secondary)
                 else painterResource(R.drawable.bolus_icon),
-                "Bolus icon",
+                stringResource(R.string.bolus_icon),
                 Modifier.size(ButtonDefaults.IconSize)
             )
         },
         title = {
             Text(when (bolusCancelResponse.value?.status) {
                 CancelBolusResponse.CancelStatus.SUCCESS ->
-                    "Bolus Cancelled"
+                    stringResource(R.string.bolus_cancelled)
                 CancelBolusResponse.CancelStatus.FAILED ->
                     when (bolusInitiateResponse.value) {
-                        null -> "Bolus Cancelled"
-                        else -> "Could Not Be Cancelled"
+                        null -> stringResource(R.string.bolus_cancelled)
+                        else -> stringResource(R.string.bolus_could_not_be_cancelled)
                     }
-                else -> "Bolus Status Unknown"
+                else -> stringResource(R.string.bolus_stat_unknown)
             })
         },
         text = {
@@ -485,7 +486,7 @@ fun CancelledDialogRegion(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK")
+                Text(stringResource(R.string.bolus_ok))
             }
         }
     )

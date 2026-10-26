@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
+import com.jwoglom.controlx2.R
 
 
 class PhoneCommService : Service() {
@@ -134,10 +135,10 @@ class PhoneCommService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager;
         val channel = NotificationChannel(
             notificationChannelId,
-            "Endless Service notifications channel",
+            this.getString(R.string.comm_endless_service_notice_channel),
             NotificationManager.IMPORTANCE_NONE
         ).let {
-            it.description = "Endless Service channel"
+            it.description = this.getString(R.string.comm_endless_service_channel)
             it.setShowBadge(false)
             it.lockscreenVisibility = 0
 
@@ -156,10 +157,10 @@ class PhoneCommService : Service() {
             notificationChannelId
         )
 
-        val title = "ControlX2 is running: $connectionState"
+        val title = this.getString(R.string.comm_ctrl_x2_is_running_conn_state, connectionState)
         return builder
             .setContentTitle(title)
-            .setContentText("This notification can be hidden: open Settings > Apps > Notifications > All > ControlX2 and turn Endless Service Notifications off")
+            .setContentText(this.getString(R.string.comm_hide_notification_via_settings))
             .setContentIntent(pendingIntent)
             .setSmallIcon(IconCompat.createWithResource(this, R.drawable.pump))
             .setTicker(title)
@@ -185,13 +186,13 @@ class PhoneCommService : Service() {
             notificationManagerCompat.createNotificationChannel(
                 NotificationChannel(
                     "disconnectedChannel",
-                    "Disconnected",
+                    this.getString(R.string.comm_disconnected),
                     NotificationManager.IMPORTANCE_DEFAULT
                 )
             )
             val notif = NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.comm_error)
-                .setContentTitle("ControlX2 disconnected")
+                .setContentTitle(this.getString(R.string.comm_ctrl_x2_disconnected))
                 .setContentText(reason)
                 .setChannelId("disconnectedChannel")
                 .build()

@@ -35,6 +35,8 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.theme.Elevation
 import com.jwoglom.controlx2.presentation.theme.Spacing
 import com.jwoglom.controlx2.presentation.theme.SurfaceBackground
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun PumpStatusBar(middleContent: @Composable () -> Unit = {}) {
@@ -94,7 +96,7 @@ fun PumpStatusCard(
                 icon = {
                     HorizBatteryIcon(batteryPercent.value)
                 },
-                label = "Battery",
+                label = stringResource(R.string.dashboard_battery),
                 value = "${batteryPercent.value ?: "--"}%"
             )
 
@@ -103,13 +105,13 @@ fun PumpStatusCard(
                 icon = {
                     Icon(
                         Icons.Default.Sync,
-                        contentDescription = "Last updated",
+                        contentDescription = stringResource(R.string.dashboard_last_updated),
                         modifier = Modifier.size(24.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                label = "Updated",
-                value = "Now"  // TODO: Format last connection time
+                label = stringResource(R.string.dashboard_updated),
+                value = stringResource(R.string.dashboard_now)  // TODO: Format last connection time
             )
 
             // Insulin
@@ -120,7 +122,7 @@ fun PumpStatusCard(
                         cartridgeAmountEstimate = cartridgeRemainingEstimate.value == true
                     )
                 },
-                label = "Insulin",
+                label = stringResource(R.string.dashboard_insulin),
                 value = "${cartridgeRemainingUnits.value ?: "--"}U"
             )
         }

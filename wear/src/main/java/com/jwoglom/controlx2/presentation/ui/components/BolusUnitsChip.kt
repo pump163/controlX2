@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import com.jwoglom.controlx2.dataStore
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -56,7 +58,7 @@ fun BolusUnitsChip(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = unitsSubtitle ?: "Units",
+                        text = unitsSubtitle ?: stringResource(R.string.bolus_units),
                         maxLines = 1,
                         textAlign = TextAlign.Center,
                         fontSize = 10.sp,

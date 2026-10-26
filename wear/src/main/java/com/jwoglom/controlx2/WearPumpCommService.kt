@@ -69,6 +69,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import timber.log.Timber
 import java.time.Instant
+import com.jwoglom.controlx2.R
 
 /**
  * Watch-side pump-host service. Manages the BT connection to the Tandem pump
@@ -472,7 +473,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
     private fun createNotification(): Notification {
         val channelId = "ControlX2 Pump Host"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(channelId, "Pump Host Service", NotificationManager.IMPORTANCE_LOW).apply {
+        val channel = NotificationChannel(channelId, this.getString(R.string.comm_pump_host_service), NotificationManager.IMPORTANCE_LOW).apply {
             description = "ControlX2 pump host service"
             setShowBadge(false)
         }
@@ -483,7 +484,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         }
 
         var title = currentPumpData.statusText
-        currentPumpData.lastMessageTime?.let { title += " at ${shortTime(it)}" }
+        currentPumpData.lastMessageTime?.let { title += this.getString(R.string.comm_at_stime, shortTime(it)) }
 
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
@@ -630,7 +631,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         }
 
         started = true
-        Toast.makeText(this, "ControlX2 pump host starting", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_pump_host_starting), Toast.LENGTH_SHORT).show()
         updateNotification("Initializing...")
 
         if (WearPrefs(applicationContext).pumpFinderServiceEnabled()) {
@@ -658,7 +659,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         try {
             unregisterReceiver(bleChangeReceiver)
         } catch (_: Exception) {}
-        Toast.makeText(this, "ControlX2 pump host stopped", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_pump_host_stopped), Toast.LENGTH_SHORT).show()
     }
 
     private fun prefs(context: Context): SharedPreferences? {

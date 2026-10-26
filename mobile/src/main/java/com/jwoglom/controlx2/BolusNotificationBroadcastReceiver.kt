@@ -30,6 +30,7 @@ import com.jwoglom.pumpx2.shared.Hex
 import com.jwoglom.controlx2.Prefs
 import timber.log.Timber
 import java.time.Instant
+import com.jwoglom.controlx2.R
 
 
 class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
@@ -71,8 +72,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                         reply(
                             context, notifId, confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Not Enabled",
-                                "A bolus was requested, but actions affecting insulin delivery are not enabled in the phone app settings."
+                                context?.getString(R.string.bolus_not_enabled) ?: "",
+                                context?.getString(R.string.bolus_was_requested_set_not_enabled) ?: ""
                             )
                         )
                         return
@@ -93,10 +94,10 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                     reply(
                         context, notifId, confirmBolusRequestBaseNotification(
                             context,
-                            "Requesting Bolus",
+                            context?.getString(R.string.bolus_requesting_bolus) ?: "",
                             "${bolusSummaryText(intentRequest)} " +
-                                    "will be delivered"
-                        ).addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                    context?.getString(R.string.bolus_will_be_delivered) ?: ""
+                        ).addAction(R.drawable.decline, context?.getString(R.string.bolus_cancel) ?: "", cancelPendingIntent)
                     )
                 }
             }
@@ -110,8 +111,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                 notifId,
                                 confirmBolusRequestBaseNotification(
                                     context,
-                                    "Bolus Rejected By Pump",
-                                    "The pump reported that it could not initiate the bolus: ${initiateResponse.statusType}"
+                                    context?.getString(R.string.bolus_rejected_by_pump) ?: "",
+                                    context?.getString(R.string.bolus_pump_reported_could_not_initiate_bolus, initiateResponse.statusType) ?: ""
                                 )
                             )
                             resetBolusPrefs(context)
@@ -125,8 +126,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                 notifId,
                                 confirmBolusRequestBaseNotification(
                                     context,
-                                    "Sanity Check Error",
-                                    "Please check your pump to see if the bolus was delivered."
+                                    context?.getString(R.string.bolus_sanity_check_error) ?: "",
+                                    context?.getString(R.string.bolus_check_pump_to_delivered) ?: ""
                                 )
                             )
                             resetBolusPrefs(context)
@@ -148,9 +149,9 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                         reply(
                             context, notifId, confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Requested",
-                                "The ${bolusSummaryText(initiateRequest)} is being prepared."
-                            ).addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                context?.getString(R.string.bolus_requested) ?: "",
+                                context?.getString(R.string.bolus_request_is_being_prepared, bolusSummaryText(initiateRequest)) ?: ""
+                            ).addAction(R.drawable.decline, context?.getString(R.string.bolus_cancel) ?: "", cancelPendingIntent)
                         )
                         
                         // Save initial status and bolusId
@@ -191,18 +192,18 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                             
                             // Determine status text - prioritize completion detection
                             val statusText = when {
-                                bolusCompleted -> "was completed."
-                                currentBolusId == 0 -> "was completed."
-                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> "is being prepared."
-                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> "is being delivered."
-                                else -> "was completed."
+                                bolusCompleted -> context?.getString(R.string.bolus_was_completed) ?: ""
+                                currentBolusId == 0 -> context?.getString(R.string.bolus_was_completed) ?: ""
+                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.REQUESTING -> context?.getString(R.string.bolus_is_being_prepared_2) ?: ""
+                                statusResponse.status == CurrentBolusStatusResponse.CurrentBolusStatus.DELIVERING -> context?.getString(R.string.bolus_is_being_delivered) ?: ""
+                                else -> context?.getString(R.string.bolus_was_completed) ?: ""
                             }
                             
                             // Only show cancel button if bolus is still active
                             val notificationBuilder = confirmBolusRequestBaseNotification(
                                 context,
-                                "Bolus Initiated",
-                                "The ${bolusSummaryText(initiateRequest)} $statusText"
+                                context?.getString(R.string.bolus_initiated) ?: "",
+                                context?.getString(R.string.bolus_status_text, bolusSummaryText(initiateRequest), statusText) ?: ""
                             )
                             
                             if (bolusCompleted || currentBolusId == 0) {
@@ -216,7 +217,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                     dismissIntent,
                                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
                                 )
-                                notificationBuilder.addAction(R.drawable.confirm, "Done", dismissPendingIntent)
+                                notificationBuilder.addAction(R.drawable.confirm, context?.getString(R.string.bolus_done) ?: "", dismissPendingIntent)
                             } else {
                                 val cancelIntent =
                                     Intent(context, BolusNotificationBroadcastReceiver::class.java).apply {
@@ -229,7 +230,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                     cancelIntent,
                                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_ONE_SHOT
                                 )
-                                notificationBuilder.addAction(R.drawable.decline, "Cancel", cancelPendingIntent)
+                                notificationBuilder.addAction(R.drawable.decline, context?.getString(R.string.bolus_cancel) ?: "", cancelPendingIntent)
                             }
                             
                             reply(context, notifId, notificationBuilder)
@@ -260,8 +261,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 reply(
                     context, notifId, confirmBolusRequestBaseNotification(
                         context,
-                        "Bolus Rejected By Phone",
-                        "The bolus will not be completed."
+                        context?.getString(R.string.bolus_rejected_by_phone) ?: "",
+                        context?.getString(R.string.bolus_will_not_be_completed) ?: ""
                     )
                 )
                 resetBolusPrefs(context)
@@ -296,8 +297,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                     notifId,
                     confirmBolusRequestBaseNotification(
                         context,
-                        "Bolus Receiver Request Invalid",
-                        "The bolus will not be delivered."
+                        context?.getString(R.string.bolus_receiver_request_invalid) ?: "",
+                        context?.getString(R.string.bolus_will_not_be_delivered) ?: ""
                     )
                 )
                 resetBolusPrefs(context)
@@ -313,7 +314,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             reply(
                 context,
                 notifId,
-                confirmBolusRequestBaseNotification(context, "Bolus Error", "Invalid intent.")
+                confirmBolusRequestBaseNotification(context, context?.getString(R.string.bolus_error) ?: "", context?.getString(R.string.bolus_invalid_intent) ?: "")
             )
             resetBolusPrefs(context)
             return null
@@ -330,8 +331,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 notifId,
                 confirmBolusRequestBaseNotification(
                     context,
-                    "Bolus Request Expired",
-                    "The bolus request expired ${shortTimeAgo(Instant.now().plusMillis(expired))}. Boluses time out 1 minute after they are requested."
+                    context?.getString(R.string.bolus_request_expired) ?: "",
+                    context?.getString(R.string.bolus_request_expired_boluses_time_out, shortTimeAgo(Instant.now().plusMillis(expired))) ?: ""
                 )
             )
             resetBolusPrefs(context)
@@ -345,8 +346,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 notifId,
                 confirmBolusRequestBaseNotification(
                     context,
-                    "Bolus Request Invalid",
-                    "The bolus request was invalid: $intentRequest"
+                    context?.getString(R.string.bolus_request_invalid) ?: "",
+                    context?.getString(R.string.bolus_request_was_invalid_intent, intentRequest) ?: ""
                 )
             )
             resetBolusPrefs(context)
@@ -358,7 +359,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             reply(
                 context,
                 notifId,
-                confirmBolusRequestBaseNotification(context, "Bolus Error", "Mismatched intent.")
+                confirmBolusRequestBaseNotification(context, context?.getString(R.string.bolus_error) ?: "", context?.getString(R.string.bolus_mismatched_intent) ?: "")
             )
             resetBolusPrefs(context)
             return null

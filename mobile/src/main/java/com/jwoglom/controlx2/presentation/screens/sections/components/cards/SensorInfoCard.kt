@@ -36,6 +36,8 @@ import com.jwoglom.controlx2.presentation.theme.Spacing
 import com.jwoglom.controlx2.presentation.theme.SurfaceBackground
 import com.jwoglom.controlx2.shared.enums.CGMSessionState
 import com.jwoglom.controlx2.shared.icons.filled.SensorAlert
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Sensor Info Card displaying CGM sensor expiration and transmitter battery.
@@ -67,28 +69,28 @@ fun SensorInfoCard(
                 if (cgmSessionState == CGMSessionState.ACTIVE) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Expires",
+                        label = stringResource(R.string.cgm_sensor_expires),
                         value = if (!sensorExpiration.isNullOrEmpty()) sensorExpiration else null,
                         color = getSensorExpirationColor(sensorExpiration)
                     )
                 } else if (cgmSessionState == CGMSessionState.STARTING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Starting",
+                        label = stringResource(R.string.cgm_sensor_starting),
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPING) {
                     SensorItem(
                         icon = Icons.Default.Sensors,
-                        label = "Sensor Stopping",
+                        label = stringResource(R.string.cgm_sensor_stopping),
                         value = null,
                         color = GlucoseColors.InRange
                     )
                 } else if (cgmSessionState == CGMSessionState.STOPPED) {
                     SensorItem(
                         icon = Icons.Default.SensorAlert,
-                        label = "No CGM Sensor Active",
+                        label = stringResource(R.string.cgm_no_cgm_sensor_active),
                         value = null,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -97,7 +99,7 @@ fun SensorInfoCard(
                 if (!transmitterBattery.isNullOrEmpty()) {
                     SensorItem(
                         icon = getTransmitterBatteryIcon(transmitterBattery),
-                        label = "Transmitter",
+                        label = stringResource(R.string.cgm_transmitter),
                         value = transmitterBattery ?: "--",
                         color = getTransmitterBatteryColor(transmitterBattery)
                     )

@@ -23,6 +23,8 @@ import com.jwoglom.controlx2.presentation.navigation.Screen
 import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.enums.DeviceRole
 import com.jwoglom.controlx2.util.StatePrefs
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch settings hub. Single entry point for all watch-local configuration so
@@ -57,7 +59,7 @@ fun SettingsHubScreen(
             if (ffEnabled) {
                 Chip(
                     onClick = { navController.navigate(Screen.RoleSelection.route) },
-                    label = { Text("Role", fontSize = 13.sp) },
+                    label = { Text(stringResource(R.string.settings_role), fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -70,7 +72,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.TempBasalSet.route) },
-                label = { Text("Temp basal", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_temp_basal), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -78,7 +80,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.ProfileSwitch.route) },
-                label = { Text("Active profile", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_active_profile), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -86,7 +88,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.SleepModeSet.route) },
-                label = { Text("Sleep mode", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_sleep_mode), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -94,7 +96,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.ExerciseModeSet.route) },
-                label = { Text("Exercise mode", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_exercise_mode), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -102,7 +104,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.Notifications.route) },
-                label = { Text("Pump alerts", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_pump_alerts), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -110,7 +112,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.CGMTransmitter.route) },
-                label = { Text("CGM sensor", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_cgm_sensor), fontSize = 13.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -123,7 +125,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.CgmChart.route) },
-                    label = { Text("CGM chart", fontSize = 13.sp) },
+                    label = { Text(stringResource(R.string.settings_cgm_chart), fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -139,7 +141,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.NightscoutSettings.route) },
-                    label = { Text("Nightscout", fontSize = 13.sp) },
+                    label = { Text(stringResource(R.string.settings_nightscout), fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -147,7 +149,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.XdripSettings.route) },
-                    label = { Text("xDrip+", fontSize = 13.sp) },
+                    label = { Text(stringResource(R.string.settings_x_drip), fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -156,7 +158,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { sendPhoneCommand("force-reload") },
-                label = { Text("Force reload", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_force_reload), fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -164,7 +166,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = sendPhoneOpenActivity,
-                label = { Text("Open on phone", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_open_on_phone), fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -172,7 +174,7 @@ fun SettingsHubScreen(
         item {
             Chip(
                 onClick = { navController.navigate(Screen.FeatureFlags.route) },
-                label = { Text("Feature flags", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.settings_feature_flags), fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )

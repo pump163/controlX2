@@ -34,6 +34,8 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import java.time.LocalDateTime
 import kotlin.math.max
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun HistoryLogSyncProgressBar(
@@ -100,7 +102,7 @@ fun HistoryLogSyncProgressBar(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "History Log Sync",
+                    text = stringResource(R.string.history_log_sync),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
@@ -108,7 +110,7 @@ fun HistoryLogSyncProgressBar(
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = if (isSynced) {
-                        "Synced"
+                        stringResource(R.string.history_synced)
                     } else {
                         "$syncedLogs / $totalLogs"
                     },
@@ -134,7 +136,7 @@ fun HistoryLogSyncProgressBar(
             if (!isSynced && totalLogs > 0) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${(progress * 100).toInt()}% complete (${totalLogs - syncedLogs} logs remaining)",
+                    text = stringResource(R.string.history_complete_logs_remaining, (progress * 100).toInt(), totalLogs - syncedLogs),
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

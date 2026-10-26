@@ -31,6 +31,8 @@ import com.jwoglom.pumpx2.pump.messages.builders.IDPManager
 import com.jwoglom.pumpx2.pump.messages.models.MinsTime
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun AddSegmentDialog(
@@ -52,7 +54,7 @@ fun AddSegmentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Add Profile Segment")
+            Text(stringResource(R.string.profile_add_profile_segment))
         },
         text = {
             LazyColumn(
@@ -62,11 +64,11 @@ fun AddSegmentDialog(
                     .padding(horizontal = 0.dp),
             ) {
                 item {
-                    Text("Adding to ${profile.idpSettingsResponse.name} (#${profile.idpId})", fontSize = 14.sp)
+                    Text(stringResource(R.string.profile_adding_to, profile.idpSettingsResponse.name, profile.idpId), fontSize = 14.sp)
                 }
                 item {
                     Text(
-                        "Start Time",
+                        stringResource(R.string.profile_start_time),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -81,8 +83,8 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        placeholder = { Text("e.g., 1.0") },
+                        label = { Text(stringResource(R.string.profile_basal_rate_u_hr)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_1_0)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -91,9 +93,9 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
-                        placeholder = { Text("e.g., 10g") },
+                        label = { Text(stringResource(R.string.profile_carb_ratio_g_u)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_10_1_10_ratio)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_10g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -102,8 +104,8 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG") },
-                        placeholder = { Text("e.g., 110") },
+                        label = { Text(stringResource(R.string.profile_target_bg_2)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_110)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -112,9 +114,9 @@ fun AddSegmentDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF (Insulin Sensitivity Factor)") },
-                        supportingText = { Text("Example: 50 = 1u:50 mg/dL") },
-                        placeholder = { Text("e.g., 50") },
+                        label = { Text(stringResource(R.string.profile_isf_insulin_sensitivity_factor)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_50_1u_50_mgdl)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_50)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -170,14 +172,14 @@ fun AddSegmentDialog(
                     }
                 }
             ) {
-                Text("Add Segment")
+                Text(stringResource(R.string.profile_add_segment))
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.profile_cancel))
             }
         }
     )

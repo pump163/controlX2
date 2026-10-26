@@ -50,6 +50,8 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateActivatedHis
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateCompletedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.TubingFilledHistoryLog
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * PUMP_HOST-only view of the watch's locally-persisted pump history log.
@@ -95,7 +97,7 @@ fun HistoryLogScreen(
         when {
             pumpSid < 0 -> item {
                 Text(
-                    text = "No pump connected yet. History will appear after the first pump connection.",
+                    text = stringResource(R.string.history_no_pump_conn_yet_history_will_appear),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -103,7 +105,7 @@ fun HistoryLogScreen(
             }
             items.isEmpty() -> item {
                 Text(
-                    text = "No recent history events.",
+                    text = stringResource(R.string.history_no_recent_history_events),
                     fontSize = 12.sp,
                     modifier = Modifier.padding(16.dp),
                 )

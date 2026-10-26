@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jwoglom.controlx2.R
+import androidx.compose.ui.res.stringResource
 
 const val CartridgeMax = 200
 
@@ -41,7 +42,7 @@ fun HorizCartridgeIcon(
                 modifier = Modifier.height(height - 2.dp)
             ) {
                 Text(
-                    "${cartridgeAmount}u${suffix}",
+                    stringResource(R.string.cartridge_u, cartridgeAmount, suffix),
                     color = color,
                     textAlign = TextAlign.Center
                 )
@@ -49,14 +50,14 @@ fun HorizCartridgeIcon(
             Box {
                 Icon(
                     getPainterForCartridgePercent(percent),
-                    "Pump cartridge icon",
+                    stringResource(R.string.cartridge_pump_cartridge_icon),
                     tint = color,
                     modifier = modifier.height(height)
                 )
                 if (it == 0) {
                     Icon(
                         painterResource(R.drawable.cartridge_horiz_x),
-                        "Pump cartridge empty",
+                        stringResource(R.string.cartridge_pump_cartridge_empty),
                         tint = Color.Red,
                         modifier = modifier.height(height)
                     )

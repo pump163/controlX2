@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.KingBed
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun LandingModeActionsRow(
@@ -35,8 +37,8 @@ fun LandingModeActionsRow(
         item {
             Chip(
                 onClick = onExerciseClick,
-                label = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = "Exercise") },
-                secondaryLabel = { Text(if (controlIQMode == UserMode.EXERCISE) "ON" else "OFF", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                label = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = stringResource(R.string.dashboard_exercise)) },
+                secondaryLabel = { Text(if (controlIQMode == UserMode.EXERCISE) stringResource(R.string.dashboard_on) else stringResource(R.string.dashboard_off), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -44,8 +46,8 @@ fun LandingModeActionsRow(
         item {
             Chip(
                 onClick = onSleepClick,
-                label = { Icon(Icons.Filled.KingBed, contentDescription = "Sleep") },
-                secondaryLabel = { Text(if (controlIQMode == UserMode.SLEEP) "ON" else "OFF", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                label = { Icon(Icons.Filled.KingBed, contentDescription = stringResource(R.string.dashboard_sleep)) },
+                secondaryLabel = { Text(if (controlIQMode == UserMode.SLEEP) stringResource(R.string.dashboard_on) else stringResource(R.string.dashboard_off), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -61,12 +63,12 @@ fun LandingModeActionsRow(
                 label = {
                     Icon(
                         imageVector = if (suspended) Icons.Filled.PlayArrow else Icons.Filled.Stop,
-                        contentDescription = if (suspended) "Resume insulin" else "Stop insulin",
+                        contentDescription = if (suspended) stringResource(R.string.dashboard_resume_insulin) else stringResource(R.string.dashboard_stop_insulin),
                     )
                 },
                 secondaryLabel = {
                     Text(
-                        text = if (suspended) "STOPPED" else "ON",
+                        text = if (suspended) stringResource(R.string.dashboard_stopped) else stringResource(R.string.dashboard_on),
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )

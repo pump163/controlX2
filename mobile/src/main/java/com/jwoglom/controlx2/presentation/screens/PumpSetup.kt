@@ -70,6 +70,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.jwoglom.controlx2.shared.MessagePaths
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun PumpSetup(
@@ -112,7 +114,7 @@ fun PumpSetup(
         }
     }
     DialogScreen(
-        "Pump Setup",
+        stringResource(R.string.setup_pump_setup),
         actionContent = {
             IconButton(onClick = {
                 showAdvancedPairingSettings = true
@@ -131,7 +133,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "skip_notif_permission".toByteArray())
                         }
                     ) {
-                        Text("Continue Without Permission")
+                        Text(stringResource(R.string.setup_cont_without_perm))
                     }
                 }
                 else -> {
@@ -169,9 +171,9 @@ fun PumpSetup(
                         }
                     ) {
                         if (ds.pumpSetupStage.value in resettableStages) {
-                            Text("Reset")
+                            Text(stringResource(R.string.setup_reset))
                         } else {
-                            Text("Back")
+                            Text(stringResource(R.string.setup_back))
                         }
                     }
                 }
@@ -183,7 +185,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "".toByteArray())
                         }
                     ) {
-                        Text("Retry")
+                        Text(stringResource(R.string.setup_retry))
                     }
                 }
                 PumpSetupStage.PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE,
@@ -204,7 +206,7 @@ fun PumpSetup(
                             }
                         }
                     ) {
-                        Text("Pair")
+                        Text(stringResource(R.string.setup_pair))
                     }
                 }
                 PumpSetupStage.PUMPX2_INVALID_PAIRING_CODE -> {
@@ -213,7 +215,7 @@ fun PumpSetup(
                             sendMessage(MessagePaths.TO_SERVER_RESTART_PUMP_FINDER, "".toByteArray())
                         }
                     ) {
-                        Text("Retry")
+                        Text(stringResource(R.string.setup_retry))
                     }
                 }
                 PumpSetupStage.PUMPX2_PUMP_CONNECTED -> {
@@ -223,7 +225,7 @@ fun PumpSetup(
                             Prefs(context).setPumpSetupComplete(true)
                         }
                     ) {
-                        Text("Next")
+                        Text(stringResource(R.string.setup_next))
                     }
                 }
                 else -> {
@@ -261,7 +263,7 @@ fun PumpSetup(
                             }
 
                             item {
-                                HeaderLine("Advanced Pairing")
+                                HeaderLine(stringResource(R.string.setup_advanced_pairing))
                             }
 
                             if (pumpStateStatus != null) {
@@ -287,7 +289,7 @@ fun PumpSetup(
                                                 pumpStateJson = it
                                             }
                                         }) {
-                                            Text("Read from clipboard")
+                                            Text(stringResource(R.string.setup_read_from_clipboard))
                                         }
                                     }
                                     item {
@@ -298,17 +300,17 @@ fun PumpSetup(
                                             try {
                                                 PumpState.importState(context, pumpStateJson)
                                                 pumpStateStatus =
-                                                    "Success, application will reload with new state momentarily..."
+                                                    context.getString(R.string.setup_success_app_will_reload_shortly)
                                                 coroutineScope.launch {
                                                     delay(1000)
                                                     triggerAppReload(context)
                                                 }
 
                                             } catch (e: Exception) {
-                                                pumpStateStatus = "Error importing state: ${e}"
+                                                pumpStateStatus = context.getString(R.string.setup_error_importing_state, e)
                                             }
                                         }) {
-                                            Text("Apply")
+                                            Text(stringResource(R.string.setup_apply))
                                         }
                                     }
                                     item {
@@ -318,7 +320,7 @@ fun PumpSetup(
                                         Button(onClick = {
                                             showAdvancedPairingSettings = false
                                         }) {
-                                            Text("Cancel")
+                                            Text(stringResource(R.string.setup_cancel))
                                         }
                                     }
                                 }
@@ -346,9 +348,9 @@ fun PumpSetup(
                         }
                         Line(buildAnnotatedString {
                             withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
-                                append("The pairing code was invalid. ")
+                                append(stringResource(R.string.setup_pair_code_was_invalid))
                             }
-                            append("The code was either entered incorrectly or timed out.")
+                            append(stringResource(R.string.setup_code_enter_incorrectly_or_timeout))
                         })
                         Line(buildAnnotatedString {
                             withStyle(
@@ -356,12 +358,12 @@ fun PumpSetup(
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
-                                append("For t:slim X2: ")
+                                append(stringResource(R.string.setup_for_t_slim_x2))
                             }
-                            append("Make sure the 'Pair Device' dialog is open on your pump.")
+                            append(stringResource(R.string.setup_make_sure_pair_device_dialog_open_pump))
                         })
                     } else {
-                        Line("Connecting to '${setupDeviceName.value}'")
+                        Line(context.getString(R.string.setup_connecting_to_3, (setupDeviceName.value ?: "")))
                     }
                     Spacer(Modifier.height(16.dp))
                     when (ds.setupDeviceName.value?.let { determinePumpModel(it) }) {
@@ -372,12 +374,12 @@ fun PumpSetup(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append("For t:slim X2: ")
+                                    append(stringResource(R.string.setup_for_t_slim_x2))
                                 }
 
-                                append("Please enter the pairing code displayed at:")
+                                append(stringResource(R.string.setup_enter_pair_code_displayed_at))
                             })
-                            Line("Bluetooth Settings > Pair Device", bold = true)
+                            Line(context.getString(R.string.setup_bt_settings_pair_device), bold = true)
                         }
                         KnownDeviceModel.MOBI -> {
                             Line(buildAnnotatedString {
@@ -386,9 +388,9 @@ fun PumpSetup(
                                         fontWeight = FontWeight.Bold
                                     )
                                 ) {
-                                    append("For Mobi: ")
+                                    append(stringResource(R.string.setup_for_mobi))
                                 }
-                                append("Enter the pairing PIN located adjacent to the cartridge area.")
+                                append(stringResource(R.string.setup_enter_pairing_pin_located_adjacent))
                             })
                         }
                         else -> {}

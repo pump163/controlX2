@@ -37,6 +37,8 @@ import com.jwoglom.controlx2.shared.enums.DeviceRole
 import com.jwoglom.controlx2.util.StatePrefs
 import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun RoleSelectionScreen(
@@ -56,30 +58,30 @@ fun RoleSelectionScreen(
     var showRescueDialog by remember { mutableStateOf(false) }
 
     val roleLabel = when (currentRole) {
-        DeviceRole.PUMP_HOST -> "Watch (pump-host)"
-        DeviceRole.CLIENT -> "Phone (pump-host)"
+        DeviceRole.PUMP_HOST -> stringResource(R.string.role_switch_watch_pump_host)
+        DeviceRole.CLIENT -> stringResource(R.string.role_switch_phone_pump_host)
     }
     val newRole = when (currentRole) {
         DeviceRole.PUMP_HOST -> DeviceRole.CLIENT
         DeviceRole.CLIENT -> DeviceRole.PUMP_HOST
     }
     val newRoleLabel = when (newRole) {
-        DeviceRole.PUMP_HOST -> "Watch (pump-host)"
-        DeviceRole.CLIENT -> "Phone (pump-host)"
+        DeviceRole.PUMP_HOST -> stringResource(R.string.role_switch_watch_pump_host)
+        DeviceRole.CLIENT -> stringResource(R.string.role_switch_phone_pump_host)
     }
 
     val walkthrough = when (newRole) {
         DeviceRole.PUMP_HOST ->
-            "The watch restarts as pump-host and the phone flips to client. Place the Mobi on the charging pad to re-pair."
+            stringResource(R.string.role_switch_watch_restarts_as_pump_host)
         DeviceRole.CLIENT ->
-            "The watch restarts as client and the phone takes over as pump-host. Place the Mobi on the charging pad to re-pair."
+            stringResource(R.string.role_switch_watch_restarts_as_client_and)
     }
 
     if (showRescueDialog) {
         Alert(
             title = {
                 Text(
-                    text = "Reset & start over?",
+                    text = stringResource(R.string.role_switch_reset_start_over_query),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground,
                 )
@@ -89,7 +91,7 @@ fun RoleSelectionScreen(
                     onClick = { showRescueDialog = false },
                     colors = ButtonDefaults.secondaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.role_switch_cancel))
                 }
             },
             positiveButton = {
@@ -103,19 +105,19 @@ fun RoleSelectionScreen(
                     },
                     colors = ButtonDefaults.primaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Confirm")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.role_switch_confirm))
                 }
             },
             icon = {
                 Image(
                     Icons.Filled.Devices,
-                    "Reset",
+                    stringResource(R.string.role_switch_reset),
                     Modifier.size(24.dp),
                 )
             },
         ) {
             Text(
-                text = "Forces this watch to pump-host and asks the phone to flip to client. Place the Mobi on the charging pad to re-pair.",
+                text = stringResource(R.string.role_switch_force_watch_pump_host),
                 textAlign = TextAlign.Start,
                 style = MaterialTheme.typography.body2,
                 color = MaterialTheme.colors.onBackground,
@@ -125,7 +127,7 @@ fun RoleSelectionScreen(
         Alert(
             title = {
                 Text(
-                    text = "Switch to $newRoleLabel?",
+                    text = stringResource(R.string.role_switch_switch_to_new_role_label_query, newRoleLabel),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground,
                 )
@@ -135,7 +137,7 @@ fun RoleSelectionScreen(
                     onClick = { showConfirmDialog = false },
                     colors = ButtonDefaults.secondaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.role_switch_cancel))
                 }
             },
             positiveButton = {
@@ -149,13 +151,13 @@ fun RoleSelectionScreen(
                     },
                     colors = ButtonDefaults.primaryButtonColors(),
                 ) {
-                    Icon(imageVector = Icons.Filled.Check, contentDescription = "Confirm")
+                    Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.role_switch_confirm))
                 }
             },
             icon = {
                 Image(
                     Icons.Filled.Devices,
-                    "Device role",
+                    stringResource(R.string.role_switch_device_role),
                     Modifier.size(24.dp),
                 )
             },
@@ -176,13 +178,13 @@ fun RoleSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "Pump-host device",
+                text = stringResource(R.string.role_switch_pump_host_device),
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
             Text(
-                text = "Currently: $roleLabel",
+                text = stringResource(R.string.role_switch_currently_role_label, roleLabel),
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
@@ -190,13 +192,13 @@ fun RoleSelectionScreen(
             )
             Chip(
                 onClick = { showConfirmDialog = true },
-                label = { Text("Switch to $newRoleLabel", fontSize = 12.sp) },
+                label = { Text(stringResource(R.string.role_switch_sw_to_new_role_label, newRoleLabel), fontSize = 12.sp) },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
             Chip(
                 onClick = { showRescueDialog = true },
-                label = { Text("Reset & start over", fontSize = 12.sp) },
+                label = { Text(stringResource(R.string.role_switch_reset_start_over), fontSize = 12.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -204,7 +206,7 @@ fun RoleSelectionScreen(
             )
             Chip(
                 onClick = onCancel,
-                label = { Text("Cancel", fontSize = 12.sp) },
+                label = { Text(stringResource(R.string.role_switch_cancel), fontSize = 12.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier
                     .fillMaxWidth()

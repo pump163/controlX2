@@ -40,6 +40,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 import kotlin.math.min
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch CGM trend chart. PUMP_HOST-only since the chart reads from the
@@ -87,7 +89,7 @@ fun CgmChartScreen() {
     val pumpSid = pumpSidLive ?: -1
 
     if (pumpSid < 0 || repo == null) {
-        EmptyMessage(text = "CGM history will appear after the first pump connection.")
+        EmptyMessage(text = stringResource(R.string.cgm_history_will_appear_after_first_pump_conn))
         return
     }
 
@@ -104,7 +106,7 @@ fun CgmChartScreen() {
     val series = remember(items, unit) { buildSeries(items, unit) }
 
     if (series.points.isEmpty()) {
-        EmptyMessage(text = "No CGM readings in the last ${WINDOW_HOURS}h.")
+        EmptyMessage(text = stringResource(R.string.cgm_no_cgm_readings_in_last_h, WINDOW_HOURS))
         return
     }
 
@@ -124,7 +126,7 @@ fun CgmChartScreen() {
         verticalArrangement = Arrangement.Top,
     ) {
         Text(
-            text = "CGM ${WINDOW_HOURS}h",
+            text = stringResource(R.string.cgm_h, WINDOW_HOURS),
             fontSize = 11.sp,
             color = MaterialTheme.colors.onSurfaceVariant,
             textAlign = TextAlign.Center,

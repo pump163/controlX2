@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 data class WizardStepInfo(
     val currentStep: Int,
@@ -52,13 +54,13 @@ fun CartridgeWorkflowScreen(
         ) {
             Text(title, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Normal)
             TextButton(onClick = onCancel, enabled = canCancel) {
-                Text("Cancel")
+                Text(stringResource(R.string.cartridge_cancel))
             }
         }
 
         stepInfo?.let {
             Text(
-                "Step ${it.currentStep} of ${it.totalSteps}",
+                stringResource(R.string.cartridge_step_of, it.currentStep, it.totalSteps),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -105,7 +107,7 @@ fun PrimaryActionButton(
         modifier = Modifier.fillMaxWidth().height(56.dp),
     ) {
         if (loading) {
-            Text("Working...")
+            Text(stringResource(R.string.cartridge_working))
         } else {
             Text(text)
         }

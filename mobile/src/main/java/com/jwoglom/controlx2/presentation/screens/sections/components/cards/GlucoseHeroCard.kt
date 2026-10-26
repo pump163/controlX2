@@ -30,6 +30,8 @@ import com.jwoglom.controlx2.presentation.theme.GlucoseColors
 import com.jwoglom.controlx2.presentation.theme.Spacing
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
 import com.jwoglom.controlx2.shared.util.GlucoseConverter
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun GlucoseHeroCard(
@@ -81,7 +83,7 @@ fun GlucoseHeroCard(
                 } else if (!noCgmConnected) {
                     "--"
                 } else {
-                    "n/a"
+                    stringResource(R.string.dashboard_na)
                 }
 
                 Text(

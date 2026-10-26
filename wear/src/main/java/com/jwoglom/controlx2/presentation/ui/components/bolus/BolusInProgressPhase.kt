@@ -24,6 +24,7 @@ import androidx.wear.compose.material.dialog.Alert
 import androidx.wear.compose.material.dialog.Dialog
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.presentation.DataStore
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BolusInProgressPhase(
@@ -69,7 +70,7 @@ fun BolusInProgressPhase(
         Alert(
             title = {
                 Text(
-                    text = bolusFinalParameters.value?.let { "${it.units}u Bolus" } ?: "",
+                    text = bolusFinalParameters.value?.let { stringResource(R.string.bolus_u_bolus_2, it.units) } ?: "",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
                 )
@@ -80,30 +81,30 @@ fun BolusInProgressPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.bolus_cancel))
                 }
             },
             positiveButton = {},
             scrollState = scrollState,
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), stringResource(R.string.bolus_icon), Modifier.size(24.dp))
             }
         ) {
             Text(
                 text = when {
-                    bolusInitiateResponse.value != null -> "Bolus request received by pump, waiting for response..."
+                    bolusInitiateResponse.value != null -> stringResource(R.string.bolus_request_recv_by_pump_waiting_for_resp)
                     bolusFinalParameters.value != null && bolusMinNotifyThreshold.value != null -> when {
                         bolusFinalParameters.value!!.units >= bolusMinNotifyThreshold.value!! ->
                             if (countdownSeconds > 0)
-                                "The bolus will begin unless canceled on the phone in $countdownSeconds seconds."
+                                stringResource(R.string.bolus_will_begin_unless_canceled_on, countdownSeconds)
                             else if ((wearAutoApproveTimeout.value ?: 0) > 0)
-                                "Auto-approving bolus..."
+                                stringResource(R.string.bolus_auto_approving_bolus)
                             else
-                                "A notification was sent to approve the request."
-                        else -> "Sending request to pump..."
+                                stringResource(R.string.bolus_notice_was_sent_to_approve_request)
+                        else -> stringResource(R.string.bolus_sending_request_to_pump)
                     }
 
-                    else -> "Sending request to phone..."
+                    else -> stringResource(R.string.bolus_sending_request_to_phone)
                 },
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.body2,

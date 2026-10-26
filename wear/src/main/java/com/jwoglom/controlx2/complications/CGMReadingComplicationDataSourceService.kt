@@ -133,7 +133,7 @@ class CGMReadingComplicationDataSourceService : SuspendingComplicationDataSource
             "complicationData: displayType=$displayType readingPair=$readingPair duration=${duration.seconds}s cgmLabel=$cgmLabel cgmNum=$cgmNum"
         )
 
-        val caseContentDescription = "CGM Reading ($displayType)"
+        val caseContentDescription = this.getString(R.string.complication_cgm_reading_disp_type, displayType)
 
         // Create a content description that includes the value information
         val contentDescription = PlainComplicationText.Builder(

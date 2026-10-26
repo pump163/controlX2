@@ -31,6 +31,7 @@ import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse.Can
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BolusCancelledPhase(
@@ -76,13 +77,13 @@ fun BolusCancelledPhase(
             title = {
                 Text(
                     text = when (bolusCancelResponse.value?.status) {
-                        CancelStatus.SUCCESS -> "The bolus was cancelled."
+                        CancelStatus.SUCCESS -> stringResource(R.string.bolus_was_cancelled)
                         CancelStatus.FAILED -> when (bolusInitiateResponse.value) {
-                            null -> "A bolus request was not sent to the pump, so there is nothing to cancel."
-                            else -> "The bolus could not be cancelled: ${snakeCaseToSpace(bolusCancelResponse.value?.reason.toString())}"
+                            null -> stringResource(R.string.bolus_not_sent_nothing_to_cancel)
+                            else -> stringResource(R.string.bolus_could_not_be_cancelled, (snakeCaseToSpace(bolusCancelResponse.value?.reason.toString()) ?: ""))
                         }
 
-                        else -> "Please check your pump to confirm whether the bolus was cancelled."
+                        else -> stringResource(R.string.bolus_please_check_pump_to_confirm_whether)
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -92,11 +93,11 @@ fun BolusCancelledPhase(
                 Text(
                     text = when {
                         matchesBolusId() == true -> lastBolusStatusResponse.value?.deliveredVolume?.let {
-                            if (it == 0L) "A bolus was started and no insulin was delivered." else "${twoDecimalPlaces1000Unit(it)}u was delivered."
+                            if (it == 0L) stringResource(R.string.bolus_was_started_and_no_insulin_delivered) else stringResource(R.string.bolus_twodecimal_u_was_delivered, twoDecimalPlaces1000Unit(it))
                         } ?: ""
 
-                        matchesBolusId() == false -> "No insulin was delivered."
-                        else -> "Checking if any insulin was delivered..."
+                        matchesBolusId() == false -> stringResource(R.string.bolus_no_insulin_was_delivered)
+                        else -> stringResource(R.string.bolus_checking_if_any_insulin_was_delivered)
                     },
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
@@ -108,12 +109,12 @@ fun BolusCancelledPhase(
                     colors = ButtonDefaults.secondaryButtonColors(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.bolus_ok))
                 }
             },
             positiveButton = {},
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), stringResource(R.string.bolus_icon), Modifier.size(24.dp))
             },
             scrollState = scrollState,
         )

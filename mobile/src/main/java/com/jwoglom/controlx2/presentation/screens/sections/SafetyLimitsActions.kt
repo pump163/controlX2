@@ -67,6 +67,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun SafetyLimitsActions(
@@ -164,13 +166,13 @@ fun SafetyLimitsActions(
             content = {
                 item {
 
-                    HeaderLine("Safety Limits")
+                    HeaderLine(stringResource(R.string.safety_limits_safety_limits))
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading safety limits...")
+                        LoadSpinner(stringResource(R.string.safety_limits_loading_safety_limits))
                     }
                 }
 
@@ -178,16 +180,16 @@ fun SafetyLimitsActions(
                 item {
                     val bolus = maxBolusSettings.value
                     ListItem(
-                        headlineContent = { Text("Maximum Bolus") },
+                        headlineContent = { Text(context.getString(R.string.safety_limits_maximum_bolus)) },
                         supportingContent = {
                             if (bolus != null) {
                                 Text(
-                                    "Current: ${InsulinUnit.from1000To1(bolus.maxBolus.toLong())} units\n" +
-                                    "Default: ${InsulinUnit.from1000To1(bolus.maxBolusDefault.toLong())} units\n" +
-                                    "Range: 1 - 25 units"
+                                    context.getString(R.string.safety_limits_current_units, InsulinUnit.from1000To1(bolus.maxBolus.toLong())) +
+                                    context.getString(R.string.safety_limits_default_units, InsulinUnit.from1000To1(bolus.maxBolusDefault.toLong())) +
+                                    context.getString(R.string.safety_limits_range_1_25_units)
                                 )
                             } else {
-                                Text("Loading...")
+                                Text(context.getString(R.string.safety_limits_loading))
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -205,16 +207,16 @@ fun SafetyLimitsActions(
                 item {
                     val basal = basalLimitSettings.value
                     ListItem(
-                        headlineContent = { Text("Maximum Basal Rate") },
+                        headlineContent = { Text(context.getString(R.string.safety_limits_maximum_basal_rate)) },
                         supportingContent = {
                             if (basal != null) {
                                 Text(
-                                    "Current: ${InsulinUnit.from1000To1(basal.basalLimit)} U/hr\n" +
-                                    "Default: ${InsulinUnit.from1000To1(basal.basalLimitDefault)} U/hr\n" +
-                                    "Range: 1 - 15 U/hr"
+                                    context.getString(R.string.safety_limits_current_u_hr, InsulinUnit.from1000To1(basal.basalLimit)) +
+                                    context.getString(R.string.safety_limits_default_u_hr, InsulinUnit.from1000To1(basal.basalLimitDefault)) +
+                                    context.getString(R.string.safety_limits_range_1_15_u_hr)
                                 )
                             } else {
-                                Text("Loading...")
+                                Text(context.getString(R.string.safety_limits_loading))
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -230,7 +232,7 @@ fun SafetyLimitsActions(
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text(context.getString(R.string.safety_limits_back)) },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
@@ -243,12 +245,12 @@ fun SafetyLimitsActions(
     if (showMaxBolusDialog) {
         AlertDialog(
             onDismissRequest = { showMaxBolusDialog = false },
-            title = { Text("Set Maximum Bolus") },
+            title = { Text(stringResource(R.string.safety_limits_set_maximum_bolus)) },
             text = {
                 OutlinedTextField(
                     value = maxBolusText,
                     onValueChange = { maxBolusText = it },
-                    label = { Text("Max bolus (units, 1-25)") },
+                    label = { Text(stringResource(R.string.safety_limits_max_bolus_units_1_25)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -269,18 +271,18 @@ fun SafetyLimitsActions(
                                 refresh()
                             }
                         } else {
-                            Toast.makeText(context, "Must be between 1 and 25 units", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.safety_limits_must_be_between_1_and_25_units), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.safety_limits_enter_valid_number), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.safety_limits_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showMaxBolusDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.safety_limits_cancel))
                 }
             }
         )
@@ -290,12 +292,12 @@ fun SafetyLimitsActions(
     if (showMaxBasalDialog) {
         AlertDialog(
             onDismissRequest = { showMaxBasalDialog = false },
-            title = { Text("Set Maximum Basal Rate") },
+            title = { Text(stringResource(R.string.safety_limits_set_maximum_basal_rate)) },
             text = {
                 OutlinedTextField(
                     value = maxBasalText,
                     onValueChange = { maxBasalText = it },
-                    label = { Text("Max basal rate (U/hr, 1-15)") },
+                    label = { Text(stringResource(R.string.safety_limits_max_basal_rate_u_hr_1_15)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -316,18 +318,18 @@ fun SafetyLimitsActions(
                                 refresh()
                             }
                         } else {
-                            Toast.makeText(context, "Must be between 1 and 15 U/hr", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.safety_limits_must_be_between_1_and_15_u_hr), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(context, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.safety_limits_enter_valid_number), Toast.LENGTH_SHORT).show()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.safety_limits_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showMaxBasalDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.safety_limits_cancel))
                 }
             }
         )

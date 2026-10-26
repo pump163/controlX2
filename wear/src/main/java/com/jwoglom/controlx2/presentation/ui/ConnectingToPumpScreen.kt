@@ -20,6 +20,8 @@ import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.MainActivity
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Shown while [WearPumpCommService] is establishing the initial pump connection
@@ -46,7 +48,7 @@ fun ConnectingToPumpScreen() {
     ) {
         CircularProgressIndicator()
         Text(
-            text = "Connecting to pump",
+            text = stringResource(R.string.setup_connecting_to_pump),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -63,7 +65,7 @@ fun ConnectingToPumpScreen() {
         }
         Chip(
             onClick = { (context as? MainActivity)?.stopPumpService() },
-            label = { Text("Stop", fontSize = 12.sp) },
+            label = { Text(stringResource(R.string.setup_stop), fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

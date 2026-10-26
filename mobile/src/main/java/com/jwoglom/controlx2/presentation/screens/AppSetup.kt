@@ -49,6 +49,8 @@ import com.jwoglom.controlx2.shared.enums.GlucoseUnit
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun AppSetup(
@@ -75,7 +77,7 @@ fun AppSetup(
     var showUpdatesWarningDialog by remember { mutableStateOf(false) }
 
     DialogScreen(
-        "App Setup",
+        stringResource(R.string.setup_app_setup),
         buttonContent = {
             Button(
                 onClick = {
@@ -85,7 +87,7 @@ fun AppSetup(
                     Prefs(context).setAppSetupComplete(false)
                 }
             ) {
-                Text("Back")
+                Text(stringResource(R.string.setup_back))
             }
             Button(
                 onClick = {
@@ -99,7 +101,7 @@ fun AppSetup(
                     }
                 }
             ) {
-                Text("Continue")
+                Text(stringResource(R.string.setup_continue))
             }
         }
     ) {
@@ -147,10 +149,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Insulin Delivery Actions")
+                    Text(context.getString(R.string.setup_insulin_delivery_actions))
                 },
                 supportingContent = {
-                    Text("Allow remote boluses from your phone or watch.")
+                    Text(context.getString(R.string.setup_allow_remote_boluses_from_phone_watch))
                 },
                 trailingContent = {
                     Switch(
@@ -194,19 +196,19 @@ fun AppSetup(
             if (insulinDeliveryActions || preview) {
                 ListItem(
                     headlineContent = {
-                        Text("Bolus Confirmation Threshold")
+                        Text(context.getString(R.string.setup_bolus_confirmation_threshold))
                     },
                     supportingContent = {
                         Text(
                             bolusConfirmationInsulinThreshold.let {
-                                if (it == 0.0) "Require confirmation for all boluses"
-                                else "Require confirmation for boluses above ${twoDecimalPlaces(it)}u"
+                                if (it == 0.0) stringResource(R.string.setup_require_confirmation_for_all_boluses)
+                                else stringResource(R.string.setup_require_confirmation_for_bolus_above_u, twoDecimalPlaces(it))
                             }
                         )
                     },
                     trailingContent = {
                         Text(
-                            text = bolusConfirmationInsulinThreshold.let { if (it == 0.0) "always" else "${twoDecimalPlaces(it)}u" },
+                            text = bolusConfirmationInsulinThreshold.let { if (it == 0.0) stringResource(R.string.setup_always) else stringResource(R.string.setup_twodecimal_u, twoDecimalPlaces(it)) },
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
@@ -221,23 +223,23 @@ fun AppSetup(
             if (insulinDeliveryActions || preview) {
                 ListItem(
                     headlineContent = {
-                        Text("Wear Auto-Approve Timeout")
+                        Text(context.getString(R.string.setup_wear_auto_approve_timeout))
                     },
                     supportingContent = {
                         Text(
                             when (wearAutoApproveTimeout) {
-                                0 -> "Never auto-approve (require manual confirmation)"
-                                else -> "Auto-approve after ${wearAutoApproveTimeout}s if not canceled"
+                                0 -> context.getString(R.string.setup_never_auto_approve)
+                                else -> context.getString(R.string.setup_auto_approve_after_s_if_not_canceled, wearAutoApproveTimeout)
                             }
                         )
                     },
                     trailingContent = {
                         Text(
                             text = when (wearAutoApproveTimeout) {
-                                0 -> "never"
-                                60 -> "1 min"
-                                300 -> "5 min"
-                                else -> "${wearAutoApproveTimeout}s"
+                                0 -> stringResource(R.string.setup_never)
+                                60 -> stringResource(R.string.setup_1_min)
+                                300 -> stringResource(R.string.setup_5_min)
+                                else -> stringResource(R.string.setup_wear_autoapprove_timeout_s, wearAutoApproveTimeout)
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -252,10 +254,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Check for Updates")
+                    Text(context.getString(R.string.setup_check_for_updates))
                 },
                 supportingContent = {
-                    Text("Automatically check for ControlX2 updates")
+                    Text(context.getString(R.string.setup_auto_check_for_ctrl_x2_updates))
                 },
                 trailingContent = {
                     Switch(
@@ -284,10 +286,10 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Auto Fetch History Logs")
+                    Text(context.getString(R.string.setup_auto_fetch_history_logs))
                 },
                 supportingContent = {
-                    Text("Fetching history logs allows for rendering a CGM graph on the dashboard screen.")
+                    Text(context.getString(R.string.setup_fetching_history_logs_allows_cgm_graph))
                 },
                 trailingContent = {
                     Switch(
@@ -308,14 +310,14 @@ fun AppSetup(
         item {
             ListItem(
                 headlineContent = {
-                    Text("Glucose Unit")
+                    Text(context.getString(R.string.setup_glucose_unit))
                 },
                 supportingContent = {
-                    Text("Choose between mg/dL or mmol/L for glucose values")
+                    Text(context.getString(R.string.setup_choose_bg_mgdl_or_mmol))
                 },
                 trailingContent = {
                     Text(
-                        text = glucoseUnit?.abbreviation ?: "Not Set",
+                        text = glucoseUnit?.abbreviation ?: stringResource(R.string.setup_not_set),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -331,7 +333,7 @@ fun AppSetup(
     if (showGlucoseUnitDialog) {
         AlertDialog(
             onDismissRequest = { showGlucoseUnitDialog = false },
-            title = { Text("Select Glucose Unit") },
+            title = { Text(stringResource(R.string.setup_select_glucose_unit)) },
             text = {
                 Column {
                     GlucoseUnit.values().forEach { unit ->
@@ -364,7 +366,7 @@ fun AppSetup(
             },
             confirmButton = {
                 TextButton(onClick = { showGlucoseUnitDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.setup_cancel))
                 }
             }
         )
@@ -374,9 +376,9 @@ fun AppSetup(
     if (showInsulinWarningDialog) {
         AlertDialog(
             onDismissRequest = { showInsulinWarningDialog = false },
-            title = { Text("Warning") },
+            title = { Text(stringResource(R.string.setup_warning)) },
             text = {
-                Text("WARNING: THIS SOFTWARE IS UNOFFICIAL AND EXPERIMENTAL. ENABLING INSULIN DELIVERY ACTIONS WILL ALLOW YOUR PHONE OR WATCH TO REMOTELY SEND BOLUSES TO YOUR PUMP. BE AWARE OF THE SECURITY AND SAFETY IMPLICATIONS OF ENABLING THIS SETTING. FOR SAFETY, VERIFY BOLUS OPERATIONS ON YOUR PUMP. THE PUMP WILL BEEP WHEN A BOLUS COMMAND IS SENT.")
+                Text(stringResource(R.string.setup_warning_soft_is_unofficial_experimental))
             },
             confirmButton = {
                 Button(onClick = {
@@ -391,12 +393,12 @@ fun AppSetup(
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
                     }
                 }) {
-                    Text("Enable")
+                    Text(stringResource(R.string.setup_enable))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showInsulinWarningDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.setup_cancel))
                 }
             }
         )
@@ -406,9 +408,9 @@ fun AppSetup(
     if (showUpdatesWarningDialog) {
         AlertDialog(
             onDismissRequest = { showUpdatesWarningDialog = false },
-            title = { Text("Disable Update Checks") },
+            title = { Text(stringResource(R.string.setup_disable_update_checks)) },
             text = {
-                Text("Please regularly check the ControlX2 GitHub page and subscribe to release notifications to ensure you stay up to date. Warning: by disabling this option, you will not be alerted to any new feature, security, or safety updates.")
+                Text(stringResource(R.string.setup_regularly_check_ctrl_x2_updates))
             },
             confirmButton = {
                 Button(onClick = {
@@ -416,12 +418,12 @@ fun AppSetup(
                     Prefs(context).setCheckForUpdates(false)
                     showUpdatesWarningDialog = false
                 }) {
-                    Text("Disable")
+                    Text(stringResource(R.string.setup_disable))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showUpdatesWarningDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.setup_cancel))
                 }
             }
         )
@@ -430,18 +432,18 @@ fun AppSetup(
     // Wear Auto-Approve Timeout Dialog
     if (showWearAutoApproveDialog) {
         val options = listOf(
-            0 to "Never (require manual confirmation)",
-            30 to "30 seconds",
-            60 to "1 minute",
-            300 to "5 minutes",
+            0 to stringResource(R.string.setup_never_require_manual_confirmation),
+            30 to stringResource(R.string.setup_30_seconds),
+            60 to stringResource(R.string.setup_1_minute),
+            300 to stringResource(R.string.setup_5_minutes),
         )
         AlertDialog(
             onDismissRequest = { showWearAutoApproveDialog = false },
-            title = { Text("Wear Auto-Approve Timeout") },
+            title = { Text(stringResource(R.string.setup_wear_auto_approve_timeout)) },
             text = {
                 Column {
                     Text(
-                        "When a bolus is requested from the watch, it will be auto-approved after this timeout unless canceled on the phone.",
+                        stringResource(R.string.setup_when_a_bolus_is_wear_auto_approved),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -470,7 +472,7 @@ fun AppSetup(
             },
             confirmButton = {
                 TextButton(onClick = { showWearAutoApproveDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.setup_cancel))
                 }
             }
         )
@@ -481,13 +483,13 @@ fun AppSetup(
         var thresholdInput by remember { mutableStateOf(bolusConfirmationInsulinThreshold.let { if (it == 0.0) "" else "$it" }) }
         AlertDialog(
             onDismissRequest = { showBolusThresholdDialog = false },
-            title = { Text("Bolus Confirmation Threshold") },
+            title = { Text(stringResource(R.string.setup_bolus_confirmation_threshold)) },
             text = {
                 OutlinedTextField(
                     value = thresholdInput,
                     onValueChange = { thresholdInput = it },
-                    label = { Text("Threshold (units)") },
-                    supportingText = { Text("Enter 0 to always require confirmation") },
+                    label = { Text(stringResource(R.string.setup_threshold_units)) },
+                    supportingText = { Text(stringResource(R.string.setup_enter_0_to_always_require_confirmation)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -499,12 +501,12 @@ fun AppSetup(
                     Prefs(context).setBolusConfirmationInsulinThreshold(newValue)
                     showBolusThresholdDialog = false
                 }) {
-                    Text("Save")
+                    Text(stringResource(R.string.setup_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showBolusThresholdDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.setup_cancel))
                 }
             }
         )

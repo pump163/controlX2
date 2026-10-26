@@ -20,7 +20,7 @@ class PumpButtonComplicationDataSourceService : SuspendingComplicationDataSource
     private fun complicationData(): ButtonComplicationData {
         return ButtonComplicationData(
             tag,
-            "Pump",
+            this.getString(R.string.complication_pump),
             Icon.createWithResource(this, R.drawable.pump)
         )
     }

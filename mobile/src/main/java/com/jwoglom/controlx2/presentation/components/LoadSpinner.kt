@@ -12,9 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
-fun LoadSpinner(loadingText: String = "Loading...") {
+fun LoadSpinner(loadingText: String = stringResource(R.string.app_loading)) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) {
         Spacer(Modifier.height(16.dp))
         CircularProgressIndicator(

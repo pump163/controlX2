@@ -41,6 +41,8 @@ import com.jwoglom.controlx2.presentation.theme.InsulinColors
 import com.jwoglom.controlx2.presentation.theme.Spacing
 import com.jwoglom.controlx2.presentation.theme.SurfaceBackground
 import com.jwoglom.controlx2.shared.enums.UserMode
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Active Therapy Card displaying current basal rate, last bolus, and Control-IQ mode.
@@ -71,21 +73,21 @@ fun ActiveTherapyCard(
             ) {
                 TherapyItem(
                     icon = Icons.Default.Water,
-                    label = "Basal",
+                    label = stringResource(R.string.dashboard_basal),
                     value = basalRate ?: "--",
                     color = InsulinColors.Basal
                 )
 
                 TherapyItem(
                     icon = Icons.Default.Vaccines,
-                    label = "Last Bolus",
+                    label = stringResource(R.string.dashboard_last_bolus),
                     value = lastBolus ?: "--",
                     color = InsulinColors.Bolus
                 )
 
                 TherapyItem(
                     icon = getControlIQIcon(controlIQMode),
-                    label = "Mode",
+                    label = stringResource(R.string.dashboard_mode),
                     value = controlIQMode ?: "--",
                     color = getControlIQColor(controlIQMode)
                 )
@@ -163,7 +165,7 @@ fun ActiveTherapyCardFromDataStore(
     val displayedMode = when (controlIQMode.value) {
         UserMode.SLEEP -> "Sleep"
         UserMode.EXERCISE -> "Exercise"
-        else -> controlIQStatus.value?.toString() ?: "None"
+        else -> controlIQStatus.value?.toString() ?: stringResource(R.string.dashboard_none)
     }
 
     ActiveTherapyCard(

@@ -22,6 +22,8 @@ import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.dataStore
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Immutable
 data class BolusInputRowModel(
@@ -60,7 +62,7 @@ fun BolusCarbsAndBgRow(
             },
             secondaryLabel = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Carbs (grams)", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
+                    Text(text = stringResource(R.string.bolus_carbs_grams), maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
                 }
             },
             contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
@@ -83,7 +85,7 @@ fun BolusCarbsAndBgRow(
             },
             secondaryLabel = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = model.bgSubtitle ?: "BG ($unitAbbrev)", maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
+                    Text(text = model.bgSubtitle ?: stringResource(R.string.bolus_bg_unit_abbrev, unitAbbrev), maxLines = 1, textAlign = TextAlign.Center, fontSize = 10.sp)
                 }
             },
             contentPadding = PaddingValues(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),

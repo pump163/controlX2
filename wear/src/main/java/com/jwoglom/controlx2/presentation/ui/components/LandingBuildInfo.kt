@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.BuildConfig
 import hu.supercluster.paperwork.Paperwork
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun LandingBuildInfo() {
@@ -24,13 +26,13 @@ fun LandingBuildInfo() {
                 append(BuildConfig.VERSION_NAME)
             }
             append("\n")
-            append("with PumpX2 ")
+            append(stringResource(R.string.dashboard_with_pump_x2))
             append(com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION)
             append("\n")
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Build: ") }
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(stringResource(R.string.dashboard_build)) }
             append(p.get("build_version"))
             append("\n")
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Build time: ") }
+            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append(stringResource(R.string.dashboard_build_time)) }
             append(p.get("build_time"))
             append("\n")
         },

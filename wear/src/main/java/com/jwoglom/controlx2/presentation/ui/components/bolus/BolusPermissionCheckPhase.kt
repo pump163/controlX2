@@ -6,6 +6,8 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.dialog.Dialog
 import com.jwoglom.controlx2.presentation.DataStore
 import com.jwoglom.controlx2.presentation.ui.IndeterminateProgressIndicator
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusPermissionCheckPhase(
@@ -17,7 +19,7 @@ fun BolusPermissionCheckPhase(
     Dialog(showDialog = showPermissionCheckDialog, onDismissRequest = onDismiss, scrollState = scrollState) {
         val bolusFinalParameters = dataStore.bolusFinalParameters.observeAsState()
         IndeterminateProgressIndicator(
-            text = bolusFinalParameters.value?.units?.let { "Requesting permission" } ?: "Invalid request!"
+            text = bolusFinalParameters.value?.units?.let { stringResource(R.string.bolus_requesting_perm) } ?: stringResource(R.string.bolus_invalid_request)
         )
     }
 }

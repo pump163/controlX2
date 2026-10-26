@@ -63,6 +63,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -152,6 +153,7 @@ import java.util.stream.Collectors
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
+import com.jwoglom.controlx2.R
 
 
 @Composable
@@ -178,7 +180,7 @@ fun Debug(
 
     fun setClipboard(str: String) {
         clipboardManager.setText(AnnotatedString(str))
-        Toast.makeText(context, "Saved to clipboard", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.debug_saved_to_clipboard), Toast.LENGTH_SHORT).show()
     }
 
     fun shareTextContents(str: String, label: String, mimeType: String) {
@@ -191,9 +193,9 @@ fun Debug(
 
     fun clearDebugLog(context: Context) {
         AlertDialog.Builder(context)
-            .setMessage("Are you sure you want to clear the saved debug logs?")
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .setPositiveButton("Delete") { dialog, _ ->
+            .setMessage(context.getString(R.string.debug_are_sure_want_to_clear_saved_query))
+            .setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton(context.getString(R.string.debug_delete)) { dialog, _ ->
                 dialog.dismiss()
                 val filePath = File(context.filesDir, "debugLog-MUA.txt")
                 filePath.delete()
@@ -204,9 +206,9 @@ fun Debug(
 
     fun emptyDatabase(context: Context) {
         AlertDialog.Builder(context)
-            .setMessage("Are you sure you want to empty the database?")
-            .setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            .setPositiveButton("Delete") { dialog, _ ->
+            .setMessage(context.getString(R.string.debug_are_sure_want_to_empty_database_query))
+            .setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton(context.getString(R.string.debug_delete)) { dialog, _ ->
                 dialog.dismiss()
                 coroutineScope.launch {
                     val historyLogDb = HistoryLogDatabase.getDatabase(context)
@@ -225,18 +227,18 @@ fun Debug(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("Debug")
+                HeaderLine(context.getString(R.string.debug_debug))
                 Divider()
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
                     ListItem(
-                        headlineContent = { Text("Disable ControlX2 service") },
-                        supportingContent = { Text("Stops the background service and disables it from starting automatically when the app is opened.") },
+                        headlineContent = { Text(context.getString(R.string.debug_disable_ctrl_x2_service)) },
+                        supportingContent = { Text(context.getString(R.string.debug_stop_background_service)) },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Close,
-                                contentDescription = "Stop icon",
+                                contentDescription = context.getString(R.string.debug_stop_icon),
                             )
                         },
                         modifier = Modifier.clickable {
@@ -257,8 +259,8 @@ fun Debug(
                         .wrapContentSize(Alignment.TopStart)
                 ) {
                     ListItem(
-                        headlineContent = { Text("Send Pump Message") },
-                        supportingContent = { Text("Displays the response message for the given request.") },
+                        headlineContent = { Text(context.getString(R.string.debug_send_pump_message)) },
+                        supportingContent = { Text(context.getString(R.string.debug_displays_resp_mess_for_given_request)) },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Build,
@@ -402,7 +404,7 @@ fun Debug(
                                         }
                                         val clazz = Class.forName(className)
                                         if (!Message::class.java.isAssignableFrom(clazz)) {
-                                            throw IllegalArgumentException("Class is not a Message: $className")
+                                            throw IllegalArgumentException(context.getString(R.string.debug_class_is_not_mess_name, className))
                                         }
                                         Timber.i("Selected %s: %s", className, clazz)
                                         triggerGenericPumpMessageDialog(
@@ -434,8 +436,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View Received Message Cache") },
-                    supportingContent = { Text("Displays recently received pump messages.") },
+                    headlineContent = { Text(context.getString(R.string.debug_view_recv_mess_cache)) },
+                    supportingContent = { Text(context.getString(R.string.debug_displays_recently_recv_pump_mess)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -474,7 +476,7 @@ fun Debug(
                                                     showMessageCache = false
                                                 }
                                             ) {
-                                                Icon(Icons.Filled.Close, contentDescription = "Close")
+                                                Icon(Icons.Filled.Close, contentDescription = context.getString(R.string.debug_close))
                                             }
                                         }
                                         item {
@@ -484,18 +486,18 @@ fun Debug(
                                             FilledTonalButton(
                                                 onClick = {
                                                     debugMessageCache.value?.let {
-                                                        shareTextContents(messageCacheToJson(it), "ControlX2 JSON debug data","text/json")
+                                                        shareTextContents(messageCacheToJson(it), context.getString(R.string.debug_ctrl_x2_json_debug_data),"text/json")
                                                     }
                                                 }
                                             ) {
-                                                Text("Export")
+                                                Text(context.getString(R.string.debug_export))
                                             }
                                         }
                                     }
                                 }
                                 if (debugMessageCache.value?.isEmpty() == true) {
                                     item {
-                                        Text("No message entries present in cache.")
+                                        Text(context.getString(R.string.debug_no_mess_entries_present_in_cache))
                                     }
                                 }
                                 debugMessageCache.value?.sortedBy {
@@ -513,7 +515,7 @@ fun Debug(
                                             },
                                             overlineContent = {
                                                 // time
-                                                Text("${message.second} (${shortTimeAgo(message.second, nowThresholdSeconds = 1)})")
+                                                Text("${message.second} (${shortTimeAgo(message.second, prefix = stringResource(R.string.units_in), suffix = stringResource(R.string.units_ago), nowThresholdSeconds = 1, nowText = stringResource(R.string.units_now))})")
                                             },
                                             modifier = Modifier.clickable {
                                                 shareTextContents(messagePairToJson(message), "ControlX2 ${shortPumpMessageTitle(message.first)} debug data","text/json")
@@ -546,8 +548,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Get History Logs") },
-                    supportingContent = { Text("Fetches history logs within the given range.") },
+                    headlineContent = { Text(context.getString(R.string.debug_get_history_logs)) },
+                    supportingContent = { Text(context.getString(R.string.debug_fetches_history_logs_within_given_range)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -584,8 +586,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View History Log Messages") },
-                    supportingContent = { Text("Displays pump history log messages") },
+                    headlineContent = { Text(context.getString(R.string.debug_view_history_log_mess)) },
+                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_history_log_mess)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Build,
@@ -628,7 +630,7 @@ fun Debug(
                                                     showHistoryLogs = false
                                                 }
                                             ) {
-                                                Icon(Icons.Filled.Close, contentDescription = "Close")
+                                                Icon(Icons.Filled.Close, contentDescription = context.getString(R.string.debug_close))
                                             }
                                         }
                                         item {
@@ -638,11 +640,11 @@ fun Debug(
                                             FilledTonalButton(
                                                 onClick = {
                                                     historyLogCache.value?.let {
-                                                        shareTextContents(historyLogCacheToJson(it), "ControlX2 History Log JSON data","text/json")
+                                                        shareTextContents(historyLogCacheToJson(it), context.getString(R.string.debug_ctrl_x2_history_log_json_data),"text/json")
                                                     }
                                                 }
                                             ) {
-                                                Text("Export")
+                                                Text(context.getString(R.string.debug_export))
                                             }
                                         }
                                     }
@@ -663,7 +665,7 @@ fun Debug(
                                     ) {
                                         OutlinedTextField(
                                             value = when (filterToType) {
-                                                null -> "<All>"
+                                                null -> context.getString(R.string.debug_all)
                                                 else -> "$filterToType"
                                             },
                                             onValueChange = { filterToType = it },
@@ -674,7 +676,7 @@ fun Debug(
                                                     // the DropDown the same width
                                                     textFieldSize = coordinates.size.toSize()
                                                 },
-                                            label = { Text("Filter") },
+                                            label = { Text(context.getString(R.string.debug_filter)) },
                                             trailingIcon = {
                                                 Icon(icon, "contentDescription",
                                                     Modifier.clickable { expanded = !expanded })
@@ -703,7 +705,7 @@ fun Debug(
                                 if (historyLogCache.value?.entries?.isEmpty() == true) {
                                     item {
                                         Text(
-                                            "No history log entries present in cache.",
+                                            context.getString(R.string.debug_no_history_log_entries_present_in_cache),
                                             modifier = Modifier
                                                 .background(Color.White)
                                                 .fillMaxWidth()
@@ -748,7 +750,7 @@ fun Debug(
                                                 Text("#${log.key} ${log.value.pumpTimeSecInstant}")
                                             },
                                             modifier = Modifier.clickable {
-                                                shareTextContents(historyLogToJson(log), "ControlX2 History Log Event","text/json")
+                                                shareTextContents(historyLogToJson(log), context.getString(R.string.debug_ctrl_x2_history_log_event),"text/json")
                                             }
                                         )
                                     }
@@ -767,12 +769,12 @@ fun Debug(
                 item {
                     if (Prefs(context).onlySnoopBluetoothEnabled()) {
                         ListItem(
-                            headlineContent = { Text("Disable Only Snoop Bluetooth") },
-                            supportingContent = { Text("Re-enables app functionality.") },
+                            headlineContent = { Text(context.getString(R.string.debug_disable_only_snoop_bt)) },
+                            supportingContent = { Text(context.getString(R.string.debug_re_enables_app_functionality)) },
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Close,
-                                    contentDescription = "Stop icon",
+                                    contentDescription = context.getString(R.string.debug_stop_icon),
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -785,12 +787,12 @@ fun Debug(
                         )
                     } else {
                         ListItem(
-                            headlineContent = { Text("Enable Only Snoop Bluetooth") },
-                            supportingContent = { Text("All app functionality will be disabled, for debugging purposes only.") },
+                            headlineContent = { Text(context.getString(R.string.debug_enable_only_snoop_bt)) },
+                            supportingContent = { Text(context.getString(R.string.debug_all_app_functionality_disabled)) },
                             leadingContent = {
                                 Icon(
                                     Icons.Filled.Check,
-                                    contentDescription = "Start icon",
+                                    contentDescription = context.getString(R.string.debug_start_icon),
                                 )
                             },
                             modifier = Modifier.clickable {
@@ -811,8 +813,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("View PumpState") },
-                    supportingContent = { Text("Displays the pump MAC, pairing key, and authentication secrets.") },
+                    headlineContent = { Text(context.getString(R.string.debug_view_pump_state)) },
+                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_mac_pairing_key_and)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Info,
@@ -855,7 +857,7 @@ fun Debug(
                                             Button(onClick = {
                                                 setClipboard(exportedPumpState)
                                             }) {
-                                                Text("Save to clipboard")
+                                                Text(context.getString(R.string.debug_save_to_clipboard))
                                             }
                                         }
                                         item {
@@ -865,7 +867,7 @@ fun Debug(
                                             Button(onClick = {
                                                 showPumpState = false
                                             }) {
-                                                Text("Close")
+                                                Text(context.getString(R.string.debug_close))
                                             }
                                         }
                                     }
@@ -882,8 +884,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Clear Debug Logs") },
-                    supportingContent = { Text("Clears the saved debug logs.") },
+                    headlineContent = { Text(context.getString(R.string.debug_clear_debug_logs)) },
+                    supportingContent = { Text(context.getString(R.string.debug_clears_saved_debug_logs)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Close,
@@ -898,8 +900,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Empty database") },
-                    supportingContent = { Text("Removes all saved history logs in sqlite.") },
+                    headlineContent = { Text(context.getString(R.string.debug_empty_database)) },
+                    supportingContent = { Text(context.getString(R.string.debug_remove_all_saved_history_logs_sqlite)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Close,
@@ -919,8 +921,8 @@ fun Debug(
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (qualifyingEventToastsEnabled) "Disable Qualifying Event Toasts" else "Enable Qualifying Event Toasts") },
-                    supportingContent = { Text("Show toast notifications when CommService receives qualifying events.") },
+                    headlineContent = { Text(if (qualifyingEventToastsEnabled) context.getString(R.string.debug_disable_qualifying_event_toasts) else context.getString(R.string.debug_enable_qualifying_event_toasts)) },
+                    supportingContent = { Text(context.getString(R.string.debug_toast_on_qualifying_events)) },
                     leadingContent = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -942,8 +944,8 @@ fun Debug(
             item {
                 var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
                 ListItem(
-                    headlineContent = { Text(if (httpDebugApiEnabled) "Disable HTTP Debug API" else "Enable HTTP Debug API") },
-                    supportingContent = { Text("Toggle the HTTP Debug API on port 18282. Service restart required.") },
+                    headlineContent = { Text(if (httpDebugApiEnabled) context.getString(R.string.debug_disable_http_debug_api) else context.getString(R.string.debug_enable_http_debug_api)) },
+                    supportingContent = { Text(context.getString(R.string.debug_toggle_http_debug_api_on_port)) },
                     leadingContent = {
                         Icon(
                             if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,
@@ -960,7 +962,7 @@ fun Debug(
                 if (httpDebugApiEnabled) {
                     var username by remember { mutableStateOf(Prefs(context).httpDebugApiUsername()) }
                     ListItem(
-                        headlineContent = { Text("API Username") },
+                        headlineContent = { Text(context.getString(R.string.debug_api_username)) },
                         supportingContent = {
                             OutlinedTextField(
                                 value = username,
@@ -968,7 +970,7 @@ fun Debug(
                                     username = it
                                     Prefs(context).setHttpDebugApiUsername(it)
                                 },
-                                label = { Text("Username") },
+                                label = { Text(context.getString(R.string.debug_username)) },
                                 singleLine = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -986,7 +988,7 @@ fun Debug(
                     var passwordVisible by remember { mutableStateOf(false) }
 
                     ListItem(
-                        headlineContent = { Text("API Password") },
+                        headlineContent = { Text(context.getString(R.string.debug_api_password)) },
                         supportingContent = {
                             OutlinedTextField(
                                 value = password,
@@ -996,14 +998,14 @@ fun Debug(
                                 },
                                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                label = { Text("Password") },
+                                label = { Text(context.getString(R.string.debug_password)) },
                                 trailingIcon = {
                                     val image = if (passwordVisible)
                                         Icons.Filled.Visibility
                                     else Icons.Filled.VisibilityOff
 
                                     // Please provide localized description for accessibility services
-                                    val description = if (passwordVisible) "Hide password" else "Show password"
+                                    val description = if (passwordVisible) context.getString(R.string.debug_hide_password) else context.getString(R.string.debug_show_password)
 
                                     IconButton(onClick = {passwordVisible = !passwordVisible}){
                                         Icon(imageVector  = image, description)
@@ -1027,8 +1029,8 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Feature Flags") },
-                    supportingContent = { Text("Toggle experimental features.") },
+                    headlineContent = { Text(context.getString(R.string.debug_feature_flags)) },
+                    supportingContent = { Text(context.getString(R.string.debug_toggle_experimental_features)) },
                     leadingContent = {
                         Icon(
                             Icons.Filled.Settings,
@@ -1056,22 +1058,22 @@ fun triggerIDPSegmentDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter IDP ID")
-    builder.setMessage("Enter the ID for the Insulin Delivery Profile")
+    builder.setTitle(context.getString(R.string.debug_enter_idp_id))
+    builder.setMessage(context.getString(R.string.debug_enter_id_for_insulin_delivery_profile))
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok)) { dialog, which ->
         val idpId = input1.text.toString()
         Timber.i("idp id: %s", idpId)
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("Enter segment index")
-        builder2.setMessage("Enter the index for the Insulin Delivery Profile segment")
+        builder2.setTitle(context.getString(R.string.debug_enter_segment_index))
+        builder2.setMessage(context.getString(R.string.debug_enter_index_for_insulin_delivery))
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         builder2.setView(input2)
         builder2.setPositiveButton(
-            "OK"
+            context.getString(R.string.debug_ok)
         ) { dialog, which ->
             val idpSegment = input2.text.toString()
             Timber.i("idp segment: %s", idpSegment)
@@ -1083,12 +1085,12 @@ fun triggerIDPSegmentDialog(
             )
         }
         builder2.setNegativeButton(
-            "Cancel"
+            context.getString(R.string.debug_cancel)
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     }
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1098,12 +1100,12 @@ fun triggerIDPSettingsDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter IDP ID")
-    builder.setMessage("Enter the ID for the Insulin Delivery Profile")
+    builder.setTitle(context.getString(R.string.debug_enter_idp_id))
+    builder.setMessage(context.getString(R.string.debug_enter_id_for_insulin_delivery_profile))
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok)) { dialog, which ->
         val idpId = input1.text.toString()
         Timber.i("idp id: %s", idpId)
         sendPumpCommands(
@@ -1114,7 +1116,7 @@ fun triggerIDPSettingsDialog(
         )
     }
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1125,7 +1127,7 @@ fun triggerHistoryLogRequestDialog(
     historyLogStatus: HistoryLogStatusResponse? = null,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter start log ID")
+    builder.setTitle(context.getString(R.string.debug_enter_start_log_id))
     builder.setMessage("Enter the ID of the first history log item to return:\n\n${historyLogStatus ?: ""}")
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_NORMAL
@@ -1147,12 +1149,12 @@ fun triggerHistoryLogRequestDialog(
     }
 
     builder.setView(layout)
-    builder.setPositiveButton("OK") { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok)) { dialog, which ->
         val startLog = input1.text.toString()
         Timber.i("startLog id: %s", startLog)
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("Enter number of logs")
-        builder2.setMessage("Enter the max number of logs to return")
+        builder2.setTitle(context.getString(R.string.debug_enter_number_of_logs))
+        builder2.setMessage(context.getString(R.string.debug_enter_max_number_of_logs_to_return))
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_NORMAL
         if (historyLogStatus != null) {
@@ -1161,12 +1163,12 @@ fun triggerHistoryLogRequestDialog(
         builder2.setView(input2)
 
         if (historyLogStatus != null) {
-            builder2.setNeutralButton("Get All") { dialog, which ->
+            builder2.setNeutralButton(context.getString(R.string.debug_get_all)) { dialog, which ->
                 triggerHistoryLogRangePrompt(context, sendPumpCommands, startLog.toLong(), historyLogStatus.lastSequenceNum)
             }
         }
         builder2.setPositiveButton(
-            "OK"
+            context.getString(R.string.debug_ok)
         ) { dialog, which ->
             val maxLogs = input2.text.toString()
             Timber.i("max logs: %s", maxLogs)
@@ -1174,12 +1176,12 @@ fun triggerHistoryLogRequestDialog(
 
         }
         builder2.setNegativeButton(
-            "Cancel"
+            context.getString(R.string.debug_cancel)
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     }
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1204,14 +1206,14 @@ fun triggerHistoryLogRangePrompt(
 
     val chunkCount = ceil(((endLog - startLog) / 255).toDouble())
     AlertDialog.Builder(context)
-        .setTitle("History Log Request")
-        .setMessage("Sequence number range $startLog - $endLog will require $chunkCount chunks. Continue?")
-        .setPositiveButton("OK") { dialog, which ->
+        .setTitle(context.getString(R.string.debug_history_log_request))
+        .setMessage(context.getString(R.string.debug_seq_range_requires_chunks_query, startLog, endLog, chunkCount))
+        .setPositiveButton(context.getString(R.string.debug_ok)) { dialog, which ->
             Handler(Looper.getMainLooper()).post {
                 triggerHistoryLogRange(context, sendPumpCommands, startLog, endLog)
             }
         }
-        .setNegativeButton("Cancel") { dialog, which -> dialog.cancel() }
+        .setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, which -> dialog.cancel() }
         .show()
 }
 
@@ -1237,7 +1239,7 @@ fun triggerHistoryLogRange(
                     HistoryLogRequest(endI, count)
                 )
             )
-            Toast.makeText(context, "${localNum+1}/${totalNums}: Requesting $i to $endI", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.debug_requesting_i_to_end, localNum+1, totalNums, i, endI), Toast.LENGTH_SHORT).show()
         }, localNum.toLong() * 7000)
         num++
         totalNums++
@@ -1249,12 +1251,12 @@ fun triggerInitiateBolusRequestDialog(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
     val builder = AlertDialog.Builder(context)
-    builder.setTitle("Enter units to deliver bolus")
-    builder.setMessage("Enter the number of units in INTEGER FORM: 1000 = 1 unit, 100 = 0.1 unit, 10 = 0.01 unit. Minimum value is 50 (0.05 unit)")
+    builder.setTitle(context.getString(R.string.debug_enter_units_to_deliver_bolus))
+    builder.setMessage(context.getString(R.string.debug_enter_number_of_units_in_integer))
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok), DialogInterface.OnClickListener { dialog, which ->
         val numUnitsStr = input1.text.toString()
         Timber.i("numUnits: %s", numUnitsStr)
         if ("" == numUnitsStr) {
@@ -1262,12 +1264,12 @@ fun triggerInitiateBolusRequestDialog(
             return@OnClickListener
         }
         val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle("CONFIRM BOLUS!!")
-        builder2.setMessage("Enter the bolus ID from BolusPermissionRequest. THIS WILL ACTUALLY DELIVER THE BOLUS. Enter a blank value to cancel.")
+        builder2.setTitle(context.getString(R.string.debug_confirm_bolus))
+        builder2.setMessage(context.getString(R.string.debug_enter_bolus_id_from_bolus_permission))
         val input2 = EditText(context)
         input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         builder2.setView(input2)
-        builder2.setPositiveButton("OK",
+        builder2.setPositiveButton(context.getString(R.string.debug_ok),
             DialogInterface.OnClickListener { dialog, which ->
                 val bolusIdStr = input2.text.toString()
                 Timber.i("currentIob: %s", bolusIdStr)
@@ -1296,12 +1298,12 @@ fun triggerInitiateBolusRequestDialog(
                 )
             })
         builder2.setNegativeButton(
-            "Cancel"
+            context.getString(R.string.debug_cancel)
         ) { dialog, which -> dialog.cancel() }
         builder2.show()
     })
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1312,14 +1314,14 @@ fun triggerCancelBolusRequestDialog(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle("CancelBolusRequest")
-    builder.setMessage("Enter the bolus ID (this can be received from currentStatus.LastBolusStatusV2)")
+    builder.setMessage(context.getString(R.string.debug_enter_bolus_id_this_can_be))
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 //    if (tandemEventCallback.lastBolusId > 0) {
 //        input1.setText(java.lang.String.valueOf(tandemEventCallback.lastBolusId))
 //    }
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok), DialogInterface.OnClickListener { dialog, which ->
         val bolusIdStr = input1.text.toString()
         Timber.i("bolusId: %s", bolusIdStr)
         if ("" == bolusIdStr) {
@@ -1330,7 +1332,7 @@ fun triggerCancelBolusRequestDialog(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(CancelBolusRequest(bolusId)))
     })
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1342,14 +1344,14 @@ fun triggerMessageWithBolusIdParameter(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle(messageClass.simpleName)
-    builder.setMessage("Enter the bolus ID (this can be received from the in-progress bolus)")
+    builder.setMessage(context.getString(R.string.debug_enter_bolus_id_can_be_recv_from_in_prog))
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
 //    if (tandemEventCallback.lastBolusId > 0) {
 //        input1.setText(java.lang.String.valueOf(tandemEventCallback.lastBolusId))
 //    }
     builder.setView(input1)
-    builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+    builder.setPositiveButton(context.getString(R.string.debug_ok), DialogInterface.OnClickListener { dialog, which ->
         val bolusIdStr = input1.text.toString()
         Timber.i("bolusId: %s", bolusIdStr)
         if ("" == bolusIdStr) {
@@ -1387,7 +1389,7 @@ fun triggerMessageWithBolusIdParameter(
         }
     })
     builder.setNegativeButton(
-        "Cancel"
+        context.getString(R.string.debug_cancel)
     ) { dialog, which -> dialog.cancel() }
     builder.show()
 }
@@ -1410,7 +1412,7 @@ fun triggerGenericPumpMessageDialog(
 
     if (argumentConstructors.isEmpty()) {
         if (noArgConstructor == null) {
-            Toast.makeText(context, "No usable constructor found for ${messageClass.simpleName}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.debug_no_usable_constructor_found_for, messageClass.simpleName), Toast.LENGTH_SHORT).show()
             return
         }
         sendConstructedPumpMessage(context, sendPumpCommands, noArgConstructor, emptyList())
@@ -1420,7 +1422,7 @@ fun triggerGenericPumpMessageDialog(
     val options = mutableListOf<String>()
     val optionConstructors = mutableListOf<Constructor<out Message>?>()
     if (noArgConstructor != null) {
-        options.add("No arguments")
+        options.add(context.getString(R.string.debug_no_arguments))
         optionConstructors.add(noArgConstructor)
     }
     argumentConstructors.forEach {
@@ -1439,7 +1441,7 @@ fun triggerGenericPumpMessageDialog(
     }
 
     AlertDialog.Builder(context)
-        .setTitle("${messageClass.simpleName}: Constructor")
+        .setTitle(context.getString(R.string.debug_constructor, messageClass.simpleName))
         .setItems(options.toTypedArray()) { dialog, which ->
             val selected = optionConstructors[which]
             if (selected == null || selected.parameterCount == 0) {
@@ -1448,7 +1450,7 @@ fun triggerGenericPumpMessageDialog(
                 triggerConstructorArgumentDialog(context, sendPumpCommands, messageClass, selected)
             }
         }
-        .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        .setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
         .show()
 }
 
@@ -1463,7 +1465,7 @@ fun triggerConstructorArgumentDialog(
     val inputs = mutableListOf<EditText>()
     constructor.parameterTypes.forEachIndexed { index, paramType ->
         val input = EditText(context)
-        input.hint = "arg${index + 1}: ${debugTypeHint(paramType)}"
+        input.hint = "arg${index + 1}: ${debugTypeHint(context, paramType)}"
         input.inputType = debugInputType(paramType)
         layout.addView(input)
         inputs.add(input)
@@ -1472,21 +1474,21 @@ fun triggerConstructorArgumentDialog(
     AlertDialog.Builder(context)
         .setTitle(formatDebugConstructorSignature(messageClass, constructor))
         .setView(layout)
-        .setPositiveButton("Send") { dialog, _ ->
+        .setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
             val args = mutableListOf<Any>()
             for ((index, paramType) in constructor.parameterTypes.withIndex()) {
                 val raw = inputs[index].text.toString().trim()
                 if (raw.isBlank()) {
-                    Toast.makeText(context, "Argument ${index + 1} is required", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.debug_argument_is_required, index + 1), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 try {
-                    args.add(parseDebugConstructorArg(raw, paramType))
+                    args.add(parseDebugConstructorArg(context, raw, paramType))
                 } catch (e: Exception) {
                     Timber.e(e)
                     Toast.makeText(
                         context,
-                        "Invalid value for argument ${index + 1} (${debugTypeHint(paramType)})",
+                        "Invalid value for argument ${index + 1} (${debugTypeHint(context, paramType)})",
                         Toast.LENGTH_SHORT
                     ).show()
                     return@setPositiveButton
@@ -1495,7 +1497,7 @@ fun triggerConstructorArgumentDialog(
             sendConstructedPumpMessage(context, sendPumpCommands, constructor, args)
             dialog.dismiss()
         }
-        .setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+        .setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
         .show()
 }
 
@@ -1506,7 +1508,7 @@ fun sendConstructedPumpMessage(
     args: List<Any>,
 ) {
     if (constructor == null) {
-        Toast.makeText(context, "No constructor available", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.debug_no_constructor_available), Toast.LENGTH_SHORT).show()
         return
     }
     try {
@@ -1549,9 +1551,9 @@ fun isSupportedDebugConstructorType(type: Class<*>): Boolean {
         type == Byte::class.javaPrimitiveType || type == Byte::class.java
 }
 
-fun debugTypeHint(type: Class<*>): String {
+fun debugTypeHint(context: Context, type: Class<*>): String {
     if (type == Instant::class.java) {
-        return "Instant (epoch seconds or ISO-8601)"
+        return context.getString(R.string.debug_instant_epoch_seconds_or_iso_8601)
     }
     if (type.isEnum) {
         val values = type.enumConstants
@@ -1579,7 +1581,7 @@ fun debugInputType(type: Class<*>): Int {
     }
 }
 
-fun parseDebugConstructorArg(raw: String, type: Class<*>): Any {
+fun parseDebugConstructorArg(context: Context, raw: String, type: Class<*>): Any {
     return when {
         type == String::class.java -> raw
         type == Int::class.javaPrimitiveType || type == Int::class.java -> raw.toInt()
@@ -1597,10 +1599,10 @@ fun parseDebugConstructorArg(raw: String, type: Class<*>): Any {
             if (enumValue != null) {
                 enumValue
             } else {
-                throw IllegalArgumentException("Invalid enum value '$raw' for ${type.name}")
+                throw IllegalArgumentException(context.getString(R.string.debug_invalid_enum_value_raw_for, raw, type.name))
             }
         }
-        else -> throw IllegalArgumentException("Unsupported parameter type: ${type.name}")
+        else -> throw IllegalArgumentException(context.getString(R.string.debug_unsupported_parameter_type, type.name))
     }
 }
 
@@ -1617,23 +1619,23 @@ fun triggerRemoteBgEntryRequestMessage(
     layout.orientation = LinearLayout.VERTICAL
     val bgInput = EditText(context)
     val glucoseUnit = dataStore.glucoseUnitPreference.value ?: GlucoseUnit.MGDL
-    bgInput.hint = "BG (${glucoseUnit.abbreviation})"
+    bgInput.hint = context.getString(R.string.debug_bg, glucoseUnit.abbreviation)
     bgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val calibrationInput = EditText(context)
-    calibrationInput.hint = "Use for CGM calibration? (true/false/1/0)"
+    calibrationInput.hint = context.getString(R.string.debug_use_for_cgm_calibration_true_false_1_0)
     val autopopInput = EditText(context)
-    autopopInput.hint = "Is autopop BG? (true/false/1/0)"
+    autopopInput.hint = context.getString(R.string.debug_is_autopop_bg_true_false_1_0)
     val pumpTimeInput = EditText(context)
-    pumpTimeInput.hint = "Pump time seconds since boot"
+    pumpTimeInput.hint = context.getString(R.string.debug_pump_time_seconds_since_boot)
     pumpTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val bolusIdInput = EditText(context)
-    bolusIdInput.hint = "Bolus ID"
+    bolusIdInput.hint = context.getString(R.string.debug_bolus_id)
     bolusIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(bgInput, calibrationInput, autopopInput, pumpTimeInput, bolusIdInput).forEach {
         layout.addView(it)
     }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = RemoteBgEntryRequest(
             bgInput.text.toString().toInt(),
             parseBoolInput(calibrationInput.text.toString()),
@@ -1644,7 +1646,7 @@ fun triggerRemoteBgEntryRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1657,17 +1659,17 @@ fun triggerRemoteCarbEntryRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val carbsInput = EditText(context)
-    carbsInput.hint = "Carbs (g)"
+    carbsInput.hint = context.getString(R.string.debug_carbs_g)
     carbsInput.inputType = InputType.TYPE_CLASS_NUMBER
     val pumpTimeInput = EditText(context)
-    pumpTimeInput.hint = "Pump time seconds since boot"
+    pumpTimeInput.hint = context.getString(R.string.debug_pump_time_seconds_since_boot)
     pumpTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val bolusIdInput = EditText(context)
-    bolusIdInput.hint = "Bolus ID"
+    bolusIdInput.hint = context.getString(R.string.debug_bolus_id)
     bolusIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(carbsInput, pumpTimeInput, bolusIdInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = RemoteCarbEntryRequest(
             carbsInput.text.toString().toInt(),
             pumpTimeInput.text.toString().toLong(),
@@ -1676,7 +1678,7 @@ fun triggerRemoteCarbEntryRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1687,15 +1689,15 @@ fun triggerSetModesRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetModesRequest")
     val input = EditText(context)
-    input.hint = "Mode bitmap (1-4)"
+    input.hint = context.getString(R.string.debug_mode_bitmap_1_4)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val bitmap = input.text.toString().toInt()
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetModesRequest(bitmap)))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1708,16 +1710,16 @@ fun triggerSetSleepScheduleRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val slotInput = EditText(context)
-    slotInput.hint = "Slot"
+    slotInput.hint = context.getString(R.string.debug_slot)
     slotInput.inputType = InputType.TYPE_CLASS_NUMBER
     val scheduleInput = EditText(context)
-    scheduleInput.hint = "Schedule bytes (comma-separated)"
+    scheduleInput.hint = context.getString(R.string.debug_sched_bytes_comma_separated)
     val flagInput = EditText(context)
-    flagInput.hint = "Flag"
+    flagInput.hint = context.getString(R.string.debug_flag)
     flagInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(slotInput, scheduleInput, flagInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val scheduleBytes = scheduleInput.text.toString()
             .split(',')
             .filter { it.isNotBlank() }
@@ -1731,7 +1733,7 @@ fun triggerSetSleepScheduleRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1744,14 +1746,14 @@ fun triggerSetTempRateRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val minutesInput = EditText(context)
-    minutesInput.hint = "Minutes (>=15)"
+    minutesInput.hint = context.getString(R.string.debug_minutes_15)
     minutesInput.inputType = InputType.TYPE_CLASS_NUMBER
     val percentInput = EditText(context)
-    percentInput.hint = "Percent (0-250)"
+    percentInput.hint = context.getString(R.string.debug_percent_0_250)
     percentInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(minutesInput, percentInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = SetTempRateRequest(
             minutesInput.text.toString().toInt(),
             percentInput.text.toString().toInt(),
@@ -1759,7 +1761,7 @@ fun triggerSetTempRateRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1772,16 +1774,16 @@ fun triggerChangeControlIQSettingsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Enabled (true/false/1/0)"
+    enabledInput.hint = context.getString(R.string.debug_enabled_true_false_1_0)
     val weightInput = EditText(context)
-    weightInput.hint = "Weight lbs"
+    weightInput.hint = context.getString(R.string.debug_weight_lbs)
     weightInput.inputType = InputType.TYPE_CLASS_NUMBER
     val tdiInput = EditText(context)
-    tdiInput.hint = "Total daily insulin units"
+    tdiInput.hint = context.getString(R.string.debug_total_daily_insulin_units)
     tdiInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(enabledInput, weightInput, tdiInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = ChangeControlIQSettingsRequest(
             parseBoolInput(enabledInput.text.toString()),
             weightInput.text.toString().toInt(),
@@ -1790,7 +1792,7 @@ fun triggerChangeControlIQSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1803,14 +1805,14 @@ fun triggerSetQuickBolusSettingsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Enabled (true/false/1/0)"
+    enabledInput.hint = context.getString(R.string.debug_enabled_true_false_1_0)
     val modeInput = EditText(context)
-    modeInput.hint = "Mode (UNITS or CARBS)"
+    modeInput.hint = context.getString(R.string.debug_mode_units_or_carbs)
     val incrementInput = EditText(context)
-    incrementInput.hint = "Increment enum (e.g., UNITS_0_5)"
+    incrementInput.hint = context.getString(R.string.debug_increment_enum_e_g_units_0_5)
     listOf(enabledInput, modeInput, incrementInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val enabled = parseBoolInput(enabledInput.text.toString())
         val mode = SetQuickBolusSettingsRequest.QuickBolusMode.valueOf(modeInput.text.toString().uppercase())
         val increment = SetQuickBolusSettingsRequest.QuickBolusIncrement.valueOf(
@@ -1820,7 +1822,7 @@ fun triggerSetQuickBolusSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1833,14 +1835,14 @@ fun triggerDismissNotificationRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val notificationIdInput = EditText(context)
-    notificationIdInput.hint = "Notification ID"
+    notificationIdInput.hint = context.getString(R.string.debug_notification_id)
     notificationIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val notificationTypeInput = EditText(context)
-    notificationTypeInput.hint = "Notification type (0-3)"
+    notificationTypeInput.hint = context.getString(R.string.debug_notice_type_0_3)
     notificationTypeInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(notificationIdInput, notificationTypeInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = DismissNotificationRequest(
             DismissNotificationRequest.NotificationType.fromId(
                 notificationTypeInput.text.toString().toInt()
@@ -1850,7 +1852,7 @@ fun triggerDismissNotificationRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1861,13 +1863,13 @@ fun triggerSetG6TransmitterIdRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetG6TransmitterIdRequest")
     val input = EditText(context)
-    input.hint = "Transmitter ID"
+    input.hint = context.getString(R.string.debug_transmitter_id)
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetG6TransmitterIdRequest(input.text.toString())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1878,15 +1880,15 @@ fun triggerStartDexcomG6SensorSessionRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("StartDexcomG6SensorSessionRequest")
     val input = EditText(context)
-    input.hint = "Sensor code (0 for no code)"
+    input.hint = context.getString(R.string.debug_sensor_code_0_for_no)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val code = if (input.text.isNullOrBlank()) 0 else input.text.toString().toInt()
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(StartDexcomG6SensorSessionRequest(code)))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1897,14 +1899,14 @@ fun triggerSetDexcomG7PairingCodeRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetDexcomG7PairingCodeRequest")
     val input = EditText(context)
-    input.hint = "Pairing code"
+    input.hint = context.getString(R.string.debug_pairing_code)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetDexcomG7PairingCodeRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1915,14 +1917,14 @@ fun triggerFillCannulaRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("FillCannulaRequest")
     val input = EditText(context)
-    input.hint = "Prime size (milliunits)"
+    input.hint = context.getString(R.string.debug_prime_size_milliunits)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(FillCannulaRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1933,14 +1935,14 @@ fun triggerChangeTimeDateRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("ChangeTimeDateRequest")
     val input = EditText(context)
-    input.hint = "Tandem epoch seconds"
+    input.hint = context.getString(R.string.debug_tandem_epoch_seconds)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(ChangeTimeDateRequest(input.text.toString().toLong())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1951,14 +1953,14 @@ fun triggerSetActiveIDPRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetActiveIDPRequest")
     val input = EditText(context)
-    input.hint = "IDP ID"
+    input.hint = context.getString(R.string.debug_idp_id)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetActiveIDPRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -1971,27 +1973,27 @@ fun triggerCreateIDPRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val nameInput = EditText(context)
-    nameInput.hint = "Profile name"
+    nameInput.hint = context.getString(R.string.debug_profile_name)
     val carbRatioInput = EditText(context)
-    carbRatioInput.hint = "First segment carb ratio"
+    carbRatioInput.hint = context.getString(R.string.debug_first_segment_carb_ratio)
     carbRatioInput.inputType = InputType.TYPE_CLASS_NUMBER
     val basalRateInput = EditText(context)
-    basalRateInput.hint = "First segment basal rate"
+    basalRateInput.hint = context.getString(R.string.debug_first_segment_basal_rate)
     basalRateInput.inputType = InputType.TYPE_CLASS_NUMBER
     val targetBgInput = EditText(context)
-    targetBgInput.hint = "First segment target BG"
+    targetBgInput.hint = context.getString(R.string.debug_first_segment_target_bg)
     targetBgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val isfInput = EditText(context)
-    isfInput.hint = "First segment ISF"
+    isfInput.hint = context.getString(R.string.debug_first_segment_isf)
     isfInput.inputType = InputType.TYPE_CLASS_NUMBER
     val durationInput = EditText(context)
-    durationInput.hint = "Insulin duration"
+    durationInput.hint = context.getString(R.string.debug_insulin_duration)
     durationInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbEntryInput = EditText(context)
-    carbEntryInput.hint = "Carb entry"
+    carbEntryInput.hint = context.getString(R.string.debug_carb_entry)
     carbEntryInput.inputType = InputType.TYPE_CLASS_NUMBER
     val sourceIdInput = EditText(context)
-    sourceIdInput.hint = "Source IDP ID (blank for new)"
+    sourceIdInput.hint = context.getString(R.string.debug_source_idp_id_blank_for_new)
     listOf(
         nameInput,
         carbRatioInput,
@@ -2003,7 +2005,7 @@ fun triggerCreateIDPRequestMessage(
         sourceIdInput,
     ).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = if (sourceIdInput.text.isNullOrBlank()) {
             CreateIDPRequest(
                 nameInput.text.toString(),
@@ -2023,7 +2025,7 @@ fun triggerCreateIDPRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2036,17 +2038,17 @@ fun triggerRenameIDPRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val idInput = EditText(context)
-    idInput.hint = "IDP ID"
+    idInput.hint = context.getString(R.string.debug_idp_id)
     idInput.inputType = InputType.TYPE_CLASS_NUMBER
     val nameInput = EditText(context)
-    nameInput.hint = "New profile name"
+    nameInput.hint = context.getString(R.string.debug_new_profile_name)
     listOf(idInput, nameInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(RenameIDPRequest(idInput.text.toString().toInt(), nameInput.text.toString())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2057,14 +2059,14 @@ fun triggerDeleteIDPRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("DeleteIDPRequest")
     val input = EditText(context)
-    input.hint = "IDP ID"
+    input.hint = context.getString(R.string.debug_idp_id)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(DeleteIDPRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2077,19 +2079,19 @@ fun triggerSetIDPSettingsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val idInput = EditText(context)
-    idInput.hint = "IDP ID"
+    idInput.hint = context.getString(R.string.debug_idp_id)
     idInput.inputType = InputType.TYPE_CLASS_NUMBER
     val insulinDurationInput = EditText(context)
-    insulinDurationInput.hint = "Insulin duration"
+    insulinDurationInput.hint = context.getString(R.string.debug_insulin_duration)
     insulinDurationInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbEntryInput = EditText(context)
-    carbEntryInput.hint = "Carb entry"
+    carbEntryInput.hint = context.getString(R.string.debug_carb_entry)
     carbEntryInput.inputType = InputType.TYPE_CLASS_NUMBER
     val changeTypeInput = EditText(context)
-    changeTypeInput.hint = "Change type (CHANGE_INSULIN_DURATION or CHANGE_CARB_ENTRY)"
+    changeTypeInput.hint = context.getString(R.string.debug_change_type_insulin_or_carb_entry)
     listOf(idInput, insulinDurationInput, carbEntryInput, changeTypeInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val changeType = SetIDPSettingsRequest.ChangeType.valueOf(changeTypeInput.text.toString().uppercase())
         val message = SetIDPSettingsRequest(
             idInput.text.toString().toInt(),
@@ -2100,7 +2102,7 @@ fun triggerSetIDPSettingsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2113,33 +2115,33 @@ fun triggerSetIDPSegmentRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val idpIdInput = EditText(context)
-    idpIdInput.hint = "IDP ID"
+    idpIdInput.hint = context.getString(R.string.debug_idp_id)
     idpIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val unknownIdInput = EditText(context)
-    unknownIdInput.hint = "Unknown ID"
+    unknownIdInput.hint = context.getString(R.string.debug_unknown_id)
     unknownIdInput.inputType = InputType.TYPE_CLASS_NUMBER
     val segmentIndexInput = EditText(context)
-    segmentIndexInput.hint = "Segment index"
+    segmentIndexInput.hint = context.getString(R.string.debug_segment_index)
     segmentIndexInput.inputType = InputType.TYPE_CLASS_NUMBER
     val operationInput = EditText(context)
-    operationInput.hint = "Operation (MODIFY_SEGMENT_ID/CREATE_SEGMENT/DELETE_SEGMENT_ID)"
+    operationInput.hint = context.getString(R.string.debug_operation_modify_create_delete_segment)
     val startTimeInput = EditText(context)
-    startTimeInput.hint = "Profile start time"
+    startTimeInput.hint = context.getString(R.string.debug_profile_start_time)
     startTimeInput.inputType = InputType.TYPE_CLASS_NUMBER
     val basalRateInput = EditText(context)
-    basalRateInput.hint = "Profile basal rate"
+    basalRateInput.hint = context.getString(R.string.debug_profile_basal_rate)
     basalRateInput.inputType = InputType.TYPE_CLASS_NUMBER
     val carbRatioInput = EditText(context)
-    carbRatioInput.hint = "Profile carb ratio"
+    carbRatioInput.hint = context.getString(R.string.debug_profile_carb_ratio)
     carbRatioInput.inputType = InputType.TYPE_CLASS_NUMBER
     val targetBgInput = EditText(context)
-    targetBgInput.hint = "Profile target BG"
+    targetBgInput.hint = context.getString(R.string.debug_profile_target_bg)
     targetBgInput.inputType = InputType.TYPE_CLASS_NUMBER
     val isfInput = EditText(context)
-    isfInput.hint = "Profile ISF"
+    isfInput.hint = context.getString(R.string.debug_profile_isf)
     isfInput.inputType = InputType.TYPE_CLASS_NUMBER
     val statusInput = EditText(context)
-    statusInput.hint = "Status bitmask"
+    statusInput.hint = context.getString(R.string.debug_status_bitmask)
     statusInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(
         idpIdInput,
@@ -2154,7 +2156,7 @@ fun triggerSetIDPSegmentRequestMessage(
         statusInput,
     ).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = SetIDPSegmentRequest(
             idpIdInput.text.toString().toInt(),
             unknownIdInput.text.toString().toInt(),
@@ -2170,7 +2172,7 @@ fun triggerSetIDPSegmentRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2181,14 +2183,14 @@ fun triggerSetMaxBolusLimitRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetMaxBolusLimitRequest")
     val input = EditText(context)
-    input.hint = "Max bolus (milliunits)"
+    input.hint = context.getString(R.string.debug_max_bolus_milliunits)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetMaxBolusLimitRequest(input.text.toString().toInt())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2199,14 +2201,14 @@ fun triggerSetMaxBasalLimitRequestMessage(
     val builder = AlertDialog.Builder(context)
     builder.setTitle("SetMaxBasalLimitRequest")
     val input = EditText(context)
-    input.hint = "Max hourly basal (milliunits)"
+    input.hint = context.getString(R.string.debug_max_hourly_basal_milliunits)
     input.inputType = InputType.TYPE_CLASS_NUMBER
     builder.setView(input)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(SetMaxBasalLimitRequest(input.text.toString().toLong())))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2219,28 +2221,28 @@ fun triggerSetPumpSoundsRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val quickBolusInput = EditText(context)
-    quickBolusInput.hint = "Quick bolus annunciation"
+    quickBolusInput.hint = context.getString(R.string.debug_quick_bolus_annunciation)
     quickBolusInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val generalInput = EditText(context)
-    generalInput.hint = "General annunciation"
+    generalInput.hint = context.getString(R.string.debug_general_annunciation)
     generalInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val reminderInput = EditText(context)
-    reminderInput.hint = "Reminder annunciation"
+    reminderInput.hint = context.getString(R.string.debug_remind_annunciation)
     reminderInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val alertInput = EditText(context)
-    alertInput.hint = "Alert annunciation"
+    alertInput.hint = context.getString(R.string.debug_alert_annunciation)
     alertInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val alarmInput = EditText(context)
-    alarmInput.hint = "Alarm annunciation"
+    alarmInput.hint = context.getString(R.string.debug_alarm_annunciation)
     alarmInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val cgmAInput = EditText(context)
-    cgmAInput.hint = "CGM alert annunciation A"
+    cgmAInput.hint = context.getString(R.string.debug_cgm_alert_annunciation)
     cgmAInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val cgmBInput = EditText(context)
-    cgmBInput.hint = "CGM alert annunciation B"
+    cgmBInput.hint = context.getString(R.string.debug_cgm_alert_annunciation_b)
     cgmBInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     val changeBitmaskInput = EditText(context)
-    changeBitmaskInput.hint = "Change bitmask"
+    changeBitmaskInput.hint = context.getString(R.string.debug_change_bitmask)
     changeBitmaskInput.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
     listOf(
         quickBolusInput,
@@ -2268,7 +2270,7 @@ fun triggerSetPumpSoundsRequestMessage(
 //        )}
 //        sendPumpCommands(SendType.DEBUG_PROMPT, (-127..128).flatMap { i -> listOf(message(i)) } )
 //    }
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = SetPumpSoundsRequest(
             quickBolusInput.text.toString().toInt(),
             generalInput.text.toString().toInt(),
@@ -2282,7 +2284,7 @@ fun triggerSetPumpSoundsRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 
@@ -2295,13 +2297,13 @@ fun triggerSetPumpAlertSnoozeRequestMessage(
     val layout = LinearLayout(context)
     layout.orientation = LinearLayout.VERTICAL
     val enabledInput = EditText(context)
-    enabledInput.hint = "Snooze enabled (true/false/1/0)"
+    enabledInput.hint = context.getString(R.string.debug_snooze_enabled_true_false_1_0)
     val durationInput = EditText(context)
-    durationInput.hint = "Snooze duration minutes"
+    durationInput.hint = context.getString(R.string.debug_snooze_duration_minutes)
     durationInput.inputType = InputType.TYPE_CLASS_NUMBER
     listOf(enabledInput, durationInput).forEach { layout.addView(it) }
     builder.setView(layout)
-    builder.setPositiveButton("Send") { dialog, _ ->
+    builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
         val message = SetPumpAlertSnoozeRequest(
             parseBoolInput(enabledInput.text.toString()),
             durationInput.text.toString().toInt(),
@@ -2309,7 +2311,7 @@ fun triggerSetPumpAlertSnoozeRequestMessage(
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
     }
-    builder.setNegativeButton("Cancel") { dialog, _ -> dialog.cancel() }
+    builder.setNegativeButton(context.getString(R.string.debug_cancel)) { dialog, _ -> dialog.cancel() }
     builder.show()
 }
 

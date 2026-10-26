@@ -19,6 +19,8 @@ import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.shared.FeatureFlag
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch-side toggle for [FeatureFlag] values. Each row mirrors the
@@ -47,7 +49,7 @@ fun FeatureFlagsScreen() {
                         FeatureFlag.set(context, flag, enabled)
                     },
                     label = { Text(flag.slug, fontSize = 12.sp) },
-                    secondaryLabel = { Text(if (enabled) "On" else "Off", fontSize = 10.sp) },
+                    secondaryLabel = { Text(if (enabled) stringResource(R.string.feature_flags_on) else stringResource(R.string.feature_flags_off), fontSize = 10.sp) },
                     colors = if (enabled) ChipDefaults.primaryChipColors()
                         else ChipDefaults.secondaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),

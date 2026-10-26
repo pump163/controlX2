@@ -48,6 +48,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch temp basal set/cancel. Works in both `DeviceRole` values — `to-pump`
@@ -226,7 +228,7 @@ fun TempBasalScreen(
         )
         TempBasalStep.PickMinutes -> SingleNumberPicker(
             modifier = Modifier.fillMaxSize(),
-            label = "min",
+            label = stringResource(R.string.temp_basal_min),
             minNumber = 15,
             maxNumber = 480,
             defaultNumber = minutes,
@@ -300,7 +302,7 @@ private fun LoadingMessage() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Checking temp basal…",
+            text = stringResource(R.string.temp_basal_checking_temp_basal),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
         )
@@ -320,7 +322,7 @@ private fun PickModePanel(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Temp basal by…",
+            text = stringResource(R.string.temp_basal_by),
             fontSize = 12.sp,
             color = MaterialTheme.colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -328,7 +330,7 @@ private fun PickModePanel(
         )
         Chip(
             onClick = onPercentTapped,
-            label = { Text("Percent", fontSize = 13.sp) },
+            label = { Text(stringResource(R.string.temp_basal_percent), fontSize = 13.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
         )
@@ -338,8 +340,8 @@ private fun PickModePanel(
             label = { Text("U/hr", fontSize = 13.sp) },
             secondaryLabel = {
                 Text(
-                    text = if (unitsAvailable) "Base ${formatRate(currentBasalRate!!)} U/hr"
-                        else "Basal rate unavailable",
+                    text = if (unitsAvailable) stringResource(R.string.temp_basal_base_u_hr, formatRate(currentBasalRate!!))
+                        else stringResource(R.string.temp_basal_basal_rate_unavailable),
                     fontSize = 10.sp,
                 )
             },
@@ -356,8 +358,8 @@ private fun CancelActivePanel(
     onCancelTapped: () -> Unit,
 ) {
     val subtitle = details?.let {
-        "${it.percentage}% for ${formatDurationMinutes((it.duration / 60).toInt())}"
-    } ?: "Active temp basal"
+        stringResource(R.string.temp_basal_for, it.percentage, formatDurationMinutes((it.duration / 60).toInt()))
+    } ?: stringResource(R.string.temp_basal_active_temp_basal)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -365,7 +367,7 @@ private fun CancelActivePanel(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Temp basal",
+            text = stringResource(R.string.temp_basal_temp_basal),
             fontSize = 12.sp,
             color = MaterialTheme.colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -380,7 +382,7 @@ private fun CancelActivePanel(
         )
         Chip(
             onClick = onCancelTapped,
-            label = { Text("Cancel temp basal", fontSize = 13.sp) },
+            label = { Text(stringResource(R.string.temp_basal_cancel_temp_basal), fontSize = 13.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -394,8 +396,8 @@ private fun CancelTempBasalAlert(
     onConfirm: () -> Unit,
 ) {
     val titleText = details?.let {
-        "Cancel ${it.percentage}% for ${formatDurationMinutes((it.duration / 60).toInt())}?"
-    } ?: "Cancel this temp basal?"
+        stringResource(R.string.temp_basal_cancel_for_query, it.percentage, formatDurationMinutes((it.duration / 60).toInt()))
+    } ?: stringResource(R.string.temp_basal_cancel_temp_basal_query)
     Alert(
         title = {
             Text(
@@ -406,18 +408,18 @@ private fun CancelTempBasalAlert(
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Keep temp basal")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.temp_basal_keep_temp_basal))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Cancel temp basal")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.temp_basal_cancel_temp_basal))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Stop,
-                contentDescription = "Cancel temp basal",
+                contentDescription = stringResource(R.string.temp_basal_cancel_temp_basal),
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -434,8 +436,8 @@ private fun SetTempBasalConfirmAlert(
     onConfirm: () -> Unit,
 ) {
     val headline = when (mode) {
-        TempBasalMode.PERCENT -> "Set $percent% for ${formatDurationMinutes(minutes)}?"
-        TempBasalMode.UNITS -> "Set ${formatRate(enteredUnits)} U/hr ($percent%) for ${formatDurationMinutes(minutes)}?"
+        TempBasalMode.PERCENT -> stringResource(R.string.temp_basal_set_percent_for_query, percent, formatDurationMinutes(minutes))
+        TempBasalMode.UNITS -> stringResource(R.string.temp_basal_set_u_hr_percent_for_query, formatRate(enteredUnits), percent, formatDurationMinutes(minutes))
     }
     Alert(
         title = {
@@ -447,18 +449,18 @@ private fun SetTempBasalConfirmAlert(
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.temp_basal_cancel))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Confirm temp basal")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.temp_basal_confirm_temp_basal))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Speed,
-                contentDescription = "Temp basal",
+                contentDescription = stringResource(R.string.temp_basal_temp_basal),
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -481,13 +483,13 @@ private fun ErrorAlert(
         negativeButton = {},
         positiveButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "OK")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.temp_basal_ok))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Clear,
-                contentDescription = "Error",
+                contentDescription = stringResource(R.string.temp_basal_error),
                 modifier = Modifier.size(24.dp),
             )
         },

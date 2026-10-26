@@ -45,6 +45,8 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.PumpingSuspendedHist
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateActivatedHistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.TempRateCompletedHistoryLog
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * PUMP_HOST-only dedicated basal view.
@@ -111,7 +113,7 @@ fun BasalDetailScreen(
         when {
             pumpSid < 0 -> item {
                 Text(
-                    text = "History will appear after the first pump connection.",
+                    text = stringResource(R.string.basal_history_will_appear_after_first_pump),
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -119,7 +121,7 @@ fun BasalDetailScreen(
             }
             recentItems.isEmpty() -> item {
                 Text(
-                    text = "No recent basal changes.",
+                    text = stringResource(R.string.basal_no_recent_basal_changes),
                     fontSize = 10.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -128,7 +130,7 @@ fun BasalDetailScreen(
             else -> {
                 item {
                     Text(
-                        text = "Recent changes",
+                        text = stringResource(R.string.basal_recent_changes),
                         fontSize = 11.sp,
                         color = MaterialTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),

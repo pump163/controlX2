@@ -132,6 +132,8 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 // Data models
 data class CgmDataPoint(
@@ -1437,7 +1439,7 @@ fun VicoCgmChart(
     if (cgmDataPoints.isEmpty() || !hasValidCgmData) {
         // Show placeholder when no data
         Text(
-            text = "CGM data unavailable",
+            text = stringResource(R.string.cgm_data_unavailable),
             modifier = modifier.fillMaxWidth().height(300.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1970,7 +1972,7 @@ fun VicoCgmChart(
                     ) {}
                     Spacer(Modifier.width(Spacing.ExtraSmall))
                     Text(
-                        "Sleep",
+                        stringResource(R.string.cgm_sleep),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1986,7 +1988,7 @@ fun VicoCgmChart(
                     ) {}
                     Spacer(Modifier.width(Spacing.ExtraSmall))
                     Text(
-                        "Exercise",
+                        stringResource(R.string.cgm_exercise),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2012,7 +2014,7 @@ fun ChartLegend(
     ) {
         LegendItem(
             color = GlucoseColors.InRange,
-            label = "Glucose",
+            label = stringResource(R.string.cgm_glucose),
             shape = LegendShape.LINE
         )
         LegendItem(
@@ -2023,14 +2025,14 @@ fun ChartLegend(
         if (showCarbs) {
             LegendItem(
                 color = CarbColor,
-                label = "Carbs",
+                label = stringResource(R.string.cgm_carbs),
                 shape = LegendShape.SQUARE
             )
         }
         if (showBasal) {
             LegendItem(
                 color = InsulinColors.Basal,
-                label = "Basal",
+                label = stringResource(R.string.cgm_basal),
                 shape = LegendShape.LINE
             )
         }

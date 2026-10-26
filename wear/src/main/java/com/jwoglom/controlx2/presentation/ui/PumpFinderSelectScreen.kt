@@ -27,6 +27,8 @@ import com.jwoglom.controlx2.WearPrefs
 import com.jwoglom.controlx2.presentation.navigation.PumpSetupStage
 import com.jwoglom.controlx2.presentation.navigation.Screen
 import com.jwoglom.pumpx2.pump.messages.models.PairingCodeType
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * List of pumps discovered by PumpFinder. Tapping a pump persists the selected
@@ -49,7 +51,7 @@ fun PumpFinderSelectScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Select pump",
+            text = stringResource(R.string.pump_finder_select_pump),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -61,7 +63,7 @@ fun PumpFinderSelectScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Scanning for pumps...",
+                        text = stringResource(R.string.pump_finder_scanning_for_pumps),
                         fontSize = 12.sp,
                         color = MaterialTheme.colors.onBackground,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -71,7 +73,7 @@ fun PumpFinderSelectScreen(
                             // sendPhoneCommand prepends PREFIX_TO_SERVER; suffix only
                             sendPhoneCommand("restart-pump-finder")
                         },
-                        label = { Text("Restart scan", fontSize = 12.sp) },
+                        label = { Text(stringResource(R.string.pump_finder_restart_scan), fontSize = 12.sp) },
                         colors = ChipDefaults.secondaryChipColors(),
                     )
                 }

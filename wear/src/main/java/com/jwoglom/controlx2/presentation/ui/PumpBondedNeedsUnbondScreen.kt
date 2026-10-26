@@ -24,6 +24,8 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.LocalDataStore
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Shown when pumpcomm emits `FROM_PUMP_PUMP_BONDED_NEEDS_MANUAL_UNBOND`. The
@@ -46,11 +48,11 @@ fun PumpBondedNeedsUnbondScreen() {
     ) {
         Icon(
             imageVector = Icons.Filled.Bluetooth,
-            contentDescription = "Bluetooth",
+            contentDescription = stringResource(R.string.setup_bt),
             modifier = Modifier.size(24.dp),
         )
         Text(
-            text = "Unpair pump first",
+            text = stringResource(R.string.setup_unpair_pump_first),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -59,9 +61,9 @@ fun PumpBondedNeedsUnbondScreen() {
         val name = deviceName.value
         Text(
             text = if (!name.isNullOrBlank()) {
-                "$name is bonded to another device. Open Bluetooth settings, forget it, then retry."
+                stringResource(R.string.setup_bonded_to_other_device_forget_retry, name)
             } else {
-                "The pump is bonded to another device. Open Bluetooth settings, forget it, then retry."
+                stringResource(R.string.setup_pump_is_bonded_to_another_device)
             },
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
@@ -80,7 +82,7 @@ fun PumpBondedNeedsUnbondScreen() {
                     // can still unpair manually from the system Settings app.
                 }
             },
-            label = { Text("Open BT settings", fontSize = 12.sp) },
+            label = { Text(stringResource(R.string.setup_open_bt_settings), fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

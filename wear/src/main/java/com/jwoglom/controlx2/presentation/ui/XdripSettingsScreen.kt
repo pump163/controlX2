@@ -23,6 +23,8 @@ import com.jwoglom.controlx2.MainActivity
 import com.jwoglom.controlx2.WearPrefs
 import com.jwoglom.controlx2.sync.xdrip.XdripPayloadGroup
 import com.jwoglom.controlx2.sync.xdrip.XdripSyncConfig
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Pump-host watch settings for xDrip+ broadcasts. Reads/writes the `"WearX2"`
@@ -72,11 +74,11 @@ fun XdripSettingsScreen() {
                     val newConfig = config.copy(enabled = !config.enabled)
                     saveConfig(
                         newConfig,
-                        toastText = if (newConfig.enabled) "xDrip enabled" else "xDrip disabled",
+                        toastText = if (newConfig.enabled) context.getString(R.string.xdrip_x_drip_enabled) else context.getString(R.string.xdrip_x_drip_disabled),
                     )
                 },
-                label = { Text(if (config.enabled) "Enabled" else "Disabled", fontSize = 13.sp) },
-                secondaryLabel = { Text("Tap to toggle", fontSize = 10.sp) },
+                label = { Text(if (config.enabled) stringResource(R.string.xdrip_enabled) else stringResource(R.string.xdrip_disabled), fontSize = 13.sp) },
+                secondaryLabel = { Text(stringResource(R.string.xdrip_tap_to_toggle), fontSize = 10.sp) },
                 colors = if (config.enabled) ChipDefaults.primaryChipColors()
                     else ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -84,28 +86,28 @@ fun XdripSettingsScreen() {
         }
         item {
             PayloadToggleChip(
-                label = "Send SGV",
+                label = stringResource(R.string.xdrip_send_sgv),
                 enabled = config.sendCgmSgv,
                 onClick = { togglePayload(XdripPayloadGroup.CGM) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Device status",
+                label = stringResource(R.string.xdrip_device_status),
                 enabled = config.sendPumpDeviceStatus,
                 onClick = { togglePayload(XdripPayloadGroup.PUMP_DEVICE_STATUS) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Treatments",
+                label = stringResource(R.string.xdrip_treatments),
                 enabled = config.sendTreatments,
                 onClick = { togglePayload(XdripPayloadGroup.TREATMENTS) },
             )
         }
         item {
             PayloadToggleChip(
-                label = "Status line",
+                label = stringResource(R.string.xdrip_status_line),
                 enabled = config.sendStatusLine,
                 onClick = { togglePayload(XdripPayloadGroup.STATUS_LINE) },
             )
@@ -122,7 +124,7 @@ private fun PayloadToggleChip(
     Chip(
         onClick = onClick,
         label = { Text(label, fontSize = 12.sp) },
-        secondaryLabel = { Text(if (enabled) "On" else "Off", fontSize = 10.sp) },
+        secondaryLabel = { Text(if (enabled) stringResource(R.string.xdrip_on) else stringResource(R.string.xdrip_off), fontSize = 10.sp) },
         colors = if (enabled) ChipDefaults.primaryChipColors()
             else ChipDefaults.secondaryChipColors(),
         modifier = Modifier.fillMaxWidth(),

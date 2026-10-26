@@ -21,6 +21,7 @@ fun shortTimeAgo(
     prefix: String = "in",
     suffix: String = "ago",
     nowThresholdSeconds: Int = 60,
+    nowText: String = "now",
 ): String {
     val now = Instant.now()
     val diff = Duration.between(time, now)
@@ -35,7 +36,7 @@ fun shortTimeAgo(
         ret += "${String.format("%d", abs(diff.toMinutes())%60)}m"
     }
     if (diff.seconds < nowThresholdSeconds && diff.seconds > (-1 * nowThresholdSeconds)) {
-        return "now"
+        return nowText
     } else if (diff.toMinutes() == 0L) {
         ret += "${String.format("%d", abs(diff.seconds))}s"
     }
@@ -47,7 +48,12 @@ fun shortTimeAgo(
     }
 }
 
-fun shortTime(time: Instant): String {
+fun shortTime(
+    time: Instant,
+    minuteSuffix: String = "m",
+    amSuffix: String = "am",
+    pmSuffix: String = "pm",
+): String {
 //    val zoned = time.atZone(UTC) // UTC, not the system timezone, for some reason. Perhaps TZ information is already encoded in the Tandem timestamps?
 //
 //    val offsetSeconds = TimeZone.getDefault().getOffset(Date().time) / 1000
@@ -62,7 +68,7 @@ fun shortTime(time: Instant): String {
     }
 
     val m = when (date.length) {
-        0 -> "m"
+        0 -> minuteSuffix
         else -> ""
     }
 
@@ -71,8 +77,8 @@ fun shortTime(time: Instant): String {
         else -> zoned.hour % 12
     }
     val ampm = when (zoned.hour < 12) {
-        true -> "a${m}"
-        false -> "p${m}"
+        true -> amSuffix.replace("m", m)
+        false -> pmSuffix.replace("m", m)
     }
     return "${date}${hr}:${String.format("%02d", zoned.minute)}${ampm}"
 }

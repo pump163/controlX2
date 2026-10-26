@@ -126,6 +126,7 @@ import kotlin.math.pow
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun WearApp(
@@ -303,11 +304,11 @@ fun WearApp(
 
                 // WaitingForPhone
                 composable(Screen.WaitingForPhone.route) {
-                    IndeterminateProgressIndicator(text = "Waiting for phone")
+                    IndeterminateProgressIndicator(text = stringResource(R.string.app_waiting_for_phone))
                 }
 
                 composable(Screen.WaitingToFindPump.route) {
-                    IndeterminateProgressIndicator(text = "Waiting to find pump")
+                    IndeterminateProgressIndicator(text = stringResource(R.string.app_waiting_to_find_pump))
                 }
 
                 composable(Screen.ConnectingToPump.route) {
@@ -315,11 +316,11 @@ fun WearApp(
                 }
 
                 composable(Screen.PairingToPump.route) {
-                    IndeterminateProgressIndicator(text = "Pairing to pump")
+                    IndeterminateProgressIndicator(text = stringResource(R.string.app_pairing_to_pump))
                 }
 
                 composable(Screen.MissingPairingCode.route) {
-                    IndeterminateProgressIndicator(text = "Pump pairing needed")
+                    IndeterminateProgressIndicator(text = stringResource(R.string.app_pump_pair_needed))
                 }
 
                 composable(Screen.PumpDisconnectedReconnecting.route) {
@@ -508,9 +509,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (controlIQMode.value) {
-                                    UserMode.SLEEP -> "Disable Sleep mode?"
-                                    UserMode.NONE -> "Enable Sleep mode?"
-                                    else -> "Already in ${controlIQMode.value?.str} mode, that must be disabled first."
+                                    UserMode.SLEEP -> stringResource(R.string.app_disable_sleep_mode_query)
+                                    UserMode.NONE -> stringResource(R.string.app_enable_sleep_mode_query)
+                                    else -> stringResource(R.string.app_already_in_mode_must_be_disabled_first, (controlIQMode.value?.str ?: ""))
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
@@ -523,7 +524,7 @@ fun WearApp(
                                 },
                                 colors = ButtonDefaults.secondaryButtonColors()
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.app_cancel))
                             }
                         },
                         positiveButton = {
@@ -537,7 +538,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Disable Sleep mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.app_disable_sleep_mode))
                                     }
 
                                 UserMode.NONE ->
@@ -549,7 +550,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Enable Sleep mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.app_enable_sleep_mode))
                                     }
                                 else -> {}
                             }
@@ -557,7 +558,7 @@ fun WearApp(
                         icon = {
                             Image(
                                 Icons.Filled.KingBed,
-                                "Sleep mode",
+                                stringResource(R.string.app_sleep_mode),
                                 Modifier.size(24.dp)
                             )
                         },
@@ -571,9 +572,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (controlIQMode.value) {
-                                    UserMode.EXERCISE -> "Disable Exercise mode?"
-                                    UserMode.NONE -> "Enable Exercise mode?"
-                                    else -> "Already in ${controlIQMode.value?.str} mode, that must be disabled first."
+                                    UserMode.EXERCISE -> stringResource(R.string.app_disable_exercise_mode_query)
+                                    UserMode.NONE -> stringResource(R.string.app_enable_exercise_mode_query)
+                                    else -> stringResource(R.string.app_already_in_mode_must_be_disabled_first, (controlIQMode.value?.str ?: ""))
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
@@ -586,7 +587,7 @@ fun WearApp(
                                 },
                                 colors = ButtonDefaults.secondaryButtonColors()
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.app_cancel))
                             }
                         },
                         positiveButton = {
@@ -600,7 +601,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Disable Exercise mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.app_disable_exercise_mode))
                                     }
 
                                 UserMode.NONE ->
@@ -612,7 +613,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors()
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Enable Exercise mode")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.app_enable_exercise_mode))
                                     }
                                 else -> {}
                             }
@@ -620,7 +621,7 @@ fun WearApp(
                         icon = {
                             Image(
                                 Icons.AutoMirrored.Filled.DirectionsRun,
-                                "Exercise mode",
+                                stringResource(R.string.app_exercise_mode),
                                 Modifier.size(24.dp)
                             )
                         },
@@ -646,9 +647,9 @@ fun WearApp(
                         title = {
                             Text(
                                 text = when (basalStatus.value) {
-                                    BasalStatus.PUMP_SUSPENDED -> "Resume insulin deliveries?"
-                                    BasalStatus.UNKNOWN, null -> "Insulin state unknown, try again in a moment."
-                                    else -> "Suspend all insulin deliveries?"
+                                    BasalStatus.PUMP_SUSPENDED -> stringResource(R.string.app_resume_insulin_deliveries_query)
+                                    BasalStatus.UNKNOWN, null -> stringResource(R.string.app_insulin_state_unknown_try_again_in_moment)
+                                    else -> stringResource(R.string.app_suspend_all_insulin_deliveries_query)
                                 },
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground,
@@ -659,7 +660,7 @@ fun WearApp(
                                 onClick = { navController.navigate(Screen.Landing.route) },
                                 colors = ButtonDefaults.secondaryButtonColors(),
                             ) {
-                                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                                Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.app_cancel))
                             }
                         },
                         positiveButton = {
@@ -673,7 +674,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors(),
                                     ) {
-                                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = "Resume insulin")
+                                        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.app_resume_insulin))
                                     }
                                 BasalStatus.UNKNOWN, null -> {}
                                 else ->
@@ -685,7 +686,7 @@ fun WearApp(
                                         },
                                         colors = ButtonDefaults.primaryButtonColors(),
                                     ) {
-                                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Suspend insulin")
+                                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.app_suspend_insulin))
                                     }
                             }
                         },
@@ -695,7 +696,7 @@ fun WearApp(
                                     BasalStatus.PUMP_SUSPENDED -> Icons.Filled.PlayArrow
                                     else -> Icons.Filled.Stop
                                 },
-                                contentDescription = "Insulin",
+                                contentDescription = stringResource(R.string.app_insulin),
                                 modifier = Modifier.size(24.dp),
                             )
                         },
@@ -756,7 +757,7 @@ fun WearApp(
                     }
 
                     DecimalNumberPicker(
-                        label = "Units",
+                        label = stringResource(R.string.app_units),
                         onNumberConfirm = {
                             navController.popBackStack()
                             bolusUnitsUserInput = it
@@ -782,7 +783,7 @@ fun WearApp(
                     val maxCarbAmount = ds.maxCarbAmount.observeAsState()
                     val currentCarbs = bolusCalculatorBuilder.value?.carbsValueGrams?.orElse(null)
                     SingleNumberPicker(
-                        label = "Carbs",
+                        label = stringResource(R.string.app_carbs),
                         maxNumber = when {
                             maxCarbAmount.value != null -> maxCarbAmount.value!!
                             else -> 100
@@ -809,7 +810,7 @@ fun WearApp(
                     val glucoseUnit = glucoseUnitPreference.value ?: GlucoseUnit.MGDL
 
                     SingleNumberPicker(
-                        label = "BG (${glucoseUnit.abbreviation})",
+                        label = stringResource(R.string.app_bg, glucoseUnit.abbreviation),
                         minNumber = 40,
                         maxNumber = 400,
                         defaultNumber = when {
@@ -826,18 +827,18 @@ fun WearApp(
                 }
 
                 composable(Screen.BolusBlocked.route) {
-                    FullScreenText("A bolus was blocked which didn't match the units requested. This is either a bug in ControlX2 or another actor is attempting to bolus via your phone and/or watch unsuccessfully.")
+                    FullScreenText(stringResource(R.string.app_bolus_blocked_units_mismatch))
                     BottomText()
                 }
                 composable(Screen.BolusNotEnabled.route) {
-                    FullScreenText("A bolus was requested, but actions affecting insulin delivery are not enabled in the phone app settings.")
+                    FullScreenText(stringResource(R.string.app_bolus_requested_actions_not_enabled))
                     BottomText()
                 }
                 composable(Screen.BolusRejectedOnPhone.route) {
                     Alert(
                         title = {
                             Text(
-                                text = "Bolus Rejected on Phone",
+                                text = stringResource(R.string.app_bolus_rejected_on_phone),
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colors.onBackground
                             )
@@ -851,20 +852,20 @@ fun WearApp(
                                 modifier = Modifier.fillMaxWidth()
 
                             ) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.app_cancel))
                             }
                         },
                         positiveButton = {},
                         icon = {
                             Image(
                                 painterResource(R.drawable.bolus_icon),
-                                "Bolus icon",
+                                stringResource(R.string.app_bolus_icon),
                                 Modifier.size(24.dp)
                             )
                         },
                     ) {
                         Text(
-                            text = "The bolus request was rejected by the connected phone.",
+                            text = stringResource(R.string.app_bolus_request_was_rejected_by_conn_phone),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.body2,
                             color = MaterialTheme.colors.onBackground

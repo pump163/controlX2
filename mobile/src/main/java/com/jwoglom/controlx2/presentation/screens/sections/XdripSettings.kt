@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
+import com.jwoglom.controlx2.R
 
 @Composable
 fun XdripSettings(
@@ -88,28 +89,28 @@ fun XdripSettings(
             .padding(horizontal = 0.dp),
         content = {
             item {
-                HeaderLine("xDrip Settings")
+                HeaderLine(context.getString(R.string.xdrip_x_drip_settings))
                 Divider()
             }
 
             item {
                 ListItem(
                     headlineContent = {
-                        Text(if (config.enabled) "Disable xDrip Sync" else "Enable xDrip Sync")
+                        Text(if (config.enabled) context.getString(R.string.xdrip_disable_x_drip_sync) else context.getString(R.string.xdrip_enable_x_drip_sync))
                     },
                     supportingContent = {
                         Text(
                             if (config.enabled) {
-                                "Stops sending pump and CGM updates to xDrip"
+                                context.getString(R.string.xdrip_stop_pump_cgm_updates)
                             } else {
-                                "Enables xDrip broadcasts for selected payload groups"
+                                context.getString(R.string.xdrip_broadcast_selected_payload_groups)
                             }
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (config.enabled) Icons.Filled.Close else Icons.Filled.Check,
-                            contentDescription = if (config.enabled) "Disable" else "Enable"
+                            contentDescription = if (config.enabled) context.getString(R.string.xdrip_disable) else context.getString(R.string.xdrip_enable)
                         )
                     },
                     trailingContent = {
@@ -122,7 +123,7 @@ fun XdripSettings(
                         val newEnabled = !config.enabled
                         saveConfig(
                             config.copy(enabled = newEnabled),
-                            if (newEnabled) "xDrip sync enabled" else "xDrip sync disabled"
+                            if (newEnabled) context.getString(R.string.xdrip_x_drip_sync_enabled) else context.getString(R.string.xdrip_x_drip_sync_disabled)
                         )
                     }
                 )
@@ -131,8 +132,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send SGV",
-                    subtitle = "Broadcast current glucose readings to xDrip",
+                    title = context.getString(R.string.xdrip_send_sgv),
+                    subtitle = context.getString(R.string.xdrip_broadcast_current_glucose),
                     enabled = config.sendCgmSgv,
                     onToggle = { togglePayload(XdripPayloadGroup.CGM) }
                 )
@@ -141,8 +142,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Device Status",
-                    subtitle = "Broadcast battery, IOB, cartridge, and basal status",
+                    title = context.getString(R.string.xdrip_send_device_stat),
+                    subtitle = context.getString(R.string.xdrip_broadcast_battery_iob_cartridge_basal),
                     enabled = config.sendPumpDeviceStatus,
                     onToggle = { togglePayload(XdripPayloadGroup.PUMP_DEVICE_STATUS) }
                 )
@@ -151,8 +152,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Treatments",
-                    subtitle = "Broadcast bolus treatments to xDrip",
+                    title = context.getString(R.string.xdrip_send_treatments),
+                    subtitle = context.getString(R.string.xdrip_broadcast_bolus_treatments_to_x_drip),
                     enabled = config.sendTreatments,
                     onToggle = { togglePayload(XdripPayloadGroup.TREATMENTS) }
                 )
@@ -161,8 +162,8 @@ fun XdripSettings(
 
             item {
                 XdripPayloadToggleItem(
-                    title = "Send Statusline",
-                    subtitle = "Broadcast one-line pump status text",
+                    title = context.getString(R.string.xdrip_send_statusline),
+                    subtitle = context.getString(R.string.xdrip_broadcast_one_line_pump_stat_text),
                     enabled = config.sendStatusLine,
                     onToggle = { togglePayload(XdripPayloadGroup.STATUS_LINE) }
                 )
@@ -171,14 +172,14 @@ fun XdripSettings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Send diagnostics test payload") },
+                    headlineContent = { Text(context.getString(R.string.xdrip_send_diagnostics_test_payload)) },
                     supportingContent = {
-                        Text("Sends one-shot test SGV and statusline broadcast intents")
+                        Text(context.getString(R.string.xdrip_send_test_sgv_statusline))
                     },
                     leadingContent = {
                         Icon(
                             Icons.Filled.BugReport,
-                            contentDescription = "Diagnostics icon"
+                            contentDescription = context.getString(R.string.xdrip_diagnostics_icon)
                         )
                     },
                     modifier = Modifier.clickable {
@@ -231,12 +232,12 @@ private fun sendDiagnosticsPayload(context: Context) {
             }
         ).toString()
     )
-    val statusSent = sender.sendExternalStatusline("ControlX2 test statusline @ ${now}")
+    val statusSent = sender.sendExternalStatusline(context.getString(R.string.xdrip_ctrl_x2_test_statusline, now))
 
     val message = buildString {
-        append("Diagnostics sent")
-        append(if (sgvSent) " (SGV OK" else " (SGV skipped")
-        append(if (statusSent) ", statusline OK)" else ", statusline skipped)")
+        append(context.getString(R.string.xdrip_diagnostics_sent))
+        append(if (sgvSent) context.getString(R.string.xdrip_sgv_ok) else context.getString(R.string.xdrip_sgv_skipped))
+        append(if (statusSent) context.getString(R.string.xdrip_statusline_ok) else context.getString(R.string.xdrip_statusline_skipped))
     }
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }

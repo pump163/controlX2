@@ -33,6 +33,8 @@ import com.jwoglom.controlx2.Prefs
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.apache.commons.lang3.text.FormattableUtils.append
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun ServiceDisabledMessage(
@@ -74,9 +76,9 @@ fun ServiceDisabledMessage(
                 )
                 Text(buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("The background service is disabled, so ControlX2 cannot connect to the pump. ")
+                        append(stringResource(R.string.comm_background_service_disabled_not_conn))
                     }
-                    append("Press here to re-enable the service.")
+                    append(stringResource(R.string.comm_press_here_to_re_enable_service))
                 })
             }
         }
@@ -92,9 +94,9 @@ fun ServiceDisabledMessage(
                 )
                 Text(buildAnnotatedString {
                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append("OnlySnoopBluetooth debug option is enabled, so limited app functionality is available. ")
+                        append(stringResource(R.string.comm_onlysnoop_bt_debug_option_is_enabled))
                     }
-                    append("Select 'Debug > Disable Only Snoop Bluetooth' to disable.")
+                    append(stringResource(R.string.comm_select_debug_disable_only_snoop_bt_to))
                 })
             }
         }

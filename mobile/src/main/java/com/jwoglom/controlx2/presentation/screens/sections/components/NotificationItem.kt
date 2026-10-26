@@ -41,6 +41,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ReminderStatusRes
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 val requiredProgress = 0.5f
 
@@ -116,7 +118,7 @@ fun NotificationItem(
             when (it) {
                 SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> {
                     dismissNotification()
-                    Toast.makeText(context, "Dismissing notification", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.notifications_dismissing_notice), Toast.LENGTH_SHORT).show()
                 }
                 SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
             }
@@ -133,11 +135,11 @@ fun NotificationItem(
                 headlineContent = {
                     Text(
                         when (notification) {
-                            is AlertStatusResponse.AlertResponseType -> "Alert: ${notification.name}"
-                            is ReminderStatusResponse.ReminderType -> "Reminder: ${notification.name}"
-                            is AlarmStatusResponse.AlarmResponseType -> "Alarm: ${notification.name}"
-                            is CGMAlertStatusResponse.CGMAlert -> "CGM Alert: ${notification.name}"
-                            is HighestAamResponse -> "MALFUNCTION: ${notification.errorString}"
+                            is AlertStatusResponse.AlertResponseType -> context.getString(R.string.notifications_alert, notification.name)
+                            is ReminderStatusResponse.ReminderType -> context.getString(R.string.notifications_reminder, notification.name)
+                            is AlarmStatusResponse.AlarmResponseType -> context.getString(R.string.notifications_alarm, notification.name)
+                            is CGMAlertStatusResponse.CGMAlert -> context.getString(R.string.notifications_cgm_alert_name, notification.name)
+                            is HighestAamResponse -> context.getString(R.string.notifications_malfunction, notification.errorString)
                             else -> "$notification"
                         }
                     )
@@ -152,7 +154,7 @@ fun NotificationItem(
                             notification.description ?: ""
                         )
 
-                        is HighestAamResponse -> Text("This alert cannot be cleared and DIY app developers cannot assist you with this problem.\nFor further instructions please contact Tandem technical support and reference the above code.")
+                        is HighestAamResponse -> Text(context.getString(R.string.notifications_unclearable_no_support_diy))
                         else -> {}
                     }
                 },
@@ -160,27 +162,27 @@ fun NotificationItem(
                     when (notification) {
                         is AlertStatusResponse.AlertResponseType -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "Alert"
+                            contentDescription = stringResource(R.string.notifications_alert_2)
                         )
 
                         is ReminderStatusResponse.ReminderType -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "Reminder"
+                            contentDescription = stringResource(R.string.notifications_reminder_2)
                         )
 
                         is AlarmStatusResponse.AlarmResponseType -> Icon(
                             Icons.Filled.Warning,
-                            contentDescription = "Alarm"
+                            contentDescription = stringResource(R.string.notifications_alarm_2)
                         )
 
                         is CGMAlertStatusResponse.CGMAlert -> Icon(
                             Icons.Filled.Info,
-                            contentDescription = "CGM Alert"
+                            contentDescription = stringResource(R.string.notifications_cgm_alert_2)
                         )
 
                         is HighestAamResponse -> Icon(
                             Icons.Filled.Warning,
-                            contentDescription = "Malfunction"
+                            contentDescription = stringResource(R.string.notifications_malfunction_txt)
                         )
                     }
                 }
@@ -213,12 +215,12 @@ fun DismissBackground(dismissState: SwipeToDismissBoxState) {
     ) {
         Icon(
             Icons.Default.Delete,
-            contentDescription = "Dismiss"
+            contentDescription = stringResource(R.string.notifications_dismiss)
         )
         Spacer(modifier = Modifier)
         Icon(
             Icons.Default.Delete,
-            contentDescription = "Dismiss"
+            contentDescription = stringResource(R.string.notifications_dismiss)
         )
     }
 }

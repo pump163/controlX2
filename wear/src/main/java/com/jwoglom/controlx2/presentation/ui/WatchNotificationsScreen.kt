@@ -47,6 +47,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HighestAamRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ReminderStatusResponse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch pump alerts / alarms / reminders / CGM alerts list with per-row
@@ -129,7 +131,7 @@ fun WatchNotificationsScreen(
     ) {
         item {
             Text(
-                text = "Pump alerts",
+                text = stringResource(R.string.notifications_pump_alerts),
                 fontSize = 11.sp,
                 color = MaterialTheme.colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -139,7 +141,7 @@ fun WatchNotificationsScreen(
         if (items.isEmpty()) {
             item {
                 Text(
-                    text = "No active alerts.",
+                    text = stringResource(R.string.notifications_no_active_alerts),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -175,7 +177,7 @@ private fun NotificationChip(
         },
         secondaryLabel = {
             Text(
-                text = if (canDismiss) "Tap to dismiss" else "Cannot be dismissed",
+                text = if (canDismiss) stringResource(R.string.notifications_tap_to_dismiss) else stringResource(R.string.notifications_cannot_be_dismissed),
                 fontSize = 10.sp,
             )
         },
@@ -195,25 +197,25 @@ private fun DismissConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Dismiss ${notificationLabel(notification)}?",
+                text = stringResource(R.string.notifications_dismiss_query, notificationLabel(notification)),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Keep")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.notifications_keep))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Dismiss")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.notifications_dismiss))
             }
         },
         icon = {
             Image(
                 imageVector = if (isAlarm) Icons.Filled.Warning else Icons.Filled.Notifications,
-                contentDescription = "Notification",
+                contentDescription = stringResource(R.string.notifications_notification),
                 modifier = Modifier.size(24.dp),
             )
         },

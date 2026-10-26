@@ -67,6 +67,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun Notifications(
@@ -167,12 +169,12 @@ fun Notifications(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Notifications")
+                    HeaderLine(stringResource(R.string.notifications_notifications))
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Notifications cannot be dismissed on this device model (${model}).")
+                        Line(stringResource(R.string.notifications_cannot_dismiss_on_model, model))
                         Line("")
                     }
                 }
@@ -180,13 +182,13 @@ fun Notifications(
                 Timber.i("Notifications fetched: ${notifications}")
                 if (refreshing) {
                     item {
-                        LoadSpinner("Loading notifications...")
+                        LoadSpinner(stringResource(R.string.notifications_loading_notifications))
                     }
                 } else if (notifications.isEmpty()) {
                     item {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) {
                             Spacer(Modifier.height(64.dp))
-                            Line("No notifications", style = TextStyle(textAlign = TextAlign.Center))
+                            Line(stringResource(R.string.notifications_no_notifications), style = TextStyle(textAlign = TextAlign.Center))
                         }
                     }
                 }

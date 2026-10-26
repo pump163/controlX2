@@ -38,6 +38,8 @@ import com.jwoglom.pumpx2.pump.messages.models.MinsTime
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSegmentResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun EditSegmentDialog(
@@ -71,7 +73,7 @@ fun EditSegmentDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Edit Profile Segment")
+            Text(stringResource(R.string.profile_edit_profile_segment))
         },
         text = {
             LazyColumn(
@@ -81,11 +83,11 @@ fun EditSegmentDialog(
                     .padding(horizontal = 0.dp),
             ) {
                 item {
-                    Text("Editing segment ${segmentIndex} in ${profile.idpSettingsResponse.name} (#${profile.idpId})", fontSize = 14.sp)
+                    Text(stringResource(R.string.profile_editing_segment_in, segmentIndex, profile.idpSettingsResponse.name, profile.idpId), fontSize = 14.sp)
                 }
                 item {
                     Text(
-                        "Start Time",
+                        stringResource(R.string.profile_start_time),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -100,8 +102,8 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = basalRate,
                         onValueChange = { basalRate = it },
-                        label = { Text("Basal Rate (u/hr)") },
-                        placeholder = { Text("e.g., 1.0") },
+                        label = { Text(stringResource(R.string.profile_basal_rate_u_hr)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_1_0)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -110,9 +112,9 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = carbRatio,
                         onValueChange = { carbRatio = it },
-                        label = { Text("Carb Ratio (g/u)") },
-                        supportingText = { Text("Example: 10 = 1:10 ratio") },
-                        placeholder = { Text("e.g., 10g") },
+                        label = { Text(stringResource(R.string.profile_carb_ratio_g_u)) },
+                        supportingText = { Text(stringResource(R.string.profile_example_10_1_10_ratio)) },
+                        placeholder = { Text(stringResource(R.string.profile_e_g_10g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -121,10 +123,10 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = targetBG,
                         onValueChange = { targetBG = it },
-                        label = { Text("Target BG (${glucoseUnit.abbreviation})") },
+                        label = { Text(stringResource(R.string.profile_target_bg_unit, glucoseUnit.abbreviation)) },
                         placeholder = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "e.g., 110"
-                            GlucoseUnit.MMOL -> "e.g., 6.1"
+                            GlucoseUnit.MGDL -> stringResource(R.string.profile_e_g_110)
+                            GlucoseUnit.MMOL -> stringResource(R.string.profile_e_g_6_1)
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -134,16 +136,16 @@ fun EditSegmentDialog(
                     OutlinedTextField(
                         value = isf,
                         onValueChange = { isf = it },
-                        label = { Text("ISF (${glucoseUnit.abbreviation} per u)") },
+                        label = { Text(stringResource(R.string.profile_isf_per_u, glucoseUnit.abbreviation)) },
                         supportingText = {
                             Text(when (glucoseUnit) {
-                                GlucoseUnit.MGDL -> "Example: 50 = 1u:50 mg/dL"
-                                GlucoseUnit.MMOL -> "Example: 2.8 = 1u:2.8 mmol/L"
+                                GlucoseUnit.MGDL -> stringResource(R.string.profile_example_50_1u_50_mgdl)
+                                GlucoseUnit.MMOL -> stringResource(R.string.profile_example_2_8_1u_2_8_mmol)
                             })
                         },
                         placeholder = { Text(when (glucoseUnit) {
-                            GlucoseUnit.MGDL -> "e.g., 50"
-                            GlucoseUnit.MMOL -> "e.g., 2.8"
+                            GlucoseUnit.MGDL -> stringResource(R.string.profile_e_g_50)
+                            GlucoseUnit.MMOL -> stringResource(R.string.profile_e_g_2_8)
                         }) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth()
@@ -213,14 +215,14 @@ fun EditSegmentDialog(
                     }
                 }
             ) {
-                Text("Update Segment")
+                Text(stringResource(R.string.profile_update_segment))
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.profile_cancel))
             }
         }
     )

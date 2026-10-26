@@ -46,6 +46,8 @@ import com.jwoglom.pumpx2.pump.messages.request.control.StopDexcomCGMSensorSessi
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch CGM transmitter / sensor session management. Three primary actions
@@ -105,7 +107,7 @@ fun CGMTransmitterScreen(
     // launcher is a stable () -> Unit returned by rememberRemoteTextInputLauncher.
 
     val g6SensorCodeLauncher = rememberRemoteTextInputLauncher(
-        label = "G6 sensor code (digits or 0000)",
+        label = stringResource(R.string.cgm_g6_sensor_code_digits_or_0000),
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
@@ -118,7 +120,7 @@ fun CGMTransmitterScreen(
     }
 
     val g6TxIdLauncher = rememberRemoteTextInputLauncher(
-        label = "G6 transmitter ID (6 chars)",
+        label = stringResource(R.string.cgm_g6_transmitter_id_6_chars),
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         if (result.length != 6) {
@@ -131,7 +133,7 @@ fun CGMTransmitterScreen(
     }
 
     val g7CodeLauncher = rememberRemoteTextInputLauncher(
-        label = "G7 pairing code (8 digits)",
+        label = stringResource(R.string.cgm_g7_pair_code_8_digits),
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
@@ -227,7 +229,7 @@ fun CGMTransmitterScreen(
         return
     }
 
-    val sessionLabel = sessionState ?: "Unknown"
+    val sessionLabel = sessionState ?: stringResource(R.string.cgm_unknown)
     val transmitterLabel = transmitterStatus.takeUnless { it.isNullOrBlank() } ?: "—"
 
     ScalingLazyColumn(
@@ -240,7 +242,7 @@ fun CGMTransmitterScreen(
     ) {
         item {
             Text(
-                text = "CGM",
+                text = stringResource(R.string.cgm_cgm),
                 fontSize = 11.sp,
                 color = MaterialTheme.colors.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -249,7 +251,7 @@ fun CGMTransmitterScreen(
         }
         item {
             Text(
-                text = "Session: $sessionLabel  •  Transmitter: $transmitterLabel",
+                text = stringResource(R.string.cgm_session_label_transmitter, sessionLabel, transmitterLabel),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -258,9 +260,9 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = g6TxIdLauncher,
-                label = { Text("Start G6 sensor", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.cgm_start_g6_sensor), fontSize = 13.sp) },
                 secondaryLabel = {
-                    Text("Transmitter ID + sensor code", fontSize = 10.sp)
+                    Text(stringResource(R.string.cgm_transmitter_id_sensor_code), fontSize = 10.sp)
                 },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -269,9 +271,9 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = g7CodeLauncher,
-                label = { Text("Pair G7 sensor", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.cgm_pair_g7_sensor), fontSize = 13.sp) },
                 secondaryLabel = {
-                    Text("8-digit pairing code", fontSize = 10.sp)
+                    Text(stringResource(R.string.cgm_8_digit_pair_code), fontSize = 10.sp)
                 },
                 colors = ChipDefaults.primaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -280,7 +282,7 @@ fun CGMTransmitterScreen(
         item {
             Chip(
                 onClick = { pendingStopConfirm = true },
-                label = { Text("Stop sensor session", fontSize = 13.sp) },
+                label = { Text(stringResource(R.string.cgm_stop_sensor_session), fontSize = 13.sp) },
                 colors = ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -298,25 +300,25 @@ private fun StartG6ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Start G6 sensor with TX $txId, code $sensorCode?",
+                text = stringResource(R.string.cgm_start_g6_sensor_with_tx_id_code_query, txId, sensorCode),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.cgm_cancel))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Start G6 sensor")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.cgm_start_g6_sensor))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Bluetooth,
-                contentDescription = "G6",
+                contentDescription = stringResource(R.string.cgm_g6),
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -332,25 +334,25 @@ private fun PairG7ConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Pair G7 sensor with code $code?",
+                text = stringResource(R.string.cgm_pair_g7_sensor_with_code_query, code),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.cgm_cancel))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Pair G7 sensor")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.cgm_pair_g7_sensor))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Bluetooth,
-                contentDescription = "G7",
+                contentDescription = stringResource(R.string.cgm_g7),
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -365,25 +367,25 @@ private fun StopSessionConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Stop the active CGM sensor session?",
+                text = stringResource(R.string.cgm_stop_active_cgm_sensor_session_query),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
         },
         negativeButton = {
             Button(onClick = onCancel, colors = ButtonDefaults.secondaryButtonColors()) {
-                Icon(Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(Icons.Filled.Clear, contentDescription = stringResource(R.string.cgm_cancel))
             }
         },
         positiveButton = {
             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "Stop sensor session")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.cgm_stop_sensor_session))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Stop,
-                contentDescription = "Stop",
+                contentDescription = stringResource(R.string.cgm_stop),
                 modifier = Modifier.size(24.dp),
             )
         },
@@ -406,13 +408,13 @@ private fun InfoAlert(
         negativeButton = {},
         positiveButton = {
             Button(onClick = onDismiss, colors = ButtonDefaults.primaryButtonColors()) {
-                Icon(Icons.Filled.Check, contentDescription = "OK")
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.cgm_ok))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.Clear,
-                contentDescription = "Info",
+                contentDescription = stringResource(R.string.cgm_info),
                 modifier = Modifier.size(24.dp),
             )
         },

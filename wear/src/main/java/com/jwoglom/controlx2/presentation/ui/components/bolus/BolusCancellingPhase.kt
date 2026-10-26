@@ -7,6 +7,8 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.dialog.Dialog
 import com.jwoglom.controlx2.presentation.DataStore
 import com.jwoglom.controlx2.presentation.ui.IndeterminateProgressIndicator
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusCancellingPhase(
@@ -23,6 +25,6 @@ fun BolusCancellingPhase(
                 onCancelled()
             }
         }
-        IndeterminateProgressIndicator(text = "The bolus is being cancelled..")
+        IndeterminateProgressIndicator(text = stringResource(R.string.bolus_is_being_cancelled))
     }
 }

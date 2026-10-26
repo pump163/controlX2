@@ -106,6 +106,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun Landing(
@@ -220,13 +221,13 @@ fun Landing(
                     if (pumpConnected.value != true) {
                         Icon(
                             imageVector = Icons.Filled.Warning,
-                            contentDescription = "Disconnected",
+                            contentDescription = stringResource(R.string.dashboard_disconnected),
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
                             when {
-                                Prefs(context).serviceEnabled() -> "Disconnected, reconnecting..."
-                                else -> "Service disabled"
+                                Prefs(context).serviceEnabled() -> stringResource(R.string.dashboard_disconnected_reconnecting)
+                                else -> stringResource(R.string.dashboard_service_disabled)
                              },
                             modifier = Modifier.padding(start = 36.dp)
                         )
@@ -234,7 +235,7 @@ fun Landing(
                         Icon(
                             painterResource(R.drawable.pump),
                             tint = Color.Unspecified,
-                            contentDescription = "Pump icon",
+                            contentDescription = stringResource(R.string.dashboard_pump_icon),
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
@@ -250,7 +251,7 @@ fun Landing(
                     }) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refresh"
+                            contentDescription = stringResource(R.string.dashboard_refresh)
                         )
                     }
                 },
@@ -524,21 +525,21 @@ fun Landing(
                                     Image(
                                         if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
                                         else painterResource(R.drawable.bolus_icon_secondary),
-                                        "Bolus icon",
+                                        stringResource(R.string.dashboard_bolus_icon),
                                         Modifier.size(24.dp)
                                     )
                                 } else {
                                     Image(
                                         if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_x)
                                         else painterResource(R.drawable.bolus_x_secondary),
-                                        "Cancel bolus icon",
+                                        stringResource(R.string.dashboard_cancel_bolus_icon),
                                         Modifier.size(24.dp)
                                     )
                                 }
                             },
                             text = {
                                 Text(
-                                    if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) "Bolus" else "Cancel",
+                                    if (!showBottomScaffold() || bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) stringResource(R.string.dashboard_bolus) else stringResource(R.string.dashboard_cancel),
                                     color = if (isSystemInDarkTheme()) Colors.primary
                                     else Colors.onPrimary
                                 )

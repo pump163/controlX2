@@ -19,6 +19,8 @@ import com.jwoglom.controlx2.MainActivity
 import com.jwoglom.controlx2.WearPrefs
 import com.jwoglom.controlx2.shared.enums.DeviceRole
 import com.jwoglom.controlx2.util.StatePrefs
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch port of [com.jwoglom.controlx2.presentation.components.ServiceDisabledMessage]
@@ -56,8 +58,8 @@ fun WearServiceDisabledMessage(
             onClick = {
                 (context as? MainActivity)?.reEnablePumpService()
             },
-            label = { Text("Service disabled", fontSize = 12.sp) },
-            secondaryLabel = { Text("Tap to re-enable", fontSize = 10.sp) },
+            label = { Text(stringResource(R.string.comm_service_disabled), fontSize = 12.sp) },
+            secondaryLabel = { Text(stringResource(R.string.comm_tap_to_re_enable), fontSize = 10.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = modifier.fillMaxWidth(),
         )

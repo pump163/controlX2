@@ -18,6 +18,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.presentation.screens.PumpSetupStage
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun PumpSetupStageProgress(
@@ -40,7 +42,7 @@ fun PumpSetupStageProgress(
     }
 
     Line(
-        "${setupStage.value?.description} (stage ${setupStage.value?.step ?: 0} of ${PumpSetupStage.PUMPX2_PUMP_CONNECTED.step})",
+        stringResource(R.string.setup_stage_of, (setupStage.value?.description ?: ""), (setupStage.value?.step ?: 0 ?: ""), PumpSetupStage.PUMPX2_PUMP_CONNECTED.step),
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(start = 10.dp, top = 10.dp)
     )

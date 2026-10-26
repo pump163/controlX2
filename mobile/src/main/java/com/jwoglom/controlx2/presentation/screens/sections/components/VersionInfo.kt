@@ -22,6 +22,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.Settings
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.util.AppVersionCheck
 import com.jwoglom.controlx2.util.AppVersionInfo
+import com.jwoglom.controlx2.R
 
 @Composable
 fun VersionInfo(
@@ -35,29 +36,29 @@ fun VersionInfo(
         }
     }, Modifier.padding(start = 16.dp, top = 16.dp))
     Text(buildAnnotatedString {
-        append("with PumpX2 ")
+        append(context.getString(R.string.app_with_pump_x2))
         append(ver.pumpX2)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("Build: ")
+            append(context.getString(R.string.app_build))
         }
         append(ver.buildVersion)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("Build time: ")
+            append(context.getString(R.string.app_build_time))
         }
         append(ver.buildTime)
         append("\n")
 
         withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-            append("PumpX2 build time: ")
+            append(context.getString(R.string.app_pump_x2_build_time))
         }
         append(ver.pumpX2BuildTime)
         append("\n")
     }, lineHeight = 20.sp, fontSize = 14.sp, modifier = Modifier.padding(start = 16.dp).clickable {
-        Toast.makeText(context, "Checking for version update", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.app_checking_for_version_update), Toast.LENGTH_SHORT).show()
         AppVersionCheck(context)
     })
 }

@@ -38,6 +38,8 @@ import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.IDPManager
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Watch active-profile picker. Works in both `DeviceRole` values — the
@@ -108,7 +110,7 @@ fun ProfileSwitchScreen(
         when {
             !isComplete -> item {
                 Text(
-                    text = "Loading profiles…",
+                    text = stringResource(R.string.profile_loading_profiles),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -116,7 +118,7 @@ fun ProfileSwitchScreen(
             }
             profiles.isEmpty() -> item {
                 Text(
-                    text = "No profiles found.",
+                    text = stringResource(R.string.profile_no_profiles_found),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -125,7 +127,7 @@ fun ProfileSwitchScreen(
             else -> {
                 item {
                     Text(
-                        text = "Active profile",
+                        text = stringResource(R.string.profile_active_profile),
                         fontSize = 11.sp,
                         color = MaterialTheme.colors.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
@@ -168,7 +170,7 @@ private fun ProfileChip(
         },
         secondaryLabel = {
             Text(
-                text = if (isActive) "Active" else "Tap to activate",
+                text = if (isActive) stringResource(R.string.profile_active) else stringResource(R.string.profile_tap_to_activate),
                 fontSize = 10.sp,
             )
         },
@@ -187,7 +189,7 @@ private fun ProfileSwitchConfirmAlert(
     Alert(
         title = {
             Text(
-                text = "Activate \"${profile.idpSettingsResponse.name}\"?",
+                text = stringResource(R.string.profile_activate_query, profile.idpSettingsResponse.name),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colors.onBackground,
             )
@@ -197,7 +199,7 @@ private fun ProfileSwitchConfirmAlert(
                 onClick = onCancel,
                 colors = ButtonDefaults.secondaryButtonColors(),
             ) {
-                Icon(imageVector = Icons.Filled.Clear, contentDescription = "Cancel")
+                Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.profile_cancel))
             }
         },
         positiveButton = {
@@ -205,13 +207,13 @@ private fun ProfileSwitchConfirmAlert(
                 onClick = onConfirm,
                 colors = ButtonDefaults.primaryButtonColors(),
             ) {
-                Icon(imageVector = Icons.Filled.Check, contentDescription = "Activate profile")
+                Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.profile_activate_profile))
             }
         },
         icon = {
             Image(
                 imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Profile",
+                contentDescription = stringResource(R.string.profile_profile),
                 modifier = Modifier.size(24.dp),
             )
         },

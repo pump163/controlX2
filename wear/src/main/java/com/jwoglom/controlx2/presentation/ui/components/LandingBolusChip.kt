@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.Text
 import com.jwoglom.controlx2.LocalDataStore
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun LandingBolusChip(onClick: () -> Unit) {
@@ -16,9 +18,9 @@ fun LandingBolusChip(onClick: () -> Unit) {
     val lastBolusStatus = ds.lastBolusStatus.observeAsState().value
     Chip(
         onClick = onClick,
-        label = { Text("Bolus", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        label = { Text(stringResource(R.string.dashboard_bolus), maxLines = 1, overflow = TextOverflow.Ellipsis) },
         secondaryLabel = {
-            Text(lastBolusStatus?.let { "Last: $it" } ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(lastBolusStatus?.let { stringResource(R.string.dashboard_last, it) } ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         modifier = Modifier.fillMaxWidth()
     )

@@ -19,6 +19,8 @@ import com.jwoglom.controlx2.presentation.navigation.Screen
 import com.jwoglom.controlx2.presentation.screens.sections.components.VersionInfo
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import kotlin.system.exitProcess
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun FirstLaunch(
@@ -28,7 +30,7 @@ fun FirstLaunch(
     val context = LocalContext.current
 
     DialogScreen(
-        "Health and Safety Warning",
+        stringResource(R.string.setup_health_and_safety_warning),
         buttonContent = {
             Button(
                 onClick = {
@@ -36,7 +38,7 @@ fun FirstLaunch(
                     exitProcess(0)
                 }
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.setup_cancel))
             }
             Button(
                 onClick = {
@@ -47,7 +49,7 @@ fun FirstLaunch(
                     sendMessage(MessagePaths.TO_SERVER_START_PUMP_FINDER, "".toByteArray())
                 }
             ) {
-                Text("Agree")
+                Text(stringResource(R.string.setup_agree))
             }
         }
     ) {

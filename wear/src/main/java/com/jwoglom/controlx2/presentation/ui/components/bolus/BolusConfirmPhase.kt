@@ -22,6 +22,7 @@ import androidx.wear.compose.material.dialog.Dialog
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.presentation.DataStore
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun BolusConfirmPhase(
@@ -39,14 +40,14 @@ fun BolusConfirmPhase(
         Alert(
             title = {
                 Text(
-                    text = bolusFinalParameters.value?.units?.let { "${twoDecimalPlaces(it)}u Bolus" } ?: "",
+                    text = bolusFinalParameters.value?.units?.let { stringResource(R.string.bolus_twodecimal_u_bolus, twoDecimalPlaces(it)) } ?: "",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colors.onBackground
                 )
             },
             negativeButton = {
                 Button(onClick = onReject, colors = ButtonDefaults.secondaryButtonColors()) {
-                    Icon(imageVector = Icons.Filled.Clear, contentDescription = "Do not deliver bolus")
+                    Icon(imageVector = Icons.Filled.Clear, contentDescription = stringResource(R.string.bolus_do_not_deliver_bolus))
                 }
             },
             positiveButton = {
@@ -54,14 +55,14 @@ fun BolusConfirmPhase(
                     bolusPermissionResponse.value?.let { permissionResponse ->
                         if (permissionResponse.isPermissionGranted && finalParameters.units >= 0.05) {
                             Button(onClick = onConfirm, colors = ButtonDefaults.primaryButtonColors()) {
-                                Icon(imageVector = Icons.Filled.Check, contentDescription = "Deliver bolus")
+                                Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.bolus_deliver_bolus))
                             }
                         }
                     }
                 }
             },
             icon = {
-                Image(painterResource(R.drawable.bolus_icon), "Bolus icon", Modifier.size(24.dp))
+                Image(painterResource(R.drawable.bolus_icon), stringResource(R.string.bolus_icon), Modifier.size(24.dp))
             },
             scrollState = scrollState,
         ) {
@@ -69,9 +70,9 @@ fun BolusConfirmPhase(
                 text = bolusPermissionResponse.value?.let {
                     when {
                         bolusFinalParameters.value?.units == null -> ""
-                        bolusFinalParameters.value!!.units < 0.05 -> "Insulin amount too small."
-                        it.status == 0 -> "Do you want to deliver the bolus?"
-                        else -> "Cannot deliver bolus: ${it.nackReason}"
+                        bolusFinalParameters.value!!.units < 0.05 -> stringResource(R.string.bolus_insulin_amount_too_small)
+                        it.status == 0 -> stringResource(R.string.bolus_do_want_to_deliver_bolus_query)
+                        else -> stringResource(R.string.bolus_cannot_deliver_bolus, it.nackReason)
                     }
                 } ?: "",
                 textAlign = TextAlign.Center,

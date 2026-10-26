@@ -10,6 +10,8 @@ import com.jwoglom.controlx2.presentation.components.FirstRowChip
 import com.jwoglom.controlx2.presentation.defaultTheme
 import com.jwoglom.controlx2.presentation.greenTheme
 import com.jwoglom.controlx2.presentation.redTheme
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Immutable
 data class LandingTopRowModel(
@@ -32,7 +34,7 @@ fun LandingTopRow() {
     FlowRow {
         FirstRowChip(
             labelText = model.batteryPercent?.let { "$it%" } ?: "?",
-            secondaryLabelText = "Battery",
+            secondaryLabelText = stringResource(R.string.dashboard_battery),
             theme = when {
                 model.batteryPercent == null -> defaultTheme
                 model.batteryPercent > 50 -> greenTheme
@@ -44,7 +46,7 @@ fun LandingTopRow() {
 
         FirstRowChip(
             labelText = model.iobUnits?.let { "${String.format("%.1f", it)}u" } ?: "?",
-            secondaryLabelText = "IOB",
+            secondaryLabelText = stringResource(R.string.dashboard_iob),
             theme = defaultTheme,
             numItems = 3,
         )
@@ -53,7 +55,7 @@ fun LandingTopRow() {
             labelText = model.cartridgeRemainingUnits?.let {
                 "${it}u${if (model.cartridgeRemainingEstimate == true) "+" else ""}"
             } ?: "?",
-            secondaryLabelText = "Cartridge",
+            secondaryLabelText = stringResource(R.string.dashboard_cartridge),
             theme = when {
                 model.cartridgeRemainingUnits == null -> defaultTheme
                 model.cartridgeRemainingUnits > 75 -> greenTheme

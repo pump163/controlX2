@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.Chip
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Landing footer. Collapsed in Phase 5d from three individual action chips
@@ -33,7 +35,7 @@ fun LandingFooterActions(
                 modifier = Modifier.size(24.dp),
             )
         },
-        label = { Text("Settings", fontSize = 13.sp) },
+        label = { Text(stringResource(R.string.dashboard_settings), fontSize = 13.sp) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 25.dp),

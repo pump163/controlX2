@@ -30,6 +30,8 @@ import com.jwoglom.controlx2.shared.enums.BasalStatus
 import com.jwoglom.pumpx2.pump.messages.response.controlStream.FillCannulaStateStreamResponse
 import kotlin.math.roundToInt
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun FillCannulaWorkflowScreen(
@@ -78,7 +80,7 @@ fun FillCannulaWorkflowScreen(
     }
 
     CartridgeWorkflowScreen(
-        title = "Fill Cannula",
+        title = stringResource(R.string.cartridge_fill_cannula),
         innerPadding = innerPadding,
         stepInfo = WizardStepInfo(step.stepNumber, 3),
         canCancel = true,
@@ -92,20 +94,20 @@ fun FillCannulaWorkflowScreen(
         body = {
             when (step) {
                 FillCannulaStep.SUSPEND -> {
-                    Text("Important", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_important), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Filling cannula requires suspending insulin delivery. Select the prime amount carefully.",
+                        stringResource(R.string.cartridge_fill_cannula_requires_suspend),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
                 FillCannulaStep.ENTER_AMOUNT -> {
-                    Text("Step 2: Set Prime Amount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_step_2_set_prime_amount), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Select how much insulin to prime the cannula.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.cartridge_select_how_much_insulin_to_prime), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(16.dp))
                     DecimalOutlinedText(
-                        title = "Prime amount (U)",
+                        title = stringResource(R.string.cartridge_prime_amount_u),
                         value = primeAmountText,
                         onValueChange = { value ->
                             primeAmountText = value
@@ -130,7 +132,7 @@ fun FillCannulaWorkflowScreen(
                     )
                 }
                 FillCannulaStep.DONE -> {
-                    Text("Cannula fill complete!", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.cartridge_cannula_fill_complete), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("${"%.1f".format(primeAmount)}U primed.", style = MaterialTheme.typography.bodyLarge)
                 }
@@ -140,13 +142,13 @@ fun FillCannulaWorkflowScreen(
             when (step) {
                 FillCannulaStep.SUSPEND ->
                     PrimaryActionButton(
-                        text = "Suspend insulin delivery",
+                        text = stringResource(R.string.cartridge_suspend_insulin_delivery),
                         loading = loadingSuspend,
                         onClick = { showSuspendConfirm = true },
                     )
                 FillCannulaStep.ENTER_AMOUNT ->
                     PrimaryActionButton(
-                        text = "Fill cannula",
+                        text = stringResource(R.string.cartridge_fill_cannula_2),
                         loading = loadingFill,
                         onClick = {
                             loadingFill = true
@@ -163,13 +165,13 @@ fun FillCannulaWorkflowScreen(
                             enabled = !loadingResume,
                             modifier = Modifier.weight(1.5f).height(56.dp),
                         ) {
-                            Text(if (loadingResume) "Working..." else "Resume Insulin Delivery")
+                            Text(if (loadingResume) stringResource(R.string.cartridge_working) else stringResource(R.string.cartridge_resume_insulin_delivery))
                         }
                         Button(
                             onClick = onDone,
                             modifier = Modifier.weight(1f).height(56.dp),
                         ) {
-                            Text("Done")
+                            Text(stringResource(R.string.cartridge_done))
                         }
                     }
                 }
@@ -180,11 +182,11 @@ fun FillCannulaWorkflowScreen(
     if (showSuspendConfirm) {
         AlertDialog(
             onDismissRequest = { showSuspendConfirm = false },
-            title = { Text("Suspend insulin delivery?") },
-            text = { Text("This will stop all insulin delivery until you resume.") },
+            title = { Text(stringResource(R.string.cartridge_suspend_insulin_delivery_query)) },
+            text = { Text(stringResource(R.string.cartridge_stop_delivery_until_resume)) },
             dismissButton = {
                 TextButton(onClick = { showSuspendConfirm = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cartridge_cancel))
                 }
             },
             confirmButton = {
@@ -193,7 +195,7 @@ fun FillCannulaWorkflowScreen(
                     loadingSuspend = true
                     onSuspend()
                 }) {
-                    Text("Suspend")
+                    Text(stringResource(R.string.cartridge_suspend))
                 }
             },
         )
@@ -202,11 +204,11 @@ fun FillCannulaWorkflowScreen(
     if (showResumeConfirm) {
         AlertDialog(
             onDismissRequest = { showResumeConfirm = false },
-            title = { Text("Resume insulin delivery?") },
-            text = { Text("This will restart scheduled basal insulin.") },
+            title = { Text(stringResource(R.string.cartridge_resume_insulin_delivery_query)) },
+            text = { Text(stringResource(R.string.cartridge_will_restart_sched_basal_insulin)) },
             dismissButton = {
                 TextButton(onClick = { showResumeConfirm = false }) {
-                    Text("Not yet")
+                    Text(stringResource(R.string.cartridge_not_yet))
                 }
             },
             confirmButton = {
@@ -215,7 +217,7 @@ fun FillCannulaWorkflowScreen(
                     loadingResume = true
                     onResume()
                 }) {
-                    Text("Resume")
+                    Text(stringResource(R.string.cartridge_resume))
                 }
             },
         )
@@ -224,11 +226,11 @@ fun FillCannulaWorkflowScreen(
     if (showCancelConfirm) {
         AlertDialog(
             onDismissRequest = { showCancelConfirm = false },
-            title = { Text("Cancel cannula fill?") },
-            text = { Text("The cannula fill is not complete.") },
+            title = { Text(stringResource(R.string.cartridge_cancel_cannula_fill_query)) },
+            text = { Text(stringResource(R.string.cartridge_cannula_fill_is_not_complete)) },
             dismissButton = {
                 TextButton(onClick = { showCancelConfirm = false }) {
-                    Text("No, continue")
+                    Text(stringResource(R.string.cartridge_no_continue))
                 }
             },
             confirmButton = {
@@ -236,7 +238,7 @@ fun FillCannulaWorkflowScreen(
                     showCancelConfirm = false
                     onDismiss()
                 }) {
-                    Text("Yes, cancel")
+                    Text(stringResource(R.string.cartridge_yes_cancel))
                 }
             },
         )

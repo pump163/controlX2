@@ -93,6 +93,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun Actions(
@@ -211,12 +213,12 @@ fun Actions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Actions")
+                    HeaderLine(stringResource(R.string.actions_actions))
                     Divider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Actions are not supported on this device model (${model}). Only remote bolus is supported.")
+                        Line(stringResource(R.string.actions_not_supported_remote_bolus_only, model))
                         Line("")
                     }
                 }
@@ -230,16 +232,16 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> "Stop / Start Insulin"
-                                    BasalStatus.PUMP_SUSPENDED -> "Start Insulin"
-                                    else -> "Stop Insulin"
+                                    BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_start_insulin)
+                                    BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_start_insulin)
+                                    else -> context.getString(R.string.actions_stop_insulin)
                                 }
                             )},
                             supportingContent = { Text(
                                 when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> "Stop or resume insulin deliveries"
-                                    BasalStatus.PUMP_SUSPENDED -> "Resume insulin deliveries"
-                                    else -> "Stop insulin deliveries"
+                                    BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_or_resume_insulin_deliveries)
+                                    BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_resume_insulin_deliveries)
+                                    else -> context.getString(R.string.actions_stop_insulin_deliveries)
                                 }
                             ) },
                             leadingContent = {
@@ -279,7 +281,7 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Resume insulin")
+                                    Text(stringResource(R.string.actions_resume_insulin))
                                 },
                                 text = {
                                     Text(resumeGuidance.message)
@@ -292,7 +294,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.actions_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -316,7 +318,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Resume insulin")
+                                        Text(stringResource(R.string.actions_resume_insulin))
                                     }
                                 }
                             )
@@ -332,10 +334,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = {},
                                 title = {
-                                    Text("Stop insulin")
+                                    Text(stringResource(R.string.actions_stop_insulin_2))
                                 },
                                 text = {
-                                    Text("Suspend all insulin deliveries?")
+                                    Text(stringResource(R.string.actions_suspend_all_insulin_deliveries_query))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -344,7 +346,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.actions_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -364,7 +366,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop insulin")
+                                        Text(stringResource(R.string.actions_stop_insulin_2))
                                     }
                                 }
                             )
@@ -390,8 +392,8 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (controlIQMode.value) {
-                                    UserMode.EXERCISE -> "Disable Exercise Mode"
-                                    else -> "Enable Exercise Mode"
+                                    UserMode.EXERCISE -> context.getString(R.string.actions_disable_exercise_mode)
+                                    else -> context.getString(R.string.actions_enable_exercise_mode)
                                 }
                             )},
                             leadingContent = {
@@ -417,7 +419,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Exercise mode cannot be enabled because another user mode is active",
+                                                    context.getString(R.string.actions_exercise_mode_blocked_other_active),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -433,7 +435,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Cannot disable Exercise Mode unless it’s currently active",
+                                                    context.getString(R.string.actions_cannot_disable_exercise_mode_inactive),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -472,8 +474,8 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (controlIQMode.value) {
-                                    UserMode.SLEEP -> "Disable Sleep Mode"
-                                    else -> "Enable Sleep Mode"
+                                    UserMode.SLEEP -> context.getString(R.string.actions_disable_sleep_mode)
+                                    else -> context.getString(R.string.actions_enable_sleep_mode)
                                 }
                             )},
                             leadingContent = {
@@ -499,7 +501,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Sleep mode cannot be enabled because another user mode is active",
+                                                    context.getString(R.string.actions_sleep_mode_blocked_other_active),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -515,7 +517,7 @@ fun Actions(
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "Cannot disable Sleep Mode unless it’s currently active",
+                                                    context.getString(R.string.actions_cannot_disable_sleep_mode_inactive),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
@@ -557,13 +559,13 @@ fun Actions(
                         ListItem(
                             headlineContent = { Text(
                                 when (tempRateActive.value) {
-                                    true -> "Stop Temp Rate"
-                                    else -> "Start Temp Rate"
+                                    true -> context.getString(R.string.actions_stop_temp_rate)
+                                    else -> context.getString(R.string.actions_start_temp_rate)
                                 }
                             )},
                             supportingContent = { 
                                 when (tempRateActive.value) {
-                                    true -> Text("Active: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} at ${tempRateDetails.value?.startTimeInstant}")
+                                    true -> Text(context.getString(R.string.actions_active_for_at, (tempRateDetails.value?.percentage ?: ""), (prettyDuration(tempRateDetails.value?.duration?.div(60)) ?: ""), (tempRateDetails.value?.startTimeInstant ?: "")))
                                     else -> null
                                 }
                             },
@@ -593,10 +595,10 @@ fun Actions(
                             AlertDialog(
                                 onDismissRequest = { showStopTempRateMenu = false },
                                 title = {
-                                    Text("Stop Temp Rate")
+                                    Text(stringResource(R.string.actions_stop_temp_rate))
                                 },
                                 text = {
-                                    Text("Stop the active temp rate: ${tempRateDetails.value?.percentage}% for ${prettyDuration(tempRateDetails.value?.duration?.div(60))} beginning ${tempRateDetails.value?.startTimeInstant}")
+                                    Text(stringResource(R.string.actions_stop_active_temp_rate_for_beginning, (tempRateDetails.value?.percentage ?: ""), (prettyDuration(tempRateDetails.value?.duration?.div(60)) ?: ""), (tempRateDetails.value?.startTimeInstant ?: "")))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -605,7 +607,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Cancel")
+                                        Text(stringResource(R.string.actions_cancel))
                                     }
                                 },
                                 confirmButton = {
@@ -623,7 +625,7 @@ fun Actions(
                                         },
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
-                                        Text("Stop temp rate")
+                                        Text(stringResource(R.string.actions_stop_temp_rate_2))
                                     }
                                 }
                             )
@@ -644,7 +646,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Cartridge Settings"
+                                context.getString(R.string.actions_cartridge_settings)
                             )},
                             supportingContent = {
                             },
@@ -666,7 +668,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "CGM Settings"
+                                context.getString(R.string.actions_cgm_settings)
                             )},
                             supportingContent = {
                             },
@@ -689,7 +691,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Profile Settings"
+                                context.getString(R.string.actions_profile_settings)
                             )},
                             supportingContent = {
                             },
@@ -732,7 +734,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Sound Settings"
+                                context.getString(R.string.actions_sound_settings)
                             )},
                             supportingContent = {
                             },
@@ -754,7 +756,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Control-IQ Settings"
+                                context.getString(R.string.actions_ciq_settings)
                             )},
                             supportingContent = {
                             },
@@ -776,7 +778,7 @@ fun Actions(
                     ) {
                         ListItem(
                             headlineContent = { Text(
-                                "Safety Limits"
+                                context.getString(R.string.actions_safety_limits)
                             )},
                             supportingContent = {
                             },

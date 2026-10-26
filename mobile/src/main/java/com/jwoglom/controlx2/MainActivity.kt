@@ -122,6 +122,7 @@ import java.time.temporal.ChronoUnit
 import java.util.Objects
 import java.util.function.Supplier
 import kotlin.system.exitProcess
+import com.jwoglom.controlx2.R
 
 
 var dataStore = DataStore()
@@ -374,7 +375,7 @@ class MainActivity : ComponentActivity() {
                         To resolve, install the 'Wear OS' app from Google Play.
                         """.trimIndent()
                         )
-                        .setPositiveButton("Install") { _, _ ->
+                        .setPositiveButton(this.getString(R.string.app_install)) { _, _ ->
                             openPlayStore("com.google.android.wearable.app")
                         }
                         .show()
@@ -386,9 +387,9 @@ class MainActivity : ComponentActivity() {
                         }?.show()
                     } else {
                         AlertDialog.Builder(this)
-                            .setTitle("Error connecting to Google Play Services")
-                            .setMessage("Error code: $resultCode")
-                            .setPositiveButton("OK") { d, _ -> d.cancel() }
+                            .setTitle(this.getString(R.string.app_error_conn_to_google_play_services))
+                            .setMessage(this.getString(R.string.app_error_code_result, resultCode))
+                            .setPositiveButton(this.getString(R.string.app_ok)) { d, _ -> d.cancel() }
                             .show()
                     }
                 }
@@ -494,15 +495,15 @@ class MainActivity : ComponentActivity() {
         bolusConfirmDialog?.dismiss()
 
         val message = if (autoApproveTimeout > 0) {
-            "$units units from $source. Will auto-approve in ${autoApproveTimeout}s unless canceled."
+            this.getString(R.string.app_units_auto_approve, units, source, autoApproveTimeout)
         } else {
-            "$units units from $source. Press Confirm to deliver."
+            this.getString(R.string.app_units_press_confirm_deliver, units, source)
         }
 
         bolusConfirmDialog = AlertDialog.Builder(this)
-            .setTitle("Bolus Request")
+            .setTitle(this.getString(R.string.app_bolus_request))
             .setMessage(message)
-            .setPositiveButton("Confirm ${units}u") { dialog, _ ->
+            .setPositiveButton(this.getString(R.string.app_confirm_u, units)) { dialog, _ ->
                 val intent = Intent(applicationContext, BolusNotificationBroadcastReceiver::class.java).apply {
                     putExtra("action", "INITIATE")
                     putExtra("request", requestBytes)
@@ -514,7 +515,7 @@ class MainActivity : ComponentActivity() {
                 confirmPendingIntent.send()
                 dialog.dismiss()
             }
-            .setNegativeButton("Reject") { dialog, _ ->
+            .setNegativeButton(this.getString(R.string.app_reject)) { dialog, _ ->
                 val intent = Intent(applicationContext, BolusNotificationBroadcastReceiver::class.java).apply {
                     putExtra("action", "REJECT")
                 }
@@ -628,7 +629,7 @@ class MainActivity : ComponentActivity() {
 
             MessagePaths.TO_SERVER_SET_PAIRING_CODE -> {
                 val pairingCodeText = String(data)
-                Toast.makeText(applicationContext, "Set pairing code: $pairingCodeText", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, this.getString(R.string.app_set_pair_code_text, pairingCodeText), Toast.LENGTH_SHORT).show()
                 when (dataStore.pumpSetupStage.value) {
                     PumpSetupStage.WAITING_PUMP_FINDER_CLEANUP -> {
                         Prefs(applicationContext).setPumpFinderServiceEnabled(false)
@@ -829,13 +830,13 @@ class MainActivity : ComponentActivity() {
             val verboseStr = verbosePumpMessage(message)
             AlertDialog.Builder(this)
                 .setMessage(verboseStr)
-                .setNeutralButton("Copy JSON") { dialog, which ->
+                .setNeutralButton(this.getString(R.string.app_copy_json)) { dialog, which ->
                     setClipboard(messagePairToJson(Pair(message, Instant.now())))
                 }
-                .setNegativeButton("Copy") { dialog, which ->
+                .setNegativeButton(this.getString(R.string.app_copy)) { dialog, which ->
                     setClipboard(verboseStr)
                 }
-                .setPositiveButton("OK") { dialog, which -> dialog.cancel() }
+                .setPositiveButton(this.getString(R.string.app_ok)) { dialog, which -> dialog.cancel() }
                 .show()
         }
 
@@ -898,8 +899,8 @@ class MainActivity : ComponentActivity() {
                     Timber.w(e, "Failed to extract CIQ info fields")
                 }
                 dataStore.controlIQWeightUnit.value = when (message.weightUnit) {
-                    ControlIQInfoAbstractResponse.WeightUnit.POUNDS -> "lbs"
-                    ControlIQInfoAbstractResponse.WeightUnit.KILOGRAMS -> "kg"
+                    ControlIQInfoAbstractResponse.WeightUnit.POUNDS -> this.getString(R.string.app_lbs)
+                    ControlIQInfoAbstractResponse.WeightUnit.KILOGRAMS -> this.getString(R.string.app_kg)
                     else -> ""
                 }
             }
@@ -915,27 +916,27 @@ class MainActivity : ComponentActivity() {
             is LastBolusStatusAbstractResponse -> {
 
                 dataStore.lastBolusStatus.value = if (message.timestamp > 0)
-                    "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant))}"
+                    "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant), this.getString(R.string.units_m), this.getString(R.string.units_am), this.getString(R.string.units_pm))}"
                 else
                     null
                 dataStore.lastBolusStatusResponse.value = message
             }
             is HomeScreenMirrorResponse -> {
                 dataStore.controlIQStatus.value = when (message.apControlStateIcon) {
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY -> "On"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> "Suspended"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> "Increase"
-                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> "Reduced"
-                    else -> "CIQ Off"
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY -> this.getString(R.string.app_on)
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_RED_BIQ_CIQ_BASAL_SUSPENDED -> this.getString(R.string.app_suspended)
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_BLUE_CIQ_INCREASE_BASAL -> this.getString(R.string.app_increase)
+                    HomeScreenMirrorResponse.ApControlStateIcon.STATE_GRAY_ORANGE_CIQ_ATTENUATION_BASAL -> this.getString(R.string.app_reduced)
+                    else -> this.getString(R.string.app_ciq_off)
                 }
                 dataStore.cgmStatusText.value = when (message.cgmAlertIcon) {
-                    HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_1, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_2, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_3, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_4 -> "Starting up"
-                    HomeScreenMirrorResponse.CGMAlertIcon.CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.CHECKMARK_BLOOD_DROP -> "Calibration Needed"
-                    HomeScreenMirrorResponse.CGMAlertIcon.ERROR_HIGH_WEDGE, HomeScreenMirrorResponse.CGMAlertIcon.ERROR_LOW_WEDGE -> "Error"
-                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> "Replace Sensor"
-                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_TRANSMITTER -> "Replace Transmitter"
-                    HomeScreenMirrorResponse.CGMAlertIcon.OUT_OF_RANGE -> "Out Of Range"
-                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> "Sensor Failed"
+                    HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_1, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_2, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_3, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_4 -> this.getString(R.string.app_starting_up)
+                    HomeScreenMirrorResponse.CGMAlertIcon.CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.STARTUP_CALIBRATE, HomeScreenMirrorResponse.CGMAlertIcon.CHECKMARK_BLOOD_DROP -> this.getString(R.string.app_calibration_needed)
+                    HomeScreenMirrorResponse.CGMAlertIcon.ERROR_HIGH_WEDGE, HomeScreenMirrorResponse.CGMAlertIcon.ERROR_LOW_WEDGE -> this.getString(R.string.app_error)
+                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_SENSOR -> this.getString(R.string.app_replace_sensor)
+                    HomeScreenMirrorResponse.CGMAlertIcon.REPLACE_TRANSMITTER -> this.getString(R.string.app_replace_transmitter)
+                    HomeScreenMirrorResponse.CGMAlertIcon.OUT_OF_RANGE -> this.getString(R.string.app_out_of_range)
+                    HomeScreenMirrorResponse.CGMAlertIcon.FAILED_SENSOR -> this.getString(R.string.app_sensor_failed)
                     HomeScreenMirrorResponse.CGMAlertIcon.TRIPLE_DASHES -> "---"
                     else -> ""
                 }
@@ -977,19 +978,23 @@ class MainActivity : ComponentActivity() {
                     CGMStatusResponse.SessionState.SESSION_ACTIVE -> shortTimeAgo(
                             pumpTimeToLocalTz(message.sensorStartedTimestampInstant)
                                 .plus(10, ChronoUnit.DAYS),
-                        suffix = "left")
+                        suffix = this.getString(R.string.app_left),
+                        nowText = this.getString(R.string.units_now))
                     else -> ""
                 }
                 dataStore.cgmSessionExpireExact.value = when (message.sessionState) {
                     CGMStatusResponse.SessionState.SESSION_ACTIVE -> shortTime(
                         pumpTimeToLocalTz(message.sensorStartedTimestampInstant)
-                            .plus(10, ChronoUnit.DAYS))
+                            .plus(10, ChronoUnit.DAYS),
+                        this.getString(R.string.units_m),
+                        this.getString(R.string.units_am),
+                        this.getString(R.string.units_pm))
                     else -> ""
                 }
                 dataStore.cgmTransmitterStatus.value = when (message.transmitterBatteryStatus) {
-                    CGMStatusResponse.TransmitterBatteryStatus.ERROR -> "Error"
-                    CGMStatusResponse.TransmitterBatteryStatus.EXPIRED -> "Expired"
-                    CGMStatusResponse.TransmitterBatteryStatus.OK -> "OK"
+                    CGMStatusResponse.TransmitterBatteryStatus.ERROR -> this.getString(R.string.app_error)
+                    CGMStatusResponse.TransmitterBatteryStatus.EXPIRED -> this.getString(R.string.app_expired)
+                    CGMStatusResponse.TransmitterBatteryStatus.OK -> this.getString(R.string.app_ok)
                     CGMStatusResponse.TransmitterBatteryStatus.OUT_OF_RANGE -> "OOR"
                     else -> ""
                 }
@@ -1100,9 +1105,9 @@ class MainActivity : ComponentActivity() {
 
     private fun unsuccessfulAlert(req: String) {
         AlertDialog.Builder(this@MainActivity)
-            .setTitle("Failed Pump Request")
-            .setMessage("$req was not successful. The pump returned an error fulfilling the request.")
-            .setPositiveButton("OK", null)
+            .setTitle(this.getString(R.string.app_failed_pump_request))
+            .setMessage(this.getString(R.string.app_req_not_successful_pump_ret_error, req))
+            .setPositiveButton(this.getString(R.string.app_ok), null)
             .show()
     }
 
@@ -1151,7 +1156,7 @@ class MainActivity : ComponentActivity() {
     private fun getBluetoothManager(): BluetoothManager {
         return Objects.requireNonNull(
             getSystemService(BLUETOOTH_SERVICE) as BluetoothManager,
-            "cannot get BluetoothManager"
+            this.getString(R.string.app_cannot_get_bluetooth_manager)
         )
     }
 
@@ -1222,16 +1227,16 @@ class MainActivity : ComponentActivity() {
     private fun checkLocationServices(): Boolean {
         return if (!areLocationServicesEnabled()) {
             AlertDialog.Builder(this)
-                .setTitle("Location services are not enabled")
-                .setMessage("Scanning for Bluetooth peripherals requires locations services to be enabled.") // Want to enable?
+                .setTitle(this.getString(R.string.app_location_services_are_not_enabled))
+                .setMessage(this.getString(R.string.app_scan_bt_requires_locations_services)) // Want to enable?
                 .setPositiveButton(
-                    "Enable"
+                    this.getString(R.string.app_enable)
                 ) { dialogInterface, i ->
                     dialogInterface.cancel()
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 }
                 .setNegativeButton(
-                    "Cancel"
+                    this.getString(R.string.app_cancel)
                 ) { dialog, which -> // if this button is clicked, just close
                     // the dialog box and do nothing
                     dialog.cancel()
@@ -1271,10 +1276,10 @@ class MainActivity : ComponentActivity() {
             permissionsGranted()
         } else {
             AlertDialog.Builder(this)
-                .setTitle("Permissions required for Bluetooth scanning")
-                .setMessage("This app requires Nearby Devices and Location permissions to scan for Bluetooth devices. Please grant all requested permissions.")
+                .setTitle(this.getString(R.string.app_perm_required_for_bt_scan))
+                .setMessage(this.getString(R.string.app_requires_nearby_location))
                 .setPositiveButton(
-                    "Retry"
+                    this.getString(R.string.app_retry)
                 ) { dialogInterface, i ->
                     dialogInterface.cancel()
                     checkPermissions()

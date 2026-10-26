@@ -85,6 +85,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -210,12 +212,12 @@ fun ProfileActions(
                 .padding(horizontal = 0.dp),
             content = {
                 item {
-                    HeaderLine("Profile Actions")
+                    HeaderLine(stringResource(R.string.profile_actions))
                     HorizontalDivider()
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line("Profile control is not supported on this device model (${model}). Profiles can only be viewed.")
+                        Line(stringResource(R.string.profile_control_unsupported_view_only, model))
                         Line("")
                     }
                 }
@@ -231,12 +233,12 @@ fun ProfileActions(
                                 ListItem(
                                     headlineContent = {
                                         Text(
-                                            "No profiles present"
+                                            context.getString(R.string.profile_no_profiles_present)
                                         )
                                     },
                                     supportingContent = {
                                         Text(
-                                            "To continue, please configure at least one profile"
+                                            context.getString(R.string.profile_configure_at_least_one_first)
                                         )
                                     },
                                 )
@@ -260,9 +262,9 @@ fun ProfileActions(
                                     supportingContent = {
                                         Text(
                                             buildAnnotatedString {
-                                                append("IDP ID ${profile.idpSettingsResponse.idpId} in slot ${profileIndex}")
+                                                append(stringResource(R.string.profile_idp_id_in_slot, profile.idpSettingsResponse.idpId, profileIndex))
                                                 if (idpManager.value?.activeProfile?.idpId == profile.idpId) {
-                                                    append("\nActive Profile")
+                                                    append(stringResource(R.string.profile_active_profile))
                                                 }
                                             }
                                         )
@@ -297,7 +299,7 @@ fun ProfileActions(
                                                 },
                                                 modifier = Modifier.padding(top = 16.dp)
                                             ) {
-                                                Text("Back")
+                                                Text(stringResource(R.string.profile_back))
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f),
@@ -306,7 +308,7 @@ fun ProfileActions(
                                         ),
                                         confirmButton = {},
                                         title = {
-                                            Text("Profile '${profile.idpSettingsResponse.name}'")
+                                            Text(stringResource(R.string.profile_profile, profile.idpSettingsResponse.name))
                                         },
                                         text = {
                                             LazyColumn(
@@ -332,17 +334,17 @@ fun ProfileActions(
                                                                                 append("${MinsTime(segment.profileStartTime)}")
                                                                             }
                                                                             append(": ")
-                                                                            append("${InsulinUnit.from1000To1(segment.profileBasalRate.toLong())} u/hr")
+                                                                            append(stringResource(R.string.profile_u_hr, InsulinUnit.from1000To1(segment.profileBasalRate.toLong())))
                                                                         }
                                                                     )
                                                                 },
                                                                 supportingContent = {
                                                                     Text(buildAnnotatedString {
-                                                                        append("Carb ratio: ${segment.profileCarbRatio}")
+                                                                        append(stringResource(R.string.profile_carb_ratio, segment.profileCarbRatio))
                                                                         append("\n")
-                                                                        append("ISF: ${segment.profileISF}")
+                                                                        append(stringResource(R.string.profile_isf, segment.profileISF))
                                                                         append("\n")
-                                                                        append("Target BG: ${segment.profileTargetBG}")
+                                                                        append(stringResource(R.string.profile_target_bg_segment, segment.profileTargetBG))
                                                                         append("\n")
                                                                     })
                                                                 },
@@ -363,7 +365,7 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Add Segment")
+                                                                Text(context.getString(R.string.profile_add_segment))
                                                             },
                                                             leadingContent = {
                                                                 Icon(
@@ -382,7 +384,7 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Delete Profile")
+                                                                Text(context.getString(R.string.profile_delete_profile))
                                                             },
                                                             leadingContent = {
                                                                 Icon(
@@ -407,11 +409,11 @@ fun ProfileActions(
                                                     item {
                                                         ListItem(
                                                             headlineContent = {
-                                                                Text("Set Active Profile")
+                                                                Text(context.getString(R.string.profile_set_active_profile))
                                                             },
                                                             supportingContent = {
                                                                 if (idpManager.value?.activeProfile?.idpId == profile.idpId) {
-                                                                    Text("This profile is already active")
+                                                                    Text(context.getString(R.string.profile_is_already_active))
                                                                 }
                                                             },
                                                             leadingContent = {
@@ -449,7 +451,7 @@ fun ProfileActions(
                 }
                 else {
                     item {
-                        LoadSpinner("Loading profiles...")
+                        LoadSpinner(stringResource(R.string.profile_loading_profiles))
                     }
                 }
                 item {
@@ -465,11 +467,11 @@ fun ProfileActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Add New Profile"
+                                    context.getString(R.string.profile_add_new_profile)
                                 )
                             },
                             supportingContent = {
-                                Text("Create a new insulin delivery profile")
+                                Text(context.getString(R.string.profile_create_new_insulin_delivery_profile))
                             },
                             leadingContent = {
                                 Icon(Icons.Filled.Add, contentDescription = null)
@@ -490,7 +492,7 @@ fun ProfileActions(
                         ListItem(
                             headlineContent = {
                                 Text(
-                                    "Back"
+                                    context.getString(R.string.profile_back)
                                 )
                             },
                             supportingContent = {

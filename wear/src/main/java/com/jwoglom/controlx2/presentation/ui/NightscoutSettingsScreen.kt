@@ -29,6 +29,8 @@ import com.jwoglom.controlx2.sync.nightscout.NightscoutSyncConfig
 import com.jwoglom.controlx2.sync.nightscout.NightscoutSyncStatusStore
 import com.jwoglom.controlx2.sync.nightscout.NightscoutSyncWorker
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 /**
  * Pump-host watch settings for Nightscout sync. Reads/writes the `"controlx2"`
@@ -53,10 +55,10 @@ fun NightscoutSettingsScreen() {
         syncStatus = NightscoutSyncStatusStore.load(prefs)
     }
 
-    val editUrlLauncher = rememberRemoteTextInputLauncher(label = "Nightscout URL") { result ->
+    val editUrlLauncher = rememberRemoteTextInputLauncher(label = stringResource(R.string.nightscout_ns_url)) { result ->
         if (result != null) saveAndReload(config.copy(nightscoutUrl = result))
     }
-    val editSecretLauncher = rememberRemoteTextInputLauncher(label = "API secret") { result ->
+    val editSecretLauncher = rememberRemoteTextInputLauncher(label = stringResource(R.string.nightscout_api_secret)) { result ->
         if (result != null) saveAndReload(config.copy(apiSecret = result))
     }
 
@@ -79,7 +81,7 @@ fun NightscoutSettingsScreen() {
                     when {
                         !enabling -> {
                             NightscoutSyncWorker.stopIfRunning()
-                            Toast.makeText(context, "Nightscout disabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.nightscout_ns_disabled), Toast.LENGTH_SHORT).show()
                         }
                         pumpSid < 0 -> {
                             // No pump has connected yet this run, so we have no
@@ -88,18 +90,18 @@ fun NightscoutSettingsScreen() {
                             // — the config is already persisted above.
                             Toast.makeText(
                                 context,
-                                "Enabled — will start after pump connects",
+                                context.getString(R.string.nightscout_enabled_starts_after_conn),
                                 Toast.LENGTH_SHORT,
                             ).show()
                         }
                         else -> {
                             NightscoutSyncWorker.startIfEnabled(context, prefs, pumpSid)
-                            Toast.makeText(context, "Nightscout enabled", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.nightscout_ns_enabled), Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
-                label = { Text(if (config.enabled) "Enabled" else "Disabled", fontSize = 13.sp) },
-                secondaryLabel = { Text("Tap to toggle", fontSize = 10.sp) },
+                label = { Text(if (config.enabled) context.getString(R.string.nightscout_enabled_2) else context.getString(R.string.nightscout_disabled_2), fontSize = 13.sp) },
+                secondaryLabel = { Text(context.getString(R.string.nightscout_tap_to_toggle), fontSize = 10.sp) },
                 colors = if (config.enabled) ChipDefaults.primaryChipColors()
                     else ChipDefaults.secondaryChipColors(),
                 modifier = Modifier.fillMaxWidth(),
@@ -108,7 +110,7 @@ fun NightscoutSettingsScreen() {
         item {
             Chip(
                 onClick = { editUrlLauncher() },
-                label = { Text("URL", fontSize = 12.sp) },
+                label = { Text(context.getString(R.string.nightscout_url_2), fontSize = 12.sp) },
                 secondaryLabel = {
                     Text(
                         text = compactUrlLabel(config.nightscoutUrl),
@@ -124,10 +126,10 @@ fun NightscoutSettingsScreen() {
         item {
             Chip(
                 onClick = { editSecretLauncher() },
-                label = { Text("API secret", fontSize = 12.sp) },
+                label = { Text(stringResource(R.string.nightscout_api_secret), fontSize = 12.sp) },
                 secondaryLabel = {
                     Text(
-                        text = if (config.apiSecret.isBlank()) "Not set" else "••••••",
+                        text = if (config.apiSecret.isBlank()) context.getString(R.string.nightscout_not_set) else "••••••",
                         fontSize = 10.sp,
                     )
                 },
@@ -140,7 +142,7 @@ fun NightscoutSettingsScreen() {
         }
         item {
             Text(
-                text = "Advanced settings (processors, interval, lookback) are configured on the phone.",
+                text = context.getString(R.string.nightscout_advanced_config_on_phone),
                 fontSize = 10.sp,
                 modifier = Modifier.padding(top = 8.dp, start = 8.dp, end = 8.dp),
             )
@@ -154,14 +156,16 @@ private fun LaunchedStatusText(
 ) {
     // Tick every 10s so relative timestamps refresh without re-saving config.
     val tick = intervalOf(10)
-    val text = remember(syncStatus, tick) {
+    val lastErrorTimeTemplate = stringResource(R.string.nightscout_last_error_err_time_ago)
+    val lastErrorTemplate = stringResource(R.string.nightscout_last_error_err)
+    val text = remember(syncStatus, tick, lastErrorTimeTemplate, lastErrorTemplate) {
         val parts = mutableListOf<String>()
         syncStatus.lastSuccessfulSyncMillis?.let {
             parts += "Last sync ${shortTimeAgo(Instant.ofEpochMilli(it))}"
         }
         syncStatus.lastError?.let { err ->
             val errTimeAgo = syncStatus.lastErrorMillis?.let { shortTimeAgo(Instant.ofEpochMilli(it)) }
-            parts += if (errTimeAgo != null) "Last error $errTimeAgo: $err" else "Last error: $err"
+            parts += if (errTimeAgo != null) String.format(lastErrorTimeTemplate, errTimeAgo, err) else String.format(lastErrorTemplate, err)
         }
         parts.joinToString("\n")
     }
@@ -182,8 +186,9 @@ private fun LaunchedStatusText(
  * Keeps the host visible so the user can confirm which instance is configured
  * without the raw URL spilling into an unreadable multi-line wrap.
  */
+@Composable
 private fun compactUrlLabel(url: String): String {
-    if (url.isBlank()) return "Not set"
+    if (url.isBlank()) return stringResource(R.string.nightscout_not_set)
     val trimmed = url.trim().trimEnd('/')
     val afterScheme = trimmed.substringAfter("://", missingDelimiterValue = trimmed)
     val host = afterScheme.substringBefore('/')

@@ -8,6 +8,8 @@ import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.presentation.components.LineInfoChip
 import com.jwoglom.controlx2.shared.enums.BasalStatus
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Immutable
 data class BasalRowModel(
@@ -39,7 +41,7 @@ fun LandingBasalRow(
         else -> if (model.basalRate == null) model.basalStatus.str else "${model.basalStatus.str} (${model.basalRate})"
     } ?: "?"
 
-    LineInfoChip("Basal", text, onClick = onClick)
+    LineInfoChip(stringResource(R.string.dashboard_basal), text, onClick = onClick)
 }
 
 @Preview

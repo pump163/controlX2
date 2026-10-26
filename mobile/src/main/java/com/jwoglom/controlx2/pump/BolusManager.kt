@@ -91,16 +91,16 @@ class BolusManager(
 
             val builder = confirmBolusRequestBaseNotification(
                 context,
-                "Bolus Request",
-                if (autoApproveTimeout > 0) "$units units. Auto-approving in ${autoApproveTimeout}s unless canceled."
-                else "$units units. Press Confirm to deliver."
+                context.getString(R.string.bolus_request),
+                if (autoApproveTimeout > 0) context.getString(R.string.bolus_auto_approve_in_sec_unless_canceled, units, autoApproveTimeout)
+                else context.getString(R.string.bolus_units_press_confirm_to_deliver, units)
             )
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setVibrate(longArrayOf(500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L, 500L))
 
-            builder.addAction(R.drawable.decline, "Reject", getRejectIntent())
+            builder.addAction(R.drawable.decline, context.getString(R.string.bolus_reject), getRejectIntent())
 
-            builder.addAction(R.drawable.bolus_icon, "Confirm ${units}u", getConfirmIntent())
+            builder.addAction(R.drawable.bolus_icon, context.getString(R.string.bolus_confirm_u, units), getConfirmIntent())
 
             val notif = builder.build()
             Timber.i("bolus notification $bolusNotificationId $builder $notif")
@@ -191,10 +191,10 @@ fun confirmBolusRequestBaseNotification(context: Context?, title: String, text: 
     val notificationManager = context?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channel = NotificationChannel(
         notificationChannelId,
-        "Confirm Bolus",
+        context?.getString(R.string.bolus_confirm_bolus) ?: "",
         NotificationManager.IMPORTANCE_HIGH
     ).let {
-        it.description = "Confirm Bolus"
+        it.description = context?.getString(R.string.bolus_confirm_bolus) ?: ""
         it
     }
     notificationManager.createNotificationChannel(channel)

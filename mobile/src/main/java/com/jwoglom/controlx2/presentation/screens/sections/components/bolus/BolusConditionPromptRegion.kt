@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcCondition
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusConditionPromptRegion(
@@ -68,7 +70,7 @@ fun BolusConditionPromptRegion(
                         },
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Reject")
+                        Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(R.string.bolus_reject))
                     }
                 }
 
@@ -92,7 +94,7 @@ fun BolusConditionPromptRegion(
                         },
                         modifier = Modifier.padding(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Filled.Check, contentDescription = "Apply")
+                        Icon(imageVector = Icons.Filled.Check, contentDescription = stringResource(R.string.bolus_apply))
                     }
                 }
             }

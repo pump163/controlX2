@@ -88,8 +88,8 @@ class PumpIOBComplicationDataSourceService : SuspendingComplicationDataSourceSer
             Duration.between(it, Instant.now())
         } ?: Duration.ZERO
         val iobNum = pumpIOB?.first?.toDoubleOrNull() ?: 0.0
-        val iobLabel = if (TwoDecimalPlaces) "${twoDecimalPlaces(iobNum)}u"
-                       else "${oneDecimalPlace(iobNum)}u"
+        val iobLabel = if (TwoDecimalPlaces) this.getString(R.string.complication_twodecimal_u, twoDecimalPlaces(iobNum))
+                       else this.getString(R.string.complication_u, oneDecimalPlace(iobNum))
         var displayType = ""
 
         when {
@@ -133,7 +133,7 @@ class PumpIOBComplicationDataSourceService : SuspendingComplicationDataSourceSer
             "complicationData: displayType=$displayType pumpIOB=$pumpIOB duration=${duration.seconds}s iobLabel=$iobLabel iobNum=$iobNum"
         )
 
-        val caseContentDescription = "Pump IOB ($displayType)"
+        val caseContentDescription = this.getString(R.string.complication_pump_iob_disp_type, displayType)
 
         // Create a content description that includes the value information
         val contentDescription = PlainComplicationText.Builder(

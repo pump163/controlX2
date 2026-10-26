@@ -29,6 +29,8 @@ import androidx.wear.input.RemoteInputIntentHelper
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.MainActivity
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 private const val REMOTE_INPUT_KEY = "pairing_code"
 const val PAIRING_CODE_LENGTH = 6
@@ -61,10 +63,10 @@ fun PairingCodeEntryScreen() {
             ?.trim()
         when {
             code == null -> {
-                localError.value = "No code entered"
+                localError.value = context.getString(R.string.setup_no_code_entered)
             }
             code.length != PAIRING_CODE_LENGTH || !code.all(Char::isDigit) -> {
-                localError.value = "Must be $PAIRING_CODE_LENGTH digits"
+                localError.value = context.getString(R.string.setup_must_be_pair_code_length_digits, PAIRING_CODE_LENGTH)
             }
             else -> {
                 localError.value = null
@@ -80,7 +82,7 @@ fun PairingCodeEntryScreen() {
 
     val launchInput: () -> Unit = {
         val remoteInput = RemoteInput.Builder(REMOTE_INPUT_KEY)
-            .setLabel("Pairing code")
+            .setLabel(context.getString(R.string.setup_pairing_code))
             .build()
         val intent = RemoteInputIntentHelper.createActionRemoteInputIntent()
         RemoteInputIntentHelper.putRemoteInputsExtra(intent, listOf(remoteInput))
@@ -117,7 +119,7 @@ fun PairingCodeEntryScreen() {
             )
         }
         Text(
-            text = "Enter pump pairing code",
+            text = stringResource(R.string.setup_enter_pump_pair_code),
             fontSize = 14.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colors.onBackground,
@@ -125,7 +127,7 @@ fun PairingCodeEntryScreen() {
         )
         Chip(
             onClick = launchInput,
-            label = { Text("Enter code", fontSize = 12.sp) },
+            label = { Text(stringResource(R.string.setup_enter_code), fontSize = 12.sp) },
             colors = ChipDefaults.primaryChipColors(),
             modifier = Modifier.fillMaxWidth(),
         )

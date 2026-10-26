@@ -11,6 +11,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.wear.compose.material.ExperimentalWearMaterialApi
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.presentation.components.LineInfoChip
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Immutable
 data class CgmSensorRowModel(
@@ -36,7 +38,7 @@ fun LandingCgmSensorRow() {
         else -> "${model.sessionState}"
     }
 
-    LineInfoChip("CGM Sensor", text, onClick = { showExact = !showExact })
+    LineInfoChip(stringResource(R.string.dashboard_cgm_sensor), text, onClick = { showExact = !showExact })
 }
 
 @Preview

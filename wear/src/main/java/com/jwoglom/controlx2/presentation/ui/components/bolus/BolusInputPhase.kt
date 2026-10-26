@@ -31,6 +31,8 @@ import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcCondition
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import timber.log.Timber
+import androidx.compose.ui.res.stringResource
+import com.jwoglom.controlx2.R
 
 @Composable
 fun BolusInputPhase(
@@ -108,7 +110,7 @@ fun BolusInputPhase(
                 Row {
                     Icon(
                         imageVector = Icons.Filled.Check,
-                        contentDescription = "continue",
+                        contentDescription = stringResource(R.string.bolus_continue),
                         modifier = Modifier
                             .size(ButtonDefaults.SmallIconSize)
                             .wrapContentSize(align = Alignment.Center),
