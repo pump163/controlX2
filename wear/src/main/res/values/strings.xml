@@ -277,10 +277,8 @@
     <string name="cgm_stopped">Stopped</string>
     <string name="cgm_stopping">Stopping</string>
     <string name="app_debug">Debug</string>
-    <string name="app_testing_leading_text">Testing Leading Text...</string>
     <string name="dashboard_active">Active</string>
     <string name="nightscout_not_set">Not set</string>
-    <string name="app_start_text">Start text</string>
     <string name="app_scroll_type_must_be_column_scrolling">Scroll type must be DestinationScrollType.COLUMN_SCROLLING</string>
     <string name="app_scroll_type_must_be_scaling_lazy">Scroll type must be DestinationScrollType.SCALING_LAZY_COLUMN_SCROLLING</string>
     <string name="comm_ctrl_x2_pump_host_service">ControlX2 pump host service</string>
@@ -341,4 +339,5 @@
     <string name="units_ago">ago</string>
     <string name="units_now">now</string>
     <string name="units_m">m</string>
+    <string name="app_reconnecting_2">Error: %1$s</string>
 </resources>

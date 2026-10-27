@@ -871,13 +871,8 @@
     <string name="profile_carb_ratio_must_be_greater_than_0">Carb ratio must be greater than 0</string>
     <string name="profile_target_bg_must_be_greater_than_0">Target BG must be greater than 0</string>
     <string name="profile_isf_must_be_greater_than_0">ISF must be greater than 0</string>
-    <string name="profile_morning_profile">Morning Profile</string>
     <string name="bolus_request_expired_at_time">The bolus request expired %1$s. Boluses time out 1 minute after they are requested.</string>
     <string name="cartridge_back">Back</string>
-    <string name="cartridge_mobi">Mobi</string>
-    <string name="cartridge_preview_cartridge">Preview Cartridge</string>
-    <string name="cartridge_status">Status</string>
-    <string name="cartridge_example_body_content">Example body content</string>
     <string name="cartridge_continue">Continue</string>
     <string name="comm_initializing">Initializing...</string>
     <string name="comm_ctrl_x2_client_service_channel">ControlX2 client service channel</string>
@@ -1027,4 +1022,9 @@
     <string name="profile_back_7">Increment:</string>
     <string name="profile_back_8">Apply</string>
     <string name="profile_back_9">Cancel</string>
+    <string name="setup_force_stop_tconnect_app_19">Re-pair pump</string>
+    <string name="setup_force_stop_tconnect_app_21">Open Tandem app info</string>
+    <string name="setup_force_stop_tconnect_app_23">Copy diagnostics</string>
+    <string name="setup_force_stop_tconnect_app_20">Open Bluetooth settings</string>
+    <string name="setup_force_stop_tconnect_app_22">Enable connection sharing</string>
 </resources>

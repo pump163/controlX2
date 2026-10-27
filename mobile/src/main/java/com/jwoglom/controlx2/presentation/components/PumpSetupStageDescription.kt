@@ -508,13 +508,14 @@ private fun TieredCriticalErrorCard(
     }
 }
 
+@Composable
 private fun actionLabel(action: ErrorAction): String = when (action) {
     is ErrorAction.Retry -> "Retry"
-    is ErrorAction.RepairPump -> "Re-pair pump"
-    is ErrorAction.OpenBluetoothSettings -> "Open Bluetooth settings"
-    is ErrorAction.OpenTconnectAppInfo -> "Open Tandem app info"
-    is ErrorAction.EnableConnectionSharing -> "Enable connection sharing"
-    is ErrorAction.CopyDiagnostics -> "Copy diagnostics"
+    is ErrorAction.RepairPump -> stringResource(R.string.setup_force_stop_tconnect_app_19)
+    is ErrorAction.OpenBluetoothSettings -> stringResource(R.string.setup_force_stop_tconnect_app_20)
+    is ErrorAction.OpenTconnectAppInfo -> stringResource(R.string.setup_force_stop_tconnect_app_21)
+    is ErrorAction.EnableConnectionSharing -> stringResource(R.string.setup_force_stop_tconnect_app_22)
+    is ErrorAction.CopyDiagnostics -> stringResource(R.string.setup_force_stop_tconnect_app_23)
 }
 
 private fun runErrorAction(

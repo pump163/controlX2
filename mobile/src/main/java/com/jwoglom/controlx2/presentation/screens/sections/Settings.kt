@@ -235,17 +235,17 @@ fun Settings(
             item {
                 var bolusButton by remember { mutableStateOf(Prefs(context).showBolusNotificationButton()) }
                 ListItem(
-                    headlineContent = { Text("Bolus button in notification") },
+                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_2)) },
                     supportingContent = {
                         Text(
-                            if (bolusButton) "Shown. Tap to remove the Bolus shortcut from the ongoing notification."
-                            else "Hidden. Tap to add a Bolus shortcut to the ongoing notification."
+                            if (bolusButton) context.getString(R.string.settings_reload_icon_3)
+                            else context.getString(R.string.settings_reload_icon_4)
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (bolusButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
-                            contentDescription = "Bolus notification button",
+                            contentDescription = stringResource(R.string.settings_reload_icon_5),
                         )
                     },
                     modifier = Modifier.clickable {
@@ -260,17 +260,17 @@ fun Settings(
             item {
                 var tempRateButton by remember { mutableStateOf(Prefs(context).showTempRateNotificationButton()) }
                 ListItem(
-                    headlineContent = { Text("Temp rate button in notification") },
+                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_6)) },
                     supportingContent = {
                         Text(
-                            if (tempRateButton) "Shown. Tap to remove the Temp Rate shortcut from the ongoing notification."
-                            else "Hidden. Tap to add a Temp Rate shortcut to the ongoing notification."
+                            if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
+                            else context.getString(R.string.settings_reload_icon_8)
                         )
                     },
                     leadingContent = {
                         Icon(
                             if (tempRateButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
-                            contentDescription = "Temp rate notification button",
+                            contentDescription = stringResource(R.string.settings_reload_icon_9),
                         )
                     },
                     modifier = Modifier.clickable {

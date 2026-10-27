@@ -865,13 +865,8 @@
     <string name="profile_carb_ratio_must_be_greater_than_0">碳水化合物比必须大于 0</string>
     <string name="profile_target_bg_must_be_greater_than_0">目标血糖必须大于 0</string>
     <string name="profile_isf_must_be_greater_than_0">ISF 必须大于 0</string>
-    <string name="profile_morning_profile">早晨配置文件</string>
     <string name="bolus_request_expired_at_time">大剂量请求已于 %1$s 过期。大剂量在请求 1 分钟后超时。</string>
     <string name="cartridge_back">返回</string>
-    <string name="cartridge_mobi">Mobi</string>
-    <string name="cartridge_preview_cartridge">预览储药器</string>
-    <string name="cartridge_status">状态</string>
-    <string name="cartridge_example_body_content">示例正文内容</string>
     <string name="cartridge_continue">继续</string>
     <string name="comm_initializing">正在初始化…</string>
     <string name="comm_ctrl_x2_client_service_channel">ControlX2 客户端服务渠道</string>
@@ -1022,4 +1017,9 @@
     <string name="profile_back_7">增量：</string>
     <string name="profile_back_8">应用</string>
     <string name="profile_back_9">取消</string>
+    <string name="setup_force_stop_tconnect_app_19">重新配对泵</string>
+    <string name="setup_force_stop_tconnect_app_21">打开 Tandem 应用信息</string>
+    <string name="setup_force_stop_tconnect_app_23">复制诊断信息</string>
+    <string name="setup_force_stop_tconnect_app_20">打开蓝牙设置</string>
+    <string name="setup_force_stop_tconnect_app_22">启用连接共享</string>
 </resources>

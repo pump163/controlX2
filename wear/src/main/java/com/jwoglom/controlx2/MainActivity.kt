@@ -696,7 +696,7 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     payload
                 }
-                dataStore.connectionStatus.value = "Error: $text"
+                dataStore.connectionStatus.value = getString(R.string.app_reconnecting_2, text)
             }
             MessagePaths.FROM_PUMP_RECEIVE_QUALIFYING_EVENT -> {
                 uiScope.launch {

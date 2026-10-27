@@ -276,10 +276,8 @@
     <string name="cgm_stopped">已停止</string>
     <string name="cgm_stopping">停止中</string>
     <string name="app_debug">调试</string>
-    <string name="app_testing_leading_text">正在测试引导文本...</string>
     <string name="dashboard_active">激活</string>
     <string name="nightscout_not_set">未设置</string>
-    <string name="app_start_text">起始文本</string>
     <string name="app_scroll_type_must_be_column_scrolling">Scroll type must be DestinationScrollType.COLUMN_SCROLLING</string>
     <string name="app_scroll_type_must_be_scaling_lazy">Scroll type must be DestinationScrollType.SCALING_LAZY_COLUMN_SCROLLING</string>
     <string name="comm_ctrl_x2_pump_host_service">ControlX2 泵主机服务</string>
@@ -340,4 +338,5 @@
     <string name="units_ago">前</string>
     <string name="units_now">现在</string>
     <string name="units_m">m</string>
+    <string name="app_reconnecting_2">错误：%1$s</string>
 </resources>
