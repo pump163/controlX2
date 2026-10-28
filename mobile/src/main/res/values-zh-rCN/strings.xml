@@ -1,5 +1,5 @@
 <resources>
-    <string name="actions_actions">执行</string>
+    <string name="actions_actions">控制</string>
     <string name="actions_not_supported_remote_bolus_only">此型号的设备（%1$s）不支持部分控制，仅支持远程大剂量和查看部分泵状态。</string>
     <string name="actions_stop_start_insulin">停止/启动胰岛素</string>
     <string name="actions_start_insulin">启动胰岛素</string>
@@ -140,7 +140,7 @@
     <string name="bolus_was_completed">已完成。</string>
     <string name="bolus_is_being_prepared_2">正在准备。</string>
     <string name="bolus_is_being_delivered">正在输注。</string>
-    <string name="bolus_status_text">这 %1$s %2$s</string>
+    <string name="bolus_status_text">%1$s%2$s</string>
     <string name="bolus_rejected_by_phone">大剂量被手机拒绝</string>
     <string name="bolus_will_not_be_completed">大剂量不会完成。</string>
     <string name="bolus_receiver_request_invalid">大剂量接收器请求无效</string>
@@ -387,13 +387,13 @@
     <string name="debug_status_bitmask">状态位图</string>
     <string name="debug_max_bolus_milliunits">最大大剂量（毫单位）</string>
     <string name="debug_max_hourly_basal_milliunits">最大每小时基础率（毫单位）</string>
-    <string name="debug_quick_bolus_annunciation">快速大剂量播报</string>
-    <string name="debug_general_annunciation">常规播报</string>
-    <string name="debug_remind_annunciation">提醒播报</string>
-    <string name="debug_alert_annunciation">警报播报</string>
-    <string name="debug_alarm_annunciation">告警播报</string>
-    <string name="debug_cgm_alert_annunciation">CGM 警报播报 A</string>
-    <string name="debug_cgm_alert_annunciation_b">CGM 警报播报 B</string>
+    <string name="debug_quick_bolus_annunciation">快速大剂量提示音</string>
+    <string name="debug_general_annunciation">常规提示音</string>
+    <string name="debug_remind_annunciation">提醒提示音</string>
+    <string name="debug_alert_annunciation">警报提示音</string>
+    <string name="debug_alarm_annunciation">告警提示音</string>
+    <string name="debug_cgm_alert_annunciation">CGM 警报提示音 A</string>
+    <string name="debug_cgm_alert_annunciation_b">CGM 警报提示音 B</string>
     <string name="debug_change_bitmask">更改位图</string>
     <string name="debug_snooze_enabled_true_false_1_0">暂停提醒已启用（true/false/1/0）</string>
     <string name="debug_snooze_duration_minutes">暂停提醒时长（分钟）</string>
@@ -776,13 +776,13 @@
     <string name="sound_back">返回</string>
     <string name="sound_settings">声音设置</string>
     <string name="sound_loading_sound_settings">正在加载声音设置...</string>
-    <string name="sound_quick_bolus_annunciation">快速大剂量提示</string>
-    <string name="sound_general_annunciation">常规提示</string>
-    <string name="sound_remind_annunciation">提醒提示</string>
-    <string name="sound_alert_annunciation">警报提示</string>
-    <string name="sound_alarm_annunciation">告警提示</string>
-    <string name="sound_cgm_alert_annunciation">CGM 警报提示 A</string>
-    <string name="sound_cgm_alert_annunciation_b">CGM 警报提示 B</string>
+    <string name="sound_quick_bolus_annunciation">快速大剂量提示音</string>
+    <string name="sound_general_annunciation">常规提示音</string>
+    <string name="sound_remind_annunciation">提醒提示音</string>
+    <string name="sound_alert_annunciation">警报提示音</string>
+    <string name="sound_alarm_annunciation">告警提示音</string>
+    <string name="sound_cgm_alert_annunciation">CGM 警报提示音 A</string>
+    <string name="sound_cgm_alert_annunciation_b">CGM 警报提示音 B</string>
     <string name="sound_change_bitmask">更改位图</string>
     <string name="sound_apply_sound_settings">应用声音设置</string>
     <string name="sound_send_set_pump_sounds_request_withse">使用这些值发送 SetPumpSoundsRequest</string>
@@ -891,9 +891,9 @@
     <string name="safety_limits_back_to">返回至 %1$s</string>
     <string name="sound_back_to">返回至 %1$s</string>
     <string name="app_cannot_get_bluetooth_manager">无法获取蓝牙管理</string>
-    <string name="dashboard_dashboard">仪表盘</string>
+    <string name="dashboard_dashboard">首页</string>
     <string name="dashboard_notifications">通知</string>
-    <string name="dashboard_actions">执行</string>
+    <string name="dashboard_actions">控制</string>
     <string name="dashboard_profiles">配置文件</string>
     <string name="dashboard_settings">设置</string>
     <string name="dashboard_tslim_x2_789">tslim X2 ***789</string>
@@ -945,7 +945,7 @@
     <string name="temp_basal_enter_temp_basal_rate_in_u_hr">请输入临时基础率（U/hr）。</string>
     <string name="temp_basal_units_must_be_0_or_greater">临时基础率单位必须大于等于 0。</string>
     <string name="temp_basal_units_min_0_05_or_zero">临时基础率单位必须为 0 或至少 0.05 U/hr。</string>
-    <string name="temp_basal_percent_max">有效百分比不能超过 250%%。</string>
+    <string name="temp_basal_percent_max">有效百分比不能超过 250%。</string>
     <string name="temp_basal_enter_temp_basal_duration">请输入临时基础率时长。</string>
     <string name="temp_basal_duration_must_be_0_72h_and_0_59m">时长必须为 0-72小时 和 0-59分钟。</string>
     <string name="temp_basal_duration_min_15_mins">时长至少为 15 分钟。</string>
@@ -959,8 +959,7 @@
     <string name="cgm_grams_g">%1$sg</string>
     <string name="cgm_auto">自动</string>
     <string name="cgm_units_str_type_time">%1$s\n%2$s @ %3$s</string>
-    <string name="cgm_g_time_str">%1$sg
-@ %2$s</string>
+    <string name="cgm_g_time_str">%1$sg\n@ %2$s</string>
     <string name="basal_on">基础率开</string>
     <string name="basal_zero">零基础率</string>
     <string name="basal_temp_rate">临时基础率</string>

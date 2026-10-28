@@ -117,7 +117,7 @@
     <string name="app_connecting_to_pump">正在连接泵</string>
     <string name="app_pairing_to_pump">正在配对泵</string>
     <string name="app_missing_pair_code">缺少配对码</string>
-    <string name="app_disconnected">已断连</string>
+    <string name="app_disconnected">已断开</string>
     <string name="app_reconnecting">正重连</string>
     <string name="app_invalid_code_try_again">配对码无效，重试</string>
     <string name="nightscout_ns_url">Nightscout 网址</string>
@@ -241,7 +241,7 @@
     <string name="app_resume_insulin_deliveries_query">恢复胰岛素输注？</string>
     <string name="app_insulin_state_unknown_try_again_in_moment">胰岛素状态未知，请稍后重试。</string>
     <string name="app_suspend_all_insulin_deliveries_query">暂停所有胰岛素输注？</string>
-    <string name="app_resume_insulin">恢复胰岛素</string>
+    <string name="app_resume_insulin">恢复输注</string>
     <string name="app_suspend_insulin">暂停胰岛素</string>
     <string name="app_insulin">胰岛素</string>
     <string name="app_units">单位</string>
@@ -253,7 +253,7 @@
     <string name="app_bolus_icon">大剂量图标</string>
     <string name="app_bolus_request_was_rejected_by_conn_phone">大剂量请求已被连接的手机拒绝。</string>
     <string name="comm_pump_host_service">泵主机服务</string>
-    <string name="comm_at_stime">&quot; 于 %1$s&quot;</string>
+    <string name="comm_at_stime">于 %1$s</string>
     <string name="comm_ctrl_x2_pump_host_starting">ControlX2 泵主机启动中</string>
     <string name="comm_ctrl_x2_pump_host_stopped">ControlX2 泵主机已停止</string>
     <string name="comm_service_disabled">服务已禁用</string>
@@ -272,7 +272,7 @@
     <string name="cgm_sensor_code_must_be_numeric">探头码必须为数字。</string>
     <string name="cgm_transmitter_id_must_be_6_chars">发射器ID必须为6位字符。</string>
     <string name="cgm_pair_code_must_be_numeric">配对码必须为数字。</string>
-    <string name="cgm_starting">启动中</string>
+    <string name="cgm_starting">预热中</string>
     <string name="cgm_stopped">已停止</string>
     <string name="cgm_stopping">停止中</string>
     <string name="app_debug">调试</string>
@@ -281,7 +281,7 @@
     <string name="app_scroll_type_must_be_column_scrolling">Scroll type must be DestinationScrollType.COLUMN_SCROLLING</string>
     <string name="app_scroll_type_must_be_scaling_lazy">Scroll type must be DestinationScrollType.SCALING_LAZY_COLUMN_SCROLLING</string>
     <string name="comm_ctrl_x2_pump_host_service">ControlX2 泵主机服务</string>
-    <string name="comm_initializing">初始化中...</string>
+    <string name="comm_initializing">正在初始化…</string>
     <string name="basal_raw_event">原始事件 #%1$s</string>
     <string name="basal_3f_u_hr">→ %1$.3fU/hr</string>
     <string name="basal_temp_basal_start">临基开始</string>

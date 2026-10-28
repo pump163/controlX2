@@ -24,7 +24,7 @@
     <string name="bolus_bg_unit_abbrev">BG (%1$s)</string>
     <string name="bolus_do_not_apply">Do not apply</string>
     <string name="bolus_apply">Apply</string>
-    <string name="bolus_twodecimal_u_bolus">%1$su Bolus</string>
+    <string name="bolus_twodecimal_u_bolus">%1$su bolus</string>
     <string name="bolus_do_not_deliver_bolus">Do not deliver bolus</string>
     <string name="bolus_deliver_bolus">Deliver bolus</string>
     <string name="bolus_insulin_amount_too_small">Insulin amount too small.</string>

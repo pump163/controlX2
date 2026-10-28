@@ -951,7 +951,7 @@
     <string name="temp_basal_enter_temp_basal_rate_in_u_hr">Enter a temp basal rate in U/hr.</string>
     <string name="temp_basal_units_must_be_0_or_greater">Temp basal units must be 0 or greater.</string>
     <string name="temp_basal_units_min_0_05_or_zero">Temp basal units must be 0 or at least 0.05 U/hr.</string>
-    <string name="temp_basal_percent_max">Effective percent cannot exceed 250%%.</string>
+    <string name="temp_basal_percent_max">Effective percent cannot exceed 250%.</string>
     <string name="temp_basal_enter_temp_basal_duration">Enter a temp basal duration.</string>
     <string name="temp_basal_duration_must_be_0_72h_and_0_59m">Duration must be 0-72h and 0-59m.</string>
     <string name="temp_basal_duration_min_15_mins">Duration must be at least 15 minutes.</string>

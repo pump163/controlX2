@@ -35,6 +35,12 @@ android {
             signingConfig signingConfigs.release
         }
     }
+    packaging {
+        dex {
+            // minSdk 30 → AGP 默认不压缩 dex（APK 变大）；压回来与 mobile(minSdk 26) 一致
+            useLegacyPackaging = true
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
