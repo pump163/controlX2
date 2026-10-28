@@ -35,7 +35,9 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -euo pipefail
-          git remote add gitee "https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/pumppan/control-x2-upstream.git"
+          # 2026-10-28: Gitee 镜像仓库改名 control-x2-upstream -> controlX2-main_dev
+          # （仓库名与本地 clone 目录同名，见 WORKLOG §49.y）
+          git remote add gitee "https://${GITEE_USERNAME}:${GITEE_TOKEN}@gitee.com/pumppan/controlX2-main_dev.git"
           # 只镜像需要的分支与标签，强制覆盖，保持与上游完全一致（纯镜像，不做 merge）
           # GitHub runner 到 Gitee 偶发 SSL timeout，最多重试 3 次，间隔 30s
           push_with_retry() {
