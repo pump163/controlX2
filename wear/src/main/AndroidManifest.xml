@@ -75,7 +75,7 @@
             android:name=".BolusActivity"
             android:icon="@drawable/pump_bolus"
             android:exported="true"
-            android:label="Bolus">
+            android:label="@string/dashboard_bolus">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -105,7 +105,7 @@
             android:name=".complications.PumpBatteryComplicationDataSourceService"
             android:exported="true"
             android:icon="@drawable/pump"
-            android:label="ControlX2 Pump Battery"
+            android:label="@string/complication_pump_battery"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -123,7 +123,7 @@
             android:name=".complications.PumpIOBComplicationDataSourceService"
             android:exported="true"
             android:icon="@drawable/pump"
-            android:label="ControlX2 Pump IOB"
+            android:label="@string/complication_pump_iob"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -141,7 +141,7 @@
             android:name=".complications.CGMReadingComplicationDataSourceService"
             android:exported="true"
             android:icon="@drawable/pump"
-            android:label="ControlX2 CGM Reading"
+            android:label="@string/complication_cgm_reading"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -159,7 +159,7 @@
             android:name=".complications.BolusButtonComplicationDataSourceService"
             android:exported="true"
             android:icon="@drawable/bolus_icon"
-            android:label="ControlX2 Bolus Button"
+            android:label="@string/complication_bolus_button"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
@@ -174,7 +174,7 @@
             android:name=".complications.PumpButtonComplicationDataSourceService"
             android:exported="true"
             android:icon="@drawable/pump"
-            android:label="ControlX2 App Button"
+            android:label="@string/complication_app_button"
             android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
             <intent-filter>
                 <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />

@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import kotlin.math.roundToInt
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -70,6 +71,7 @@ fun TempRateWindow(
     closeWindow: () -> Unit,
 ) {
     val dataStore = LocalDataStore.current
+    val context = LocalContext.current
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -202,7 +204,7 @@ fun TempRateWindow(
                 if (rawUnits == null) {
                     null
                 } else if (currentBasalRate == null || currentBasalRate <= 0.0) {
-                    return TempRateValidationResult(error = "Current profile basal rate is unavailable.")
+                    return TempRateValidationResult(error = context.getString(R.string.temp_basal_current_profile_rate_unavailable))
                 } else {
                     ((rawUnits / currentBasalRate) * 100.0).roundToInt()
                 }
@@ -211,47 +213,47 @@ fun TempRateWindow(
 
         if (mode == TempRateInputMode.PERCENT) {
             if (rawPercent == null) {
-                return TempRateValidationResult(error = "Enter a temp basal percent.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_enter_temp_basal_percent))
             }
             if (rawPercent < 0 || rawPercent > 250) {
-                return TempRateValidationResult(error = "Percent must be between 0 and 250.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_percent_must_be_between_0_and_250))
             }
         }
 
         if (mode == TempRateInputMode.UNITS) {
             if (rawUnits == null) {
-                return TempRateValidationResult(error = "Enter a temp basal rate in U/hr.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_enter_temp_basal_rate_in_u_hr))
             }
             if (rawUnits < 0.0) {
-                return TempRateValidationResult(error = "Temp basal units must be 0 or greater.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_units_must_be_0_or_greater))
             }
             if (rawUnits != 0.0 && rawUnits < 0.05) {
-                return TempRateValidationResult(error = "Temp basal units must be 0 or at least 0.05 U/hr.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_units_min_0_05_or_zero))
             }
             if (derivedPercent == null || derivedPercent > 250) {
-                return TempRateValidationResult(error = "Effective percent cannot exceed 250%.")
+                return TempRateValidationResult(error = context.getString(R.string.temp_basal_percent_max))
             }
         }
 
         val hours = rawHours ?: 0
         val minutes = rawMinutes ?: 0
         if (rawHours == null && rawMinutes == null) {
-            return TempRateValidationResult(error = "Enter a temp basal duration.")
+            return TempRateValidationResult(error = context.getString(R.string.temp_basal_enter_temp_basal_duration))
         }
         if (hours < 0 || hours > 72 || minutes < 0 || minutes >= 60) {
-            return TempRateValidationResult(error = "Duration must be 0-72h and 0-59m.")
+            return TempRateValidationResult(error = context.getString(R.string.temp_basal_duration_must_be_0_72h_and_0_59m))
         }
 
         val totalMinutes = (60 * hours) + minutes
         if (totalMinutes < 15) {
-            return TempRateValidationResult(error = "Duration must be at least 15 minutes.")
+            return TempRateValidationResult(error = context.getString(R.string.temp_basal_duration_min_15_mins))
         }
         if (totalMinutes > 72 * 60) {
-            return TempRateValidationResult(error = "Duration cannot exceed 72 hours.")
+            return TempRateValidationResult(error = context.getString(R.string.temp_basal_duration_cannot_exceed_72_hours))
         }
 
         if (derivedPercent == null || derivedPercent < 0 || derivedPercent > 250) {
-            return TempRateValidationResult(error = "Effective percent must be between 0 and 250.")
+            return TempRateValidationResult(error = context.getString(R.string.temp_basal_percent_between_0_and))
         }
 
         return try {
@@ -261,7 +263,7 @@ fun TempRateWindow(
                 effectiveBasalRate = currentBasalRate?.times(derivedPercent / 100.0)
             )
         } catch (e: IllegalArgumentException) {
-            TempRateValidationResult(error = "Invalid temp basal request.")
+            TempRateValidationResult(error = context.getString(R.string.temp_basal_invalid_temp_basal_request))
         }
     }
 

@@ -340,4 +340,11 @@
     <string name="units_now">now</string>
     <string name="units_m">m</string>
     <string name="app_reconnecting_2">Error: %1$s</string>
+    <string name="settings_pump_history">Pump history</string>
+    <string name="wear_input_unavailable">Input unavailable</string>
+    <string name="complication_pump_battery">ControlX2 Pump Battery</string>
+    <string name="complication_pump_iob">ControlX2 Pump IOB</string>
+    <string name="complication_cgm_reading">ControlX2 CGM Reading</string>
+    <string name="complication_bolus_button">ControlX2 Bolus Button</string>
+    <string name="complication_app_button">ControlX2 App Button</string>
 </resources>

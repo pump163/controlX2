@@ -253,7 +253,7 @@
     <string name="app_bolus_icon">大剂量图标</string>
     <string name="app_bolus_request_was_rejected_by_conn_phone">大剂量请求已被连接的手机拒绝。</string>
     <string name="comm_pump_host_service">泵主机服务</string>
-    <string name="comm_at_stime">于 %1$s</string>
+    <string name="comm_at_stime">&quot; 于 %1$s&quot;</string>
     <string name="comm_ctrl_x2_pump_host_starting">ControlX2 泵主机启动中</string>
     <string name="comm_ctrl_x2_pump_host_stopped">ControlX2 泵主机已停止</string>
     <string name="comm_service_disabled">服务已禁用</string>
@@ -339,4 +339,11 @@
     <string name="units_now">现在</string>
     <string name="units_m">m</string>
     <string name="app_reconnecting_2">错误：%1$s</string>
+    <string name="settings_pump_history">泵历史记录</string>
+    <string name="wear_input_unavailable">输入不可用</string>
+    <string name="complication_pump_battery">ControlX2 泵电池</string>
+    <string name="complication_pump_iob">ControlX2 泵活性胰岛素</string>
+    <string name="complication_cgm_reading">ControlX2 血糖读数</string>
+    <string name="complication_bolus_button">ControlX2 大剂量按钮</string>
+    <string name="complication_app_button">ControlX2 应用按钮</string>
 </resources>

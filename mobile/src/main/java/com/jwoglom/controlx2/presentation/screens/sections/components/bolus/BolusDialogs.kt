@@ -87,7 +87,9 @@ fun BolusDeliverActionRegion(
                 )
                 Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                 Text(
-                    "Deliver ${bolusUnits?.let { "${twoDecimalPlaces(it)}u " }}bolus",
+                    bolusUnits?.let {
+                        stringResource(R.string.bolus_deliver_twodecimal_u_bolus, twoDecimalPlaces(it))
+                    } ?: stringResource(R.string.bolus_deliver_bolus),
                     fontSize = 18.sp,
                     color = if (isSystemInDarkTheme()) Color.Black else Color.Unspecified
                 )
@@ -131,7 +133,11 @@ fun BolusPermissionDialogRegion(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Deliver ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}bolus?")
+            Text(
+                bolusCurrentParameters.value?.units?.let {
+                    stringResource(R.string.bolus_deliver_twodecimal_u_bolus_query, twoDecimalPlaces(it))
+                } ?: stringResource(R.string.bolus_deliver_bolus_query)
+            )
         },
         icon = {
             Image(
@@ -212,7 +218,11 @@ fun InProgressDialogRegion(
             )
         },
         title = {
-            Text("Requesting ${bolusCurrentParameters.value?.units?.let { "${twoDecimalPlaces(it)}u " }}bolus")
+            Text(
+                bolusCurrentParameters.value?.units?.let {
+                    stringResource(R.string.bolus_requesting_u_bolus, twoDecimalPlaces(it))
+                } ?: stringResource(R.string.bolus_requesting_bolus)
+            )
         },
         text = {
             Text(
@@ -460,29 +470,29 @@ fun CancelledDialogRegion(
             })
         },
         text = {
-            Text(
-                "${when (bolusCancelResponse.value?.status) {
-                    CancelBolusResponse.CancelStatus.SUCCESS ->
-                        "The bolus was cancelled."
-                    CancelBolusResponse.CancelStatus.FAILED ->
-                        when (bolusInitiateResponse.value) {
-                            null -> "A bolus request was not sent to the pump, so there is nothing to cancel."
-                            else -> "The bolus could not be cancelled: ${
-                                snakeCaseToSpace(
-                                    bolusCancelResponse.value?.reason.toString()
-                                )
-                            }"
-                        }
-                    else -> "Please check your pump to confirm whether the bolus was cancelled."
-                }}\n\n${when {
-                    matchesBolusId() == true ->
-                        lastBolusStatusResponse.value?.deliveredVolume?.let {
-                            if (it == 0L) "A bolus was started and no insulin was delivered." else "${twoDecimalPlaces1000Unit(it)}u was delivered."
-                        } ?: ""
-                    matchesBolusId() == false -> "No insulin was delivered."
-                    else -> "Checking if any insulin was delivered..."
-                }}"
-            )
+            val cancelMessage = when (bolusCancelResponse.value?.status) {
+                CancelBolusResponse.CancelStatus.SUCCESS ->
+                    stringResource(R.string.bolus_cancelled)
+                CancelBolusResponse.CancelStatus.FAILED ->
+                    when (bolusInitiateResponse.value) {
+                        null -> stringResource(R.string.bolus_cancel_nothing_to_cancel)
+                        else -> stringResource(
+                            R.string.bolus_could_not_be_cancelled_reason,
+                            snakeCaseToSpace(bolusCancelResponse.value?.reason.toString())
+                        )
+                    }
+                else -> stringResource(R.string.bolus_cancel_check_pump)
+            }
+            val deliveryMessage = when {
+                matchesBolusId() == true ->
+                    lastBolusStatusResponse.value?.deliveredVolume?.let {
+                        if (it == 0L) stringResource(R.string.bolus_started_no_insulin_delivered)
+                        else stringResource(R.string.bolus_twodecimal_u_delivered, twoDecimalPlaces1000Unit(it))
+                    } ?: ""
+                matchesBolusId() == false -> stringResource(R.string.bolus_no_insulin_delivered)
+                else -> stringResource(R.string.bolus_checking_insulin_delivered)
+            }
+            Text("$cancelMessage\n\n$deliveryMessage")
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {

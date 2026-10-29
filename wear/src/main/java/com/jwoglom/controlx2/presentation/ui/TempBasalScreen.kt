@@ -23,6 +23,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.annotation.StringRes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -119,6 +121,7 @@ fun TempBasalScreen(
     var pendingCancel by remember { mutableStateOf(false) }
     var pendingConfirm by remember { mutableStateOf(false) }
     var pendingError by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // Transition Loading → CancelActive / PickMode once tempRateActive is
     // known. Done in LaunchedEffect rather than inline so recomposition during
@@ -221,7 +224,9 @@ fun TempBasalScreen(
                         step = TempBasalStep.PickMinutes
                     }
                     is UnitsValidation.Error -> {
-                        pendingError = derived.message
+                        pendingError = derived.arg
+                            ?.let { context.getString(derived.messageRes, it) }
+                            ?: context.getString(derived.messageRes)
                     }
                 }
             },
@@ -259,7 +264,7 @@ private enum class TempBasalMode {
 
 private sealed class UnitsValidation {
     data class Ok(val percent: Int) : UnitsValidation()
-    data class Error(val message: String) : UnitsValidation()
+    data class Error(@StringRes val messageRes: Int, val arg: Int? = null) : UnitsValidation()
 }
 
 /**
@@ -272,17 +277,17 @@ private fun validateUnitsToPercent(
     currentBasalRate: Double?,
 ): UnitsValidation {
     if (currentBasalRate == null || currentBasalRate <= 0.0) {
-        return UnitsValidation.Error("Current basal rate unavailable.")
+        return UnitsValidation.Error(R.string.temp_basal_current_basal_rate_unavailable)
     }
     if (rawUnits < 0.0) {
-        return UnitsValidation.Error("Rate must be 0 or greater.")
+        return UnitsValidation.Error(R.string.temp_basal_rate_must_be_0_or_greater)
     }
     if (rawUnits != 0.0 && rawUnits < 0.05) {
-        return UnitsValidation.Error("Rate must be 0 or at least 0.05 U/hr.")
+        return UnitsValidation.Error(R.string.temp_basal_rate_min_0_05_or_zero)
     }
     val derived = ((rawUnits / currentBasalRate) * 100.0).roundToInt()
     if (derived < 0 || derived > 250) {
-        return UnitsValidation.Error("Effective rate ${derived}% exceeds 250% max.")
+        return UnitsValidation.Error(R.string.temp_basal_effective_rate_exceeds_250_max, derived)
     }
     return UnitsValidation.Ok(derived)
 }

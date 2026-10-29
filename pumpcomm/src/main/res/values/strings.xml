@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="comm_connected_to_pump">comm_connected_to_pump</string>
+    <string name="comm_disconnected_from_pump">comm_disconnected_from_pump</string>
+    <string name="pump_err_auth_failed_repair">pump_err_auth_failed_repair</string>
+    <string name="pump_err_bonded_manual_unbond">pump_err_bonded_manual_unbond</string>
+    <string name="pump_err_busy">pump_err_busy</string>
+    <string name="pump_err_busy_reconnecting">pump_err_busy_reconnecting</string>
+    <string name="pump_err_cant_auth_repair">pump_err_cant_auth_repair</string>
+    <string name="pump_err_conn_timeout_retry">pump_err_conn_timeout_retry</string>
+    <string name="pump_err_connecting">pump_err_connecting</string>
+    <string name="pump_err_couldnt_connect">pump_err_couldnt_connect</string>
+    <string name="pump_err_couldnt_read">pump_err_couldnt_read</string>
+    <string name="pump_err_negotiating_bt">pump_err_negotiating_bt</string>
+    <string name="pump_err_not_ready_pair">pump_err_not_ready_pair</string>
+    <string name="pump_err_only_one_app">pump_err_only_one_app</string>
+    <string name="pump_err_open_pair_screen">pump_err_open_pair_screen</string>
+    <string name="pump_err_other_app_connected">pump_err_other_app_connected</string>
+    <string name="pump_err_out_of_sync">pump_err_out_of_sync</string>
+    <string name="pump_err_out_of_sync_body">pump_err_out_of_sync_body</string>
+    <string name="pump_err_pairing">pump_err_pairing</string>
+    <string name="pump_err_pairing_prompt">pump_err_pairing_prompt</string>
+    <string name="pump_err_rejected_command">pump_err_rejected_command</string>
+    <string name="pump_err_rejected_command_retry">pump_err_rejected_command_retry</string>
+    <string name="pump_err_rejected_request">pump_err_rejected_request</string>
+    <string name="pump_err_rejected_request_body">pump_err_rejected_request_body</string>
+    <string name="pump_err_toggle_bt">pump_err_toggle_bt</string>
+    <string name="pump_err_unexpected_response">pump_err_unexpected_response</string>
+    <string name="pump_err_unexpected_response_body">pump_err_unexpected_response_body</string>
+    <string name="pump_err_unsupported_fw">pump_err_unsupported_fw</string>
+    <string name="pump_err_waiting_pump">pump_err_waiting_pump</string>
+    <string name="pump_err_waiting_pump_allow">pump_err_waiting_pump_allow</string>
+    <string name="pump_err_wrong_pair_code">pump_err_wrong_pair_code</string>
+</resources>

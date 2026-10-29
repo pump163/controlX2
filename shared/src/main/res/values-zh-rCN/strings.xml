@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="basal_ciq_increased">ControlIQ 已增加基础率</string>
+    <string name="basal_ciq_reduced">ControlIQ 已减少基础率</string>
+    <string name="basal_iq_suspended">BasalIQ 已暂停基础率</string>
+    <string name="basal_on">基础率开</string>
+    <string name="basal_pump_suspended">泵已暂停</string>
+    <string name="basal_temp_rate">临时基础率</string>
+    <string name="basal_unknown">未知</string>
+    <string name="basal_zero">零基础率</string>
+    <string name="basal_zero_temp_rate">零临时基础率</string>
+    <string name="cgm_active">会话进行中</string>
+    <string name="cgm_starting">预热中</string>
+    <string name="cgm_stopped">已停止</string>
+    <string name="cgm_stopping">停止中</string>
+    <string name="ciq_exercise">运动</string>
+    <string name="ciq_sleep">睡眠</string>
+    <string name="ciq_unknown">未知</string>
+</resources>

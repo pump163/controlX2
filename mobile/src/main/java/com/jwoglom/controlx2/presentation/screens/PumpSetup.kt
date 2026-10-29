@@ -51,6 +51,7 @@ import androidx.navigation.NavHostController
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.builders.PumpChallengeRequestBuilder
 import com.jwoglom.controlx2.LocalDataStore
+import androidx.annotation.StringRes
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.presentation.components.DialogScreen
 import com.jwoglom.controlx2.presentation.components.HeaderLine
@@ -430,29 +431,29 @@ fun PumpSetup(
     }
 }
 
-enum class PumpSetupStage(val step: Int, val description: String) {
-    PERMISSIONS_NOT_GRANTED(0, "Permissions not granted"),
-    WAITING_PUMP_FINDER_INIT(1, "Waiting for PumpFinder init"),
-    PUMP_FINDER_SEARCHING_FOR_PUMPS(1, "Searching for Tandem pumps"),
-    PUMP_FINDER_SELECT_PUMP(2, "Select a pump to connect to"),
+enum class PumpSetupStage(val step: Int, @StringRes val descriptionRes: Int) {
+    PERMISSIONS_NOT_GRANTED(0, R.string.setup_perm_not_granted),
+    WAITING_PUMP_FINDER_INIT(1, R.string.setup_waiting_for_pump_finder_init),
+    PUMP_FINDER_SEARCHING_FOR_PUMPS(1, R.string.setup_srch_for_tandem_pumps),
+    PUMP_FINDER_SELECT_PUMP(2, R.string.setup_select_pump_to_connect_2),
 
-    PUMP_FINDER_TSLIM_CHOOSE_PAIRING_CODE_TYPE(3, "t:slim X2: choose pairing code type"),
-    PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE(4, "t:slim X2: enter pairing code"),
+    PUMP_FINDER_TSLIM_CHOOSE_PAIRING_CODE_TYPE(3, R.string.setup_t_slim_x2_choose_pair_code_type),
+    PUMP_FINDER_TSLIM_ENTER_PAIRING_CODE(4, R.string.setup_t_slim_x2_enter_pair_code),
 
-    PUMP_FINDER_MOBI_PLACE_ON_CHARGING_PAD(3, "Mobi: place pump on charging pad"),
-    PUMP_FINDER_MOBI_PICK_UP_AND_TAP(4, "Mobi: pick up and double-tap"),
-    PUMP_FINDER_MOBI_ENTER_PAIRING_CODE(5, "Mobi: enter pairing PIN"),
-    WAITING_PUMP_FINDER_CLEANUP(5, "Establishing connection: Waiting for PumpFinder to clean up"),
-    WAITING_PUMPX2_INIT(5, "Establishing connection: Waiting for PumpX2 init"),
-    PUMPX2_SEARCHING_FOR_PUMP(5, "Establishing connection: Searching for pump"),
-    PUMPX2_PUMP_DISCONNECTED(5, "Pump disconnected, reconnecting"),
-    PUMPX2_PUMP_DISCOVERED(5, "Establishing connection: Pump discovered, connecting"),
-    PUMPX2_PUMP_MODEL_METADATA(5, "Establishing connection: Initial pump metadata received"),
-    PUMPX2_INITIAL_PUMP_CONNECTION(6, "Establishing connection: Initial connection established"),
-    PUMPX2_WAITING_FOR_PAIRING_CODE(6, "Establishing connection: Waiting to send pairing code"),
-    PUMPX2_SENDING_PAIRING_CODE(6, "Establishing connection: Sending pairing code"),
-    PUMPX2_INVALID_PAIRING_CODE(4, "Invalid pairing code"),
-    PUMPX2_PUMP_CONNECTED(7, "Pairing code accepted"),
+    PUMP_FINDER_MOBI_PLACE_ON_CHARGING_PAD(3, R.string.setup_mobi_place_pump_on_charging_pad),
+    PUMP_FINDER_MOBI_PICK_UP_AND_TAP(4, R.string.setup_mobi_pick_up_and_double_tap),
+    PUMP_FINDER_MOBI_ENTER_PAIRING_CODE(5, R.string.setup_mobi_enter_pair_pin),
+    WAITING_PUMP_FINDER_CLEANUP(5, R.string.setup_conn_wait_pump_finder_cleanup),
+    WAITING_PUMPX2_INIT(5, R.string.setup_conn_wait_pumpx2_init),
+    PUMPX2_SEARCHING_FOR_PUMP(5, R.string.setup_establishing_conn_srch_for_pump),
+    PUMPX2_PUMP_DISCONNECTED(5, R.string.setup_pump_disc_reconn),
+    PUMPX2_PUMP_DISCOVERED(5, R.string.setup_establishing_conn_pump_discovered),
+    PUMPX2_PUMP_MODEL_METADATA(5, R.string.setup_conn_initial_pump_metadata),
+    PUMPX2_INITIAL_PUMP_CONNECTION(6, R.string.setup_establishing_conn_initial_established),
+    PUMPX2_WAITING_FOR_PAIRING_CODE(6, R.string.setup_conn_wait_send_pairing_code),
+    PUMPX2_SENDING_PAIRING_CODE(6, R.string.setup_establishing_conn_sending_pair_code),
+    PUMPX2_INVALID_PAIRING_CODE(4, R.string.setup_invalid_pair_code),
+    PUMPX2_PUMP_CONNECTED(7, R.string.setup_pair_code_accepted),
     ;
 
     fun nextStage(stage: PumpSetupStage): PumpSetupStage {

@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,7 @@ fun CGMTransmitterScreen(
     var pendingG7Confirm by remember { mutableStateOf(false) }
     var pendingStopConfirm by remember { mutableStateOf(false) }
     var pendingError by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // Launchers are defined in dependency order so each can reference the
     // next from its onResult: G6 sensor-code launcher is built first because
@@ -112,7 +114,7 @@ fun CGMTransmitterScreen(
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
         if (code == null) {
-            pendingError = "Sensor code must be numeric."
+            pendingError = context.getString(R.string.cgm_sensor_code_must_be_numeric)
             return@rememberRemoteTextInputLauncher
         }
         pendingG6SensorCode = code
@@ -124,7 +126,7 @@ fun CGMTransmitterScreen(
     ) { result ->
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         if (result.length != 6) {
-            pendingError = "Transmitter ID must be exactly 6 characters."
+            pendingError = context.getString(R.string.cgm_transmitter_id_must_be_6_chars)
             return@rememberRemoteTextInputLauncher
         }
         pendingG6TxId = result.uppercase()
@@ -138,7 +140,7 @@ fun CGMTransmitterScreen(
         if (result.isNullOrBlank()) return@rememberRemoteTextInputLauncher
         val code = result.toIntOrNull()
         if (code == null) {
-            pendingError = "Pairing code must be numeric."
+            pendingError = context.getString(R.string.cgm_pair_code_must_be_numeric)
             return@rememberRemoteTextInputLauncher
         }
         pendingG7Code = code

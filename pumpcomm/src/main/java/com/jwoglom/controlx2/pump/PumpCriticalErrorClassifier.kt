@@ -1,5 +1,11 @@
 package com.jwoglom.controlx2.pump
 
+import com.jwoglom.controlx2.pumpcomm.R
+
+import androidx.annotation.StringRes
+
+import android.content.Context
+
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
 import org.json.JSONObject
@@ -113,7 +119,11 @@ data class ErrorPresentation(
 }
 
 object PumpCriticalErrorClassifier {
-    fun classify(error: TandemError): ErrorPresentation {
+    /** ctx 为 null 时回退英文（预览等无 Context 调用）；正式路径由 PumpCommHandler 传入应用 Context。 */
+    private fun s(ctx: Context?, @StringRes id: Int, fallback: String): String =
+        ctx?.getString(id) ?: fallback
+
+    fun classify(error: TandemError, ctx: Context? = null): ErrorPresentation {
         val rawMessage = error.message ?: ""
         val extra = error.extra ?: ""
         val initiatingClass = error.initiatingMessage?.javaClass?.simpleName
@@ -124,8 +134,8 @@ object PumpCriticalErrorClassifier {
             TandemError.SET_MTU_FAILED -> ErrorPresentation(
                 severity = Severity.TRANSIENT,
                 name = error.name,
-                headline = "Connecting…",
-                body = "Negotiating Bluetooth connection…",
+                headline = s(ctx, R.string.pump_err_connecting, "Connecting…"),
+                body = s(ctx, R.string.pump_err_negotiating_bt, "Negotiating Bluetooth connection…"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = emptyList(),
@@ -136,8 +146,8 @@ object PumpCriticalErrorClassifier {
             TandemError.NOTIFICATION_STATE_FAILED -> ErrorPresentation(
                 severity = Severity.TRANSIENT,
                 name = error.name,
-                headline = "Waiting for pump",
-                body = "Waiting for pump to allow the connection…",
+                headline = s(ctx, R.string.pump_err_waiting_pump, "Waiting for pump"),
+                body = s(ctx, R.string.pump_err_waiting_pump_allow, "Waiting for pump to allow the connection…"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = emptyList(),
@@ -148,8 +158,8 @@ object PumpCriticalErrorClassifier {
             TandemError.CHARACTERISTIC_WRITE_FAILED -> ErrorPresentation(
                 severity = Severity.TRANSIENT,
                 name = error.name,
-                headline = "Pump rejected a command",
-                body = "Pump rejected a command. Retrying…",
+                headline = s(ctx, R.string.pump_err_rejected_command, "Pump rejected a command"),
+                body = s(ctx, R.string.pump_err_rejected_command_retry, "Pump rejected a command. Retrying…"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.Retry),
@@ -160,8 +170,8 @@ object PumpCriticalErrorClassifier {
             TandemError.CONNECTION_UPDATE_FAILED -> ErrorPresentation(
                 severity = Severity.TRANSIENT,
                 name = error.name,
-                headline = "Connecting…",
-                body = "Negotiating Bluetooth connection…",
+                headline = s(ctx, R.string.pump_err_connecting, "Connecting…"),
+                body = s(ctx, R.string.pump_err_negotiating_bt, "Negotiating Bluetooth connection…"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = emptyList(),
@@ -172,10 +182,10 @@ object PumpCriticalErrorClassifier {
             TandemError.BT_CONNECTION_FAILED -> {
                 val body = when {
                     extra.contains("AUTH_FAILURE") ->
-                        "Failed to authenticate with pump. To connect, you need to re-pair."
+                        s(ctx, R.string.pump_err_auth_failed_repair, "Failed to authenticate with pump. To connect, you need to re-pair.")
                     extra.contains("CONNECTION_TIMEOUT") || extra.contains("CONNECTION_FAILED_ESTABLISHMENT") ->
-                        "Connection with pump timed out. Retrying…"
-                    else -> "Try toggling Bluetooth."
+                        s(ctx, R.string.pump_err_conn_timeout_retry, "Connection with pump timed out. Retrying…")
+                    else -> s(ctx, R.string.pump_err_toggle_bt, "Try toggling Bluetooth.")
                 }
                 val actions = if (extra.contains("AUTH_FAILURE"))
                     listOf(ErrorAction.RepairPump, ErrorAction.OpenBluetoothSettings, ErrorAction.Retry)
@@ -184,7 +194,7 @@ object PumpCriticalErrorClassifier {
                 ErrorPresentation(
                     severity = Severity.ACTIONABLE,
                     name = error.name,
-                    headline = "Couldn't connect to pump",
+                    headline = s(ctx, R.string.pump_err_couldnt_connect, "Couldn't connect to pump"),
                     body = body,
                     rawMessage = rawMessage,
                     extra = extra,
@@ -197,8 +207,8 @@ object PumpCriticalErrorClassifier {
             TandemError.UNEXPECTED_TRANSACTION_ID -> ErrorPresentation(
                 severity = Severity.ACTIONABLE,
                 name = error.name,
-                headline = "Pump message out of sync",
-                body = "Transaction ID was out of sync with what the pump expected. Is another app trying to connect to the pump?",
+                headline = s(ctx, R.string.pump_err_out_of_sync, "Pump message out of sync"),
+                body = s(ctx, R.string.pump_err_out_of_sync_body, "Transaction ID was out of sync with what the pump expected. Is another app trying to connect to the pump?"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.OpenTconnectAppInfo),
@@ -209,8 +219,8 @@ object PumpCriticalErrorClassifier {
             TandemError.UNEXPECTED_OPCODE_REPLY -> ErrorPresentation(
                 severity = Severity.ACTIONABLE,
                 name = error.name,
-                headline = "Unexpected pump response",
-                body = "Unexpected pump response. Is another app communicating with the pump?",
+                headline = s(ctx, R.string.pump_err_unexpected_response, "Unexpected pump response"),
+                body = s(ctx, R.string.pump_err_unexpected_response_body, "Unexpected pump response. Is another app communicating with the pump?"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.Retry, ErrorAction.OpenTconnectAppInfo),
@@ -221,8 +231,8 @@ object PumpCriticalErrorClassifier {
             TandemError.UNPROCESSABLE_MESSAGE -> ErrorPresentation(
                 severity = Severity.ACTIONABLE,
                 name = error.name,
-                headline = "Couldn't read pump response",
-                body = "Couldn't process pump responses. This pump firmware version may be unsupported.",
+                headline = s(ctx, R.string.pump_err_couldnt_read, "Couldn't read pump response"),
+                body = s(ctx, R.string.pump_err_unsupported_fw, "Couldn't process pump responses. This pump firmware version may be unsupported."),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.Retry, ErrorAction.CopyDiagnostics),
@@ -233,8 +243,8 @@ object PumpCriticalErrorClassifier {
             TandemError.PAIRING_CANNOT_BEGIN -> ErrorPresentation(
                 severity = Severity.ACTIONABLE,
                 name = error.name,
-                headline = "Pump isn't ready to pair",
-                body = "Open the Pair Device screen on your pump.",
+                headline = s(ctx, R.string.pump_err_not_ready_pair, "Pump isn't ready to pair"),
+                body = s(ctx, R.string.pump_err_open_pair_screen, "Open the Pair Device screen on your pump."),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.Retry),
@@ -252,8 +262,8 @@ object PumpCriticalErrorClassifier {
                     ErrorPresentation(
                         severity = Severity.TRANSIENT,
                         name = error.name,
-                        headline = "Pairing…",
-                        body = "Waiting for Bluetooth pairing prompt. Accept the connection on your phone.",
+                        headline = s(ctx, R.string.pump_err_pairing, "Pairing…"),
+                        body = s(ctx, R.string.pump_err_pairing_prompt, "Waiting for Bluetooth pairing prompt. Accept the connection on your phone."),
                         rawMessage = rawMessage,
                         extra = extra,
                         actions = listOf(ErrorAction.OpenBluetoothSettings),
@@ -265,8 +275,8 @@ object PumpCriticalErrorClassifier {
                     ErrorPresentation(
                         severity = Severity.ACTIONABLE,
                         name = error.name,
-                        headline = "Pairing…",
-                        body = "Waiting for Bluetooth pairing prompt. Accept the connection on your phone.",
+                        headline = s(ctx, R.string.pump_err_pairing, "Pairing…"),
+                        body = s(ctx, R.string.pump_err_pairing_prompt, "Waiting for Bluetooth pairing prompt. Accept the connection on your phone."),
                         rawMessage = rawMessage,
                         extra = extra,
                         actions = listOf(ErrorAction.OpenBluetoothSettings),
@@ -279,8 +289,8 @@ object PumpCriticalErrorClassifier {
             TandemError.SHARING_CONNECTION_WITH_TCONNECT_APP -> ErrorPresentation(
                 severity = Severity.FATAL,
                 name = error.name,
-                headline = "Another app is connected to the pump.",
-                body = "Only one app can connect to the pump at the same time. To use ControlX2, disconnect the pump from the Tandem app.",
+                headline = s(ctx, R.string.pump_err_other_app_connected, "Another app is connected to the pump."),
+                body = s(ctx, R.string.pump_err_only_one_app, "Only one app can connect to the pump at the same time. To use ControlX2, disconnect the pump from the Tandem app."),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.OpenTconnectAppInfo),
@@ -291,9 +301,9 @@ object PumpCriticalErrorClassifier {
             TandemError.INVALID_SIGNED_HMAC_SIGNATURE -> ErrorPresentation(
                 severity = Severity.FATAL,
                 name = error.name,
-                headline = "Pairing code is incorrect",
+                headline = s(ctx, R.string.pump_err_wrong_pair_code, "Pairing code is incorrect"),
                 body = if (extra.isNotBlank()) extra
-                    else "ControlX2 cannot authenticate with your pump. You must re-pair.",
+                    else s(ctx, R.string.pump_err_cant_auth_repair, "ControlX2 cannot authenticate with your pump. You must re-pair."),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.RepairPump, ErrorAction.CopyDiagnostics),
@@ -301,7 +311,7 @@ object PumpCriticalErrorClassifier {
                 timeThresholdMs = 0,
                 initiatingMessageClass = initiatingClass,
             )
-            TandemError.ERROR_RESPONSE -> classifyErrorResponse(error, rawMessage, extra, initiatingClass)
+            TandemError.ERROR_RESPONSE -> classifyErrorResponse(error, rawMessage, extra, initiatingClass, ctx)
         }
     }
 
@@ -310,6 +320,7 @@ object PumpCriticalErrorClassifier {
         rawMessage: String,
         extra: String,
         initiatingClass: String?,
+        ctx: Context? = null,
     ): ErrorPresentation {
         val errorResponse: ErrorResponse? = error.errorResponse
         val errorCode = errorResponse?.errorCode
@@ -320,8 +331,8 @@ object PumpCriticalErrorClassifier {
             ErrorResponse.ErrorCode.INVALID_AUTHENTICATION_ERROR -> ErrorPresentation(
                 severity = Severity.FATAL,
                 name = error.name,
-                headline = "Pairing code is incorrect",
-                body = "ControlX2 cannot authenticate with your pump. You must re-pair.",
+                headline = s(ctx, R.string.pump_err_wrong_pair_code, "Pairing code is incorrect"),
+                body = s(ctx, R.string.pump_err_cant_auth_repair, "ControlX2 cannot authenticate with your pump. You must re-pair."),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.RepairPump, ErrorAction.CopyDiagnostics),
@@ -335,8 +346,8 @@ object PumpCriticalErrorClassifier {
             ErrorResponse.ErrorCode.MESSAGE_BUFFER_FULL -> ErrorPresentation(
                 severity = Severity.TRANSIENT,
                 name = error.name,
-                headline = "Pump is busy",
-                body = "Pump is busy, reconnecting…",
+                headline = s(ctx, R.string.pump_err_busy, "Pump is busy"),
+                body = s(ctx, R.string.pump_err_busy_reconnecting, "Pump is busy, reconnecting…"),
                 rawMessage = rawMessage,
                 extra = extra,
                 actions = listOf(ErrorAction.Retry),
@@ -357,8 +368,9 @@ object PumpCriticalErrorClassifier {
                 ErrorPresentation(
                     severity = Severity.FATAL,
                     name = error.name,
-                    headline = "The pump rejected a request",
-                    body = "ControlX2 sent a message the pump did not accept (code: $codeLabel, request: $requestLabel). This is likely a bug in ControlX2.",
+                    headline = s(ctx, R.string.pump_err_rejected_request, "The pump rejected a request"),
+                    body = ctx?.getString(R.string.pump_err_rejected_request_body, codeLabel, requestLabel)
+                    ?: "ControlX2 sent a message the pump did not accept (code: $codeLabel, request: $requestLabel). This is likely a bug in ControlX2.",
                     rawMessage = rawMessage,
                     extra = extra,
                     actions = listOf(ErrorAction.Retry, ErrorAction.CopyDiagnostics),

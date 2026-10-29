@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.widget.Toast
+import com.jwoglom.controlx2.pumpcomm.R
 import com.jwoglom.controlx2.shared.CommServiceCodes
 import com.jwoglom.controlx2.shared.FeatureFlags
 import com.jwoglom.controlx2.shared.MessagePaths
@@ -239,7 +240,8 @@ class PumpCommHandler(
         Timber.w("init_pump_comm: target is still bonded after unbond attempt: $details")
         callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_PUMP_BONDED_NEEDS_MANUAL_UNBOND, details.toByteArray())
         callbacks.showToast(
-            "Pump is still bonded in Android Bluetooth settings. Unpair it, then retry.",
+            callbacks.getApplicationContext()
+                .getString(R.string.pump_err_bonded_manual_unbond),
             Toast.LENGTH_LONG
         )
         return false
@@ -500,7 +502,8 @@ class PumpCommHandler(
             initializeHistoryAndSync()
             waitForResponseStabilization()
             sendBaseCommandsIfNeeded(peripheral)
-            callbacks.updateNotification("Connected to pump")
+            callbacks.updateNotification(callbacks.getApplicationContext()
+            .getString(R.string.comm_connected_to_pump))
         }
 
         override fun onPumpModel(peripheral: BluetoothPeripheral?, model: KnownDeviceModel?) {
@@ -538,7 +541,8 @@ class PumpCommHandler(
                 peripheral?.name!!.toByteArray()
             )
             callbacks.markConnectionTime()
-            callbacks.updateNotification("Disconnected from pump")
+            callbacks.updateNotification(callbacks.getApplicationContext()
+            .getString(R.string.comm_disconnected_from_pump))
             callbacks.showToast("Pump disconnected: $status", Toast.LENGTH_SHORT)
             shutdownLatch?.countDown()
             return super.onPumpDisconnected(peripheral, status)
@@ -558,7 +562,7 @@ class PumpCommHandler(
             // No toast: pump-critical-errors are surfaced inline by the setup screen, classified
             // into TRANSIENT/ACTIONABLE/FATAL tiers — see PumpCriticalErrorClassifier.
             reason?.let { err ->
-                val presentation = PumpCriticalErrorClassifier.classify(err)
+                val presentation = PumpCriticalErrorClassifier.classify(err, callbacks.getApplicationContext())
                 callbacks.sendWearCommMessage(
                     MessagePaths.FROM_PUMP_PUMP_CRITICAL_ERROR,
                     presentation.toJson().toByteArray()

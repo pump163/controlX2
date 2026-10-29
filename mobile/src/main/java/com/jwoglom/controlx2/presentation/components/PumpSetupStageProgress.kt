@@ -42,7 +42,7 @@ fun PumpSetupStageProgress(
     }
 
     Line(
-        stringResource(R.string.setup_stage_of, (setupStage.value?.description ?: ""), (setupStage.value?.step ?: 0 ?: ""), PumpSetupStage.PUMPX2_PUMP_CONNECTED.step),
+        stringResource(R.string.setup_stage_of, setupStage.value?.descriptionRes?.let { stringResource(it) } ?: "", setupStage.value?.step ?: 0, PumpSetupStage.PUMPX2_PUMP_CONNECTED.step),
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(start = 10.dp, top = 10.dp)
     )

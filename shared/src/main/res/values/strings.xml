@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="basal_ciq_increased">ControlIQ Increased</string>
+    <string name="basal_ciq_reduced">ControlIQ Reduced</string>
+    <string name="basal_iq_suspended">BasalIQ Suspended</string>
+    <string name="basal_on">On</string>
+    <string name="basal_pump_suspended">Pump suspended</string>
+    <string name="basal_temp_rate">Temp Rate</string>
+    <string name="basal_unknown">Unknown</string>
+    <string name="basal_zero">Zero</string>
+    <string name="basal_zero_temp_rate">Zero Temp Rate</string>
+    <string name="cgm_active">Active</string>
+    <string name="cgm_starting">Starting</string>
+    <string name="cgm_stopped">Stopped</string>
+    <string name="cgm_stopping">Stopping</string>
+    <string name="ciq_exercise">Exercise</string>
+    <string name="ciq_sleep">Sleep</string>
+    <string name="ciq_unknown">Unknown</string>
+</resources>

@@ -1043,7 +1043,7 @@ fun Debug(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Back") },
+                    headlineContent = { Text(stringResource(R.string.app_back)) },
                     leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = navigateBack),
                 )

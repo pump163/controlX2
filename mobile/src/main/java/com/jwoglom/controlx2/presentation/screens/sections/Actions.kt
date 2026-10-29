@@ -4,6 +4,7 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -125,7 +126,7 @@ fun Actions(
 
     val loadStatusResponse = ds.loadStatusResponse.observeAsState()
     val resumeGuidance = remember(loadStatusResponse.value, checkingResumeLoadStatus) {
-        resolveResumeInsulinGuidance(loadStatusResponse.value, checkingResumeLoadStatus)
+        resolveResumeInsulinGuidance(context, loadStatusResponse.value, checkingResumeLoadStatus)
     }
 
     fun requestResumeLoadStatusCheck() {
@@ -712,9 +713,7 @@ fun Actions(
                             .wrapContentSize(Alignment.TopStart)
                     ) {
                         ListItem(
-                            headlineContent = { Text(
-                                "Quick Bolus Settings"
-                            )},
+                            headlineContent = { Text(stringResource(R.string.sound_quick_bolus_settings)) },
                             supportingContent = {
                             },
                             leadingContent = {
@@ -802,67 +801,68 @@ private data class ResumeInsulinGuidance(
 )
 
 private fun resolveResumeInsulinGuidance(
+    context: Context,
     loadStatus: LoadStatusResponse?,
     checking: Boolean,
 ): ResumeInsulinGuidance {
     if (checking && loadStatus == null) {
         return ResumeInsulinGuidance(
             canResume = false,
-            message = "Checking pump load state...",
+            message = context.getString(R.string.actions_checking_pump_load_state),
         )
     }
     if (loadStatus == null) {
         return ResumeInsulinGuidance(
             canResume = false,
-            message = "Couldn't read load state from pump. Try again.",
+            message = context.getString(R.string.actions_read_load_state_failed_try_again),
         )
     }
 
     return when (loadStatus.getLoadState()) {
         LoadStatusResponse.LoadState.CHANGE_CARTRIDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Finish Change Cartridge first.",
+            message = context.getString(R.string.actions_finish_change_cartridge_first),
         )
         LoadStatusResponse.LoadState.LOAD_CARTRIDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Complete Fill Tubing first, then try Resume insulin again.",
+            message = context.getString(R.string.actions_complete_fill_tubing_resume),
         )
         LoadStatusResponse.LoadState.PRIME_TUBING -> {
             val nextAction = when (loadStatus.getPrimeTubingStatus()) {
-                LoadStatusResponse.PrimeTubingStatus.ENTERED_CANNOT_EXIT -> "Hold the pump button to fill tubing, then exit Fill Tubing mode."
-                LoadStatusResponse.PrimeTubingStatus.ENTERED_CAN_EXIT -> "Exit Fill Tubing mode on the pump."
-                LoadStatusResponse.PrimeTubingStatus.SUSPENDED -> "Resume and complete Fill Tubing, then exit the mode."
-                else -> "Complete Fill Tubing and exit Fill Tubing mode."
+                LoadStatusResponse.PrimeTubingStatus.ENTERED_CANNOT_EXIT -> context.getString(R.string.actions_hold_pump_button_to_fill_tubing)
+                LoadStatusResponse.PrimeTubingStatus.ENTERED_CAN_EXIT -> context.getString(R.string.actions_exit_fill_tubing_mode_on_pump)
+                LoadStatusResponse.PrimeTubingStatus.SUSPENDED -> context.getString(R.string.actions_resume_and_complete_fill_tubingn_exit)
+                else -> context.getString(R.string.actions_complete_fill_tubing_and_exit_mode)
             }
             ResumeInsulinGuidance(
                 canResume = false,
-                message = "$nextAction Then try Resume insulin again.",
+                message = context.getString(R.string.actions_next_actionn_try_resume_insulin_again, nextAction),
             )
         }
         LoadStatusResponse.LoadState.PRIME_NUDGE -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Fill cannula first, then try Resume insulin again.",
+            message = context.getString(R.string.actions_fill_cannula_first_try_resume),
         )
         LoadStatusResponse.LoadState.PRIME_CANNULA -> {
             if (loadStatus.getIsLoadingActive()) {
                 ResumeInsulinGuidance(
                     canResume = false,
-                    message = "Complete Fill Cannula first, then try Resume insulin again.",
+                    message = context.getString(R.string.actions_complete_fill_cannula_resume),
                 )
             } else {
                 ResumeInsulinGuidance(
                     canResume = true,
-                    message = "Resume all insulin deliveries?",
+                    message = context.getString(R.string.actions_resume_all_insulin_deliveries_query),
                 )
             }
         }
         LoadStatusResponse.LoadState.INVALID -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Pump load state is invalid. Complete cartridge loading steps on the pump first.",
+            message = context.getString(R.string.actions_load_state_invalid_finish_loading),
         )
         LoadStatusResponse.LoadState.UNKNOWN -> ResumeInsulinGuidance(
             canResume = false,
-            message = "Pump load state is unknown. Complete any pending load steps on the pump first.",
+            message = context.getString(R.string.actions_load_state_unknown_finish_load_steps),
         )
     }
 }

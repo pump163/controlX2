@@ -89,11 +89,13 @@ class MobileClientService : Service() {
                 }
                 override fun onBolusBlockedSignature() {
                     Timber.w("MobileClientService: blocked bolus signature")
-                    Toast.makeText(applicationContext, "Bolus blocked: invalid signature", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, getString(R.string.client_bolus_blocked_invalid_signature),
+                        Toast.LENGTH_LONG).show()
                 }
                 override fun onBolusNotEnabled() {
                     Timber.w("MobileClientService: bolus not enabled")
-                    Toast.makeText(applicationContext, "Bolus not enabled on pump-host", Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, getString(R.string.client_bolus_not_enabled_on_pump_host),
+                        Toast.LENGTH_LONG).show()
                 }
             },
             scope = serviceScope,
@@ -138,7 +140,7 @@ class MobileClientService : Service() {
             this.getString(R.string.comm_client_service_notice),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "ControlX2 client service channel"
+            description = this@MobileClientService.getString(R.string.comm_ctrl_x2_client_service_channel)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)

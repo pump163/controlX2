@@ -31,6 +31,7 @@ import com.jwoglom.pumpx2.pump.messages.builders.IDPManager
 import com.jwoglom.pumpx2.pump.messages.models.MinsTime
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.IDPSettingsResponse
 import timber.log.Timber
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.jwoglom.controlx2.R
 
@@ -40,6 +41,7 @@ fun AddSegmentDialog(
     onDismiss: () -> Unit,
     onConfirm: (MinsTime, Float, Long, Int, Int) -> Unit
 ) {
+    val context = LocalContext.current
     val timePickerState = rememberTimePickerState(
         initialHour = 0,
         initialMinute = 0,
@@ -145,23 +147,23 @@ fun AddSegmentDialog(
                         val isfInt = isf.toIntOrNull() ?: 0
 
                         if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                            errorMessage = "Invalid time. Hours must be 0-23, minutes must be 0-59."
+                            errorMessage = context.getString(R.string.profile_invalid_time_hours_0_23_mins)
                             return@TextButton
                         }
                         if (basalRateFloat <= 0) {
-                            errorMessage = "Basal rate must be greater than 0"
+                            errorMessage = context.getString(R.string.profile_basal_rate_must_be_greater_than_0)
                             return@TextButton
                         }
                         if (carbRatioLong <= 0) {
-                            errorMessage = "Carb ratio must be greater than 0"
+                            errorMessage = context.getString(R.string.profile_carb_ratio_must_be_greater_than_0)
                             return@TextButton
                         }
                         if (targetBGInt <= 0) {
-                            errorMessage = "Target BG must be greater than 0"
+                            errorMessage = context.getString(R.string.profile_target_bg_must_be_greater_than_0)
                             return@TextButton
                         }
                         if (isfInt <= 0) {
-                            errorMessage = "ISF must be greater than 0"
+                            errorMessage = context.getString(R.string.profile_isf_must_be_greater_than_0)
                             return@TextButton
                         }
 

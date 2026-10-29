@@ -119,7 +119,7 @@ fun FillCannulaWorkflowScreen(
                         },
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Prime amount: ${"%.1f".format(primeAmount)}U", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.fill_cannula_prime_amount, "%.1f".format(primeAmount)), style = MaterialTheme.typography.titleMedium)
                     Slider(
                         value = primeAmount.toFloat(),
                         onValueChange = {
@@ -134,7 +134,7 @@ fun FillCannulaWorkflowScreen(
                 FillCannulaStep.DONE -> {
                     Text(stringResource(R.string.cartridge_cannula_fill_complete), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("${"%.1f".format(primeAmount)}U primed.", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.fill_cannula_primed, "%.1f".format(primeAmount)), style = MaterialTheme.typography.bodyLarge)
                 }
             }
         },

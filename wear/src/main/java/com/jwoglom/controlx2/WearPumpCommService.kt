@@ -474,7 +474,7 @@ class WearPumpCommService : Service(), CommServiceCallbacks {
         val channelId = "ControlX2 Pump Host"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(channelId, this.getString(R.string.comm_pump_host_service), NotificationManager.IMPORTANCE_LOW).apply {
-            description = "ControlX2 pump host service"
+            description = this@WearPumpCommService.getString(R.string.comm_ctrl_x2_pump_host_service)
             setShowBadge(false)
         }
         notificationManager.createNotificationChannel(channel)

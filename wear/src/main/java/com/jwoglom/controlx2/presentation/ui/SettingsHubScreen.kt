@@ -133,7 +133,7 @@ fun SettingsHubScreen(
             item {
                 Chip(
                     onClick = { navController.navigate(Screen.HistoryLog.route) },
-                    label = { Text("Pump history", fontSize = 13.sp) },
+                    label = { Text(stringResource(R.string.settings_pump_history), fontSize = 13.sp) },
                     colors = ChipDefaults.primaryChipColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )

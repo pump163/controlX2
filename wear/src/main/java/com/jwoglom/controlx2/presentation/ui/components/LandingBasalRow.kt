@@ -27,6 +27,7 @@ fun LandingBasalRow(
         basalRate = ds.basalRate.observeAsState().value,
         basalStatus = ds.basalStatus.observeAsState().value,
     )
+    val statusText = model.basalStatus?.strRes?.let { stringResource(it) } ?: ""
     val text = when (model.basalStatus) {
         BasalStatus.ON,
         BasalStatus.ZERO,
@@ -36,9 +37,9 @@ fun LandingBasalRow(
         null -> model.basalRate
 
         BasalStatus.PUMP_SUSPENDED,
-        BasalStatus.BASALIQ_SUSPENDED -> model.basalStatus.str
+        BasalStatus.BASALIQ_SUSPENDED -> statusText
 
-        else -> if (model.basalRate == null) model.basalStatus.str else "${model.basalStatus.str} (${model.basalRate})"
+        else -> if (model.basalRate == null) statusText else "$statusText (${model.basalRate})"
     } ?: "?"
 
     LineInfoChip(stringResource(R.string.dashboard_basal), text, onClick = onClick)

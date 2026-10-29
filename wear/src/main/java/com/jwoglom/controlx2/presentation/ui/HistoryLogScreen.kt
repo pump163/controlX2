@@ -8,6 +8,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -129,7 +131,7 @@ private fun HistoryLogChip(item: HistoryLogItem) {
         onClick = {},
         label = {
             Text(
-                text = formatHistoryLogLabel(item),
+                text = formatHistoryLogLabel(item, LocalContext.current),
                 fontSize = 12.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -182,40 +184,44 @@ private fun formatHistoryLogTime(item: HistoryLogItem): String =
         "—"
     }
 
-private fun formatHistoryLogLabel(item: HistoryLogItem): String {
+private fun formatHistoryLogLabel(item: HistoryLogItem, context: Context): String {
     val parsed = try {
         item.parse()
     } catch (_: Exception) {
-        return "Raw event #${item.typeId}"
+        return context.getString(R.string.history_raw_event, item.typeId.toString())
     }
     return when (parsed) {
         is BolusDeliveryHistoryLog ->
-            "Bolus %.2fU".format(parsed.deliveredTotal / 1000.0)
-        is BolusCompletedHistoryLog -> "Bolus complete"
+            context.getString(R.string.history_bolus_2f_u, parsed.deliveredTotal / 1000.0)
+        is BolusCompletedHistoryLog -> context.getString(R.string.history_bolus_complete)
         is BasalRateChangeHistoryLog ->
-            "Basal %.3fU/hr".format(parsed.commandBasalRate.toDouble())
-        is TempRateActivatedHistoryLog -> "Temp basal start"
-        is TempRateCompletedHistoryLog -> "Temp basal end"
+            context.getString(R.string.history_basal_3f_u_hr, parsed.commandBasalRate.toDouble())
+        is TempRateActivatedHistoryLog -> context.getString(R.string.history_temp_basal_start)
+        is TempRateCompletedHistoryLog -> context.getString(R.string.history_temp_basal_end)
         // `carbs` is a Float (pump reports 0.5g resolution). `.toInt()` would
         // silently drop half-grams, so format with one decimal.
-        is CarbEnteredHistoryLog -> "Carbs %.1fg".format(parsed.carbs)
+        is CarbEnteredHistoryLog -> context.getString(R.string.history_carbs_1fg, parsed.carbs)
         // Prefer the enum name ("LOW_INSULIN", "OCCLUSION_DETECTED") — that's
         // what the user reads on the pump face — and fall back to the numeric
         // id when pumpx2 doesn't have a name for the id. Mirrors ProcessAlarm.
         is AlarmActivatedHistoryLog ->
-            "Alarm: ${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
+            context.getString(R.string.history_alarm_type,
+                parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}")
         is AlarmClearedHistoryLog ->
-            "Alarm cleared: ${parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}"}"
+            context.getString(R.string.history_alarm_cleared_type,
+                parsed.alarmResponseType?.name ?: "ID ${parsed.alarmId}")
         is AlertActivatedHistoryLog ->
-            "Alert: ${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
+            context.getString(R.string.history_alert_type,
+                parsed.alertResponseType?.name ?: "ID ${parsed.alertId}")
         is AlertClearedHistoryLog ->
-            "Alert cleared: ${parsed.alertResponseType?.name ?: "ID ${parsed.alertId}"}"
-        is DailyBasalHistoryLog -> "Daily basal summary"
-        is PumpingResumedHistoryLog -> "Pumping resumed"
-        is PumpingSuspendedHistoryLog -> "Pumping suspended"
-        is CannulaFilledHistoryLog -> "Cannula filled"
-        is TubingFilledHistoryLog -> "Tubing filled"
-        is CartridgeFilledHistoryLog -> "Cartridge filled"
+            context.getString(R.string.history_alert_cleared_type,
+                parsed.alertResponseType?.name ?: "ID ${parsed.alertId}")
+        is DailyBasalHistoryLog -> context.getString(R.string.history_daily_basal_summary)
+        is PumpingResumedHistoryLog -> context.getString(R.string.history_pumping_resumed)
+        is PumpingSuspendedHistoryLog -> context.getString(R.string.history_pumping_suspended)
+        is CannulaFilledHistoryLog -> context.getString(R.string.history_cannula_filled)
+        is TubingFilledHistoryLog -> context.getString(R.string.history_tubing_filled)
+        is CartridgeFilledHistoryLog -> context.getString(R.string.history_cartridge_filled)
         else -> parsed.javaClass.simpleName.removeSuffix("HistoryLog")
     }
 }

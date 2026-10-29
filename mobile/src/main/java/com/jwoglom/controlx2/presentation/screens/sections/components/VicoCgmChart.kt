@@ -2019,7 +2019,7 @@ fun ChartLegend(
         )
         LegendItem(
             color = InsulinColors.Bolus,
-            label = "Bolus",
+            label = stringResource(R.string.cgm_bolus),
             shape = LegendShape.CIRCLE
         )
         if (showCarbs) {

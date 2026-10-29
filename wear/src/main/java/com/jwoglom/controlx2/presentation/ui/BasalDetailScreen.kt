@@ -12,6 +12,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -152,7 +154,7 @@ private fun BasalCurrentHeader(
     basalStatus: BasalStatus?,
 ) {
     val rateText = basalRate ?: "—"
-    val statusText = basalStatus?.str ?: ""
+    val statusText = basalStatus?.strRes?.let { stringResource(it) } ?: ""
 
     Column(
         modifier = Modifier
@@ -186,7 +188,7 @@ private fun BasalHistoryRow(item: HistoryLogItem) {
         onClick = {},
         label = {
             Text(
-                text = formatBasalRowLabel(item),
+                text = formatBasalRowLabel(item, LocalContext.current),
                 fontSize = 12.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -230,19 +232,19 @@ private fun formatBasalRowTime(item: HistoryLogItem): String =
         "—"
     }
 
-private fun formatBasalRowLabel(item: HistoryLogItem): String {
+private fun formatBasalRowLabel(item: HistoryLogItem, context: Context): String {
     val parsed = try {
         item.parse()
     } catch (_: Exception) {
-        return "Raw event #${item.typeId}"
+        return context.getString(R.string.history_raw_event, item.typeId.toString())
     }
     return when (parsed) {
         is BasalRateChangeHistoryLog ->
             "→ %.3fU/hr".format(parsed.commandBasalRate.toDouble())
-        is TempRateActivatedHistoryLog -> "Temp basal start"
-        is TempRateCompletedHistoryLog -> "Temp basal end"
-        is PumpingSuspendedHistoryLog -> "Pump suspended"
-        is PumpingResumedHistoryLog -> "Pump resumed"
+        is TempRateActivatedHistoryLog -> context.getString(R.string.basal_temp_basal_start)
+        is TempRateCompletedHistoryLog -> context.getString(R.string.basal_temp_basal_end)
+        is PumpingSuspendedHistoryLog -> context.getString(R.string.basal_pump_suspended)
+        is PumpingResumedHistoryLog -> context.getString(R.string.basal_pump_resumed)
         else -> parsed.javaClass.simpleName.removeSuffix("HistoryLog")
     }
 }

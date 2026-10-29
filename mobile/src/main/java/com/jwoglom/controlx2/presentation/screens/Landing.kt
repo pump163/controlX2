@@ -106,6 +106,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
+import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -558,7 +559,7 @@ fun Landing(
                                 BadgedBox(
                                     badge = {
                                         notificationBundle.value?.get()?.count()?.let { count ->
-                                            if (item.label == LandingSection.NOTIFICATIONS.label && count > 0) {
+                                            if (item == LandingSection.NOTIFICATIONS && count > 0) {
                                                 Badge(
                                                     containerColor = Color.Red,
                                                     contentColor = Color.White
@@ -569,12 +570,12 @@ fun Landing(
                                         }
                                     },
                                     content = {
-                                        Icon(item.icon, contentDescription = item.label)
+                                        Icon(item.icon, contentDescription = stringResource(item.labelRes))
                                     }
                                 )
                            },
-                            label = { Text(item.label) },
-                            selected = selectedItem.label == item.label,
+                            label = { Text(stringResource(item.labelRes)) },
+                            selected = selectedItem == item,
                             onClick = { selectedItem = item }
                         )
                     }
@@ -585,25 +586,25 @@ fun Landing(
 
 // HACK: subpages should have the same label as an item appearing in the nav
 // so that item appears as selected when it is navigated to within the app
-enum class LandingSection(val label: String, val icon: ImageVector, val showInNav: Boolean) {
-    DASHBOARD("Dashboard", Icons.Filled.Info, true),
+enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, val showInNav: Boolean) {
+    DASHBOARD(R.string.dashboard_dashboard, Icons.Filled.Info, true),
 
-    NOTIFICATIONS("Notifications", Icons.Filled.Notifications, true),
+    NOTIFICATIONS(R.string.dashboard_notifications, Icons.Filled.Notifications, true),
 
-    ACTIONS("Actions", Icons.Filled.Create, true),
-    CGM_ACTIONS("Actions", Icons.Filled.Create, false),
-    CARTRIDGE_ACTIONS("Actions", Icons.Filled.Create, false),
-    PROFILE_ACTIONS("Profiles", Icons.Filled.Create, false),
-    SOUND_SETTINGS_ACTIONS("Profiles", Icons.Filled.Create, false),
-    QUICK_BOLUS_SETTINGS_ACTIONS("Actions", Icons.Filled.Create, false),
-    CONTROLIQ_SETTINGS_ACTIONS("Actions", Icons.Filled.Create, false),
-    SAFETY_LIMITS_ACTIONS("Actions", Icons.Filled.Create, false),
+    ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, true),
+    CGM_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
+    CARTRIDGE_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
+    PROFILE_ACTIONS(R.string.dashboard_profiles, Icons.Filled.Create, false),
+    SOUND_SETTINGS_ACTIONS(R.string.dashboard_profiles, Icons.Filled.Create, false),
+    QUICK_BOLUS_SETTINGS_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
+    CONTROLIQ_SETTINGS_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
+    SAFETY_LIMITS_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
 
-    SETTINGS("Settings", Icons.Filled.Settings, true),
-    DEBUG("Settings", Icons.Filled.Settings, false),
-    NIGHTSCOUT_SETTINGS("Settings", Icons.Filled.Settings, false),
-    XDRIP_SETTINGS("Settings", Icons.Filled.Settings, false),
-    FEATURE_FLAGS("Settings", Icons.Filled.Settings, false),
+    SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, true),
+    DEBUG(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    NIGHTSCOUT_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    XDRIP_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    FEATURE_FLAGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     ;
 }
 

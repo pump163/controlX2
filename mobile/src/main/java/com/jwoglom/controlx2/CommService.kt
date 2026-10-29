@@ -888,13 +888,13 @@ class CommService : Service(), CommServiceCallbacks {
         // MainActivity's exported ACTION_OPEN_* deep links.
         if (Prefs(applicationContext).showBolusNotificationButton()) {
             builder.addAction(
-                R.drawable.bolus_icon, "Bolus",
+                R.drawable.bolus_icon, getString(R.string.dashboard_bolus),
                 openActivityAction(MainActivity.ACTION_OPEN_BOLUS, 2010)
             )
         }
         if (Prefs(applicationContext).showTempRateNotificationButton()) {
             builder.addAction(
-                R.drawable.bolus_icon_secondary, "Temp Rate",
+                R.drawable.bolus_icon_secondary, getString(R.string.temp_basal_temp_rate),
                 openActivityAction(MainActivity.ACTION_OPEN_TEMP_RATE, 2011)
             )
         }

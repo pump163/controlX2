@@ -2,6 +2,8 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import android.content.Context
+import com.jwoglom.controlx2.R
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -199,7 +201,7 @@ fun CartridgeActions(
         inFillTubingMode = inFillTubingMode.value == true,
         exitFillTubingState = exitFillTubingState.value,
     )
-    val menuAvailability = resolveCartridgeMenuAvailability(requiredSubScreen)
+    val menuAvailability = resolveCartridgeMenuAvailability(context, requiredSubScreen)
 
     LaunchedEffect(exitFillTubingState.value?.state) {
         if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
@@ -483,7 +485,7 @@ private fun resolveLoadState(loadStatus: LoadStatusResponse?): LoadStatusRespons
     return null
 }
 
-private fun resolveCartridgeMenuAvailability(requiredSubScreen: CartridgeSubScreen?): CartridgeMenuAvailability {
+private fun resolveCartridgeMenuAvailability(context: Context, requiredSubScreen: CartridgeSubScreen?): CartridgeMenuAvailability {
     if (requiredSubScreen == null) {
         return CartridgeMenuAvailability(
             canChangeCartridge = true,
@@ -499,13 +501,14 @@ private fun resolveCartridgeMenuAvailability(requiredSubScreen: CartridgeSubScre
         canChangeCartridge = requiredSubScreen == CartridgeSubScreen.CHANGE_CARTRIDGE,
         canFillTubing = requiredSubScreen == CartridgeSubScreen.FILL_TUBING,
         canFillCannula = requiredSubScreen == CartridgeSubScreen.FILL_CANNULA,
-        changeCartridgeDisabledReason = disabledReasonForCartridgeMenuAction(requiredSubScreen, CartridgeSubScreen.CHANGE_CARTRIDGE),
-        fillTubingDisabledReason = disabledReasonForCartridgeMenuAction(requiredSubScreen, CartridgeSubScreen.FILL_TUBING),
-        fillCannulaDisabledReason = disabledReasonForCartridgeMenuAction(requiredSubScreen, CartridgeSubScreen.FILL_CANNULA),
+        changeCartridgeDisabledReason = disabledReasonForCartridgeMenuAction(context, requiredSubScreen, CartridgeSubScreen.CHANGE_CARTRIDGE),
+        fillTubingDisabledReason = disabledReasonForCartridgeMenuAction(context, requiredSubScreen, CartridgeSubScreen.FILL_TUBING),
+        fillCannulaDisabledReason = disabledReasonForCartridgeMenuAction(context, requiredSubScreen, CartridgeSubScreen.FILL_CANNULA),
     )
 }
 
 private fun disabledReasonForCartridgeMenuAction(
+    context: Context,
     requiredSubScreen: CartridgeSubScreen,
     targetSubScreen: CartridgeSubScreen,
 ): String? {
@@ -513,9 +516,9 @@ private fun disabledReasonForCartridgeMenuAction(
         return null
     }
     return when (requiredSubScreen) {
-        CartridgeSubScreen.CHANGE_CARTRIDGE -> "Complete Change Cartridge first."
-        CartridgeSubScreen.FILL_TUBING -> "Complete Fill Tubing first."
-        CartridgeSubScreen.FILL_CANNULA -> "Complete Fill Cannula first."
+        CartridgeSubScreen.CHANGE_CARTRIDGE -> context.getString(R.string.cartridge_complete_change_cartridge_first)
+        CartridgeSubScreen.FILL_TUBING -> context.getString(R.string.cartridge_complete_fill_tubing_first)
+        CartridgeSubScreen.FILL_CANNULA -> context.getString(R.string.cartridge_complete_fill_cannula_first)
         CartridgeSubScreen.MENU -> null
     }
 }

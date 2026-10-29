@@ -90,7 +90,7 @@ fun PairingCodeEntryScreen() {
             launcher.launch(intent)
         } catch (e: Exception) {
             Timber.e(e, "PairingCodeEntryScreen: failed to launch RemoteInputIntent")
-            localError.value = "Input unavailable"
+            localError.value = context.getString(R.string.wear_input_unavailable)
         }
     }
 

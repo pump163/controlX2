@@ -159,21 +159,21 @@ fun QuickBolusSettingsActions(
             content = {
                 item {
 
-                    HeaderLine("Quick Bolus Settings")
+                    HeaderLine(stringResource(R.string.sound_quick_bolus_settings))
                     Divider()
                 }
 
                 if (refreshing) {
                     item {
-                        LoadSpinner(stringResource(R.string.profile_back_3))
+                        LoadSpinner(stringResource(R.string.sound_loading_quick_bolus_settings))
                     }
                 }
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Quick Bolus") },
+                        headlineContent = { Text(stringResource(R.string.sound_quick_bolus)) },
                         supportingContent = {
-                            Text("Configure quick bolus mode and increment size")
+                            Text(stringResource(R.string.sound_config_quick_bolus_and_increment))
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         modifier = Modifier.clickable {
@@ -185,7 +185,7 @@ fun QuickBolusSettingsActions(
 
                 item {
                     ListItem(
-                        headlineContent = { Text("Back") },
+                        headlineContent = { Text(stringResource(R.string.app_back)) },
                         leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
@@ -200,20 +200,20 @@ fun QuickBolusSettingsActions(
 
         AlertDialog(
             onDismissRequest = { showQuickBolusDialog = false },
-            title = { Text("Quick Bolus Settings") },
+            title = { Text(stringResource(R.string.sound_quick_bolus_settings)) },
             text = {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Enabled", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.sound_enabled), modifier = Modifier.weight(1f))
                         Switch(
                             checked = quickBolusEnabled,
                             onCheckedChange = { quickBolusEnabled = it }
                         )
                     }
-                    Text("Increment:", modifier = Modifier.padding(top = 8.dp))
+                    Text(stringResource(R.string.sound_increment), modifier = Modifier.padding(top = 8.dp))
                     ExposedDropdownMenuBox(
                         expanded = expanded,
                         onExpandedChange = { expanded = !expanded }
@@ -255,12 +255,12 @@ fun QuickBolusSettingsActions(
                         refresh()
                     }
                 }) {
-                    Text("Apply")
+                    Text(stringResource(R.string.sound_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showQuickBolusDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.actions_cancel))
                 }
             }
         )

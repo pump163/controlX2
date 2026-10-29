@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -191,7 +192,7 @@ fun XdripSettings(
 
             item {
                 ListItem(
-                    headlineContent = { Text("Back") },
+                    headlineContent = { Text(stringResource(R.string.app_back)) },
                     leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = navigateBack),
                 )
