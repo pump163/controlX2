@@ -33,6 +33,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,6 +78,9 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.jwoglom.controlx2.shared.util.canControlPump
+
+import com.pumppan.controlx2.ui.rowTitleColor
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.IDPManager
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
@@ -111,6 +116,7 @@ fun ProfileActions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -348,7 +354,11 @@ fun ProfileActions(
                                                                         append("\n")
                                                                     })
                                                                 },
-                                                                modifier = Modifier.clickable {
+                                                                colors = ListItemDefaults.colors(
+                                                                    headlineColor = rowTitleColor(!canControl),
+                                                                    leadingIconColor = rowTitleColor(!canControl),
+                                                                ),
+                                                                modifier = Modifier.clickable(enabled = canControl) {
                                                                     refreshScope.launch {
                                                                         showEditSegmentDialog = Pair(profile, segmentIndex)
                                                                     }
@@ -373,7 +383,11 @@ fun ProfileActions(
                                                                     contentDescription = null,
                                                                 )
                                                             },
-                                                            modifier = Modifier.clickable {
+                                                            colors = ListItemDefaults.colors(
+                                                                headlineColor = rowTitleColor(!canControl),
+                                                                leadingIconColor = rowTitleColor(!canControl),
+                                                            ),
+                                                            modifier = Modifier.clickable(enabled = canControl) {
                                                                 refreshScope.launch {
                                                                     showAddSegmentDialog = profile
                                                                 }
@@ -392,7 +406,11 @@ fun ProfileActions(
                                                                     contentDescription = null,
                                                                 )
                                                             },
-                                                            modifier = Modifier.clickable {
+                                                            colors = ListItemDefaults.colors(
+                                                                headlineColor = rowTitleColor(!canControl),
+                                                                leadingIconColor = rowTitleColor(!canControl),
+                                                            ),
+                                                            modifier = Modifier.clickable(enabled = canControl) {
                                                                 refreshScope.launch {
                                                                     sendPumpCommands(
                                                                         SendType.BUST_CACHE, listOf(
@@ -422,7 +440,11 @@ fun ProfileActions(
                                                                     contentDescription = null,
                                                                 )
                                                             },
-                                                            modifier = Modifier.clickable {
+                                                            colors = ListItemDefaults.colors(
+                                                                headlineColor = rowTitleColor(!canControl),
+                                                                leadingIconColor = rowTitleColor(!canControl),
+                                                            ),
+                                                            modifier = Modifier.clickable(enabled = canControl) {
                                                                 if (idpManager.value?.activeProfile?.idpId != profile.idpId) {
                                                                     refreshScope.launch {
                                                                         sendPumpCommands(
@@ -476,7 +498,11 @@ fun ProfileActions(
                             leadingContent = {
                                 Icon(Icons.Filled.Add, contentDescription = null)
                             },
-                            modifier = Modifier.clickable {
+                            colors = ListItemDefaults.colors(
+                                headlineColor = rowTitleColor(!canControl),
+                                leadingIconColor = rowTitleColor(!canControl),
+                            ),
+                            modifier = Modifier.clickable(enabled = canControl) {
                                 showAddProfileDialog = true
                             }
                         )

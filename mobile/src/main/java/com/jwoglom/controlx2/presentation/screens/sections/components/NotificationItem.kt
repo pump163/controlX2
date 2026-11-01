@@ -50,7 +50,9 @@ val requiredProgress = 0.5f
 fun NotificationItem(
     notification: Any,
     sendPumpCommands: (SendType, List<Message>) -> Unit,
-    refresh: () -> Job
+    refresh: () -> Job,
+    /** X2 无法远程消除通知，滑动时直接弹回。 */
+    dismissAllowed: Boolean = true,
 ) {
     val refreshScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -115,6 +117,7 @@ fun NotificationItem(
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = {
+            if (!dismissAllowed) return@rememberSwipeToDismissBoxState false
             when (it) {
                 SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> {
                     dismissNotification()

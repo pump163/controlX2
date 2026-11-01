@@ -39,6 +39,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.cartridge.
 import com.jwoglom.controlx2.presentation.screens.sections.components.cartridge.ChangeCartridgeWorkflowScreen
 import com.jwoglom.controlx2.presentation.screens.sections.components.cartridge.FillCannulaWorkflowScreen
 import com.jwoglom.controlx2.presentation.screens.sections.components.cartridge.FillTubingWorkflowScreen
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.request.control.EnterChangeCartridgeModeRequest
@@ -53,6 +54,8 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.enums.BasalStatus
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.canControlPump
+import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
@@ -201,7 +204,9 @@ fun CartridgeActions(
         inFillTubingMode = inFillTubingMode.value == true,
         exitFillTubingState = exitFillTubingState.value,
     )
-    val menuAvailability = resolveCartridgeMenuAvailability(context, requiredSubScreen)
+    val menuAvailability = resolveCartridgeMenuAvailability(
+        context, requiredSubScreen, determinePumpModel(deviceName.value ?: "")
+    )
 
     LaunchedEffect(exitFillTubingState.value?.state) {
         if (exitFillTubingState.value?.state == ExitFillTubingModeStateStreamResponse.ExitFillTubingModeState.TUBING_FILLED) {
@@ -485,7 +490,16 @@ private fun resolveLoadState(loadStatus: LoadStatusResponse?): LoadStatusRespons
     return null
 }
 
-private fun resolveCartridgeMenuAvailability(context: Context, requiredSubScreen: CartridgeSubScreen?): CartridgeMenuAvailability {
+private fun resolveCartridgeMenuAvailability(
+    context: Context,
+    requiredSubScreen: CartridgeSubScreen?,
+    model: KnownDeviceModel?,
+): CartridgeMenuAvailability {
+    // 药筒/填充在 X2 上无法远程操作（FillCannulaRequest 在 pumpx2 里是 MOBI_ONLY）
+    if (!canControlPump(model)) {
+        val reason = model?.let { context.getString(R.string.cartridge_insulin_control_unsupported_model, it) }
+        return CartridgeMenuAvailability(false, false, false, reason, reason, reason)
+    }
     if (requiredSubScreen == null) {
         return CartridgeMenuAvailability(
             canChangeCartridge = true,

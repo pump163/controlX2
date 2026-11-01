@@ -1028,6 +1028,10 @@ fun Debug(
             }
 
             item {
+                com.pumppan.controlx2.PumppanPumpModelRow()
+            }
+
+            item {
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.debug_feature_flags)) },
                     supportingContent = { Text(context.getString(R.string.debug_toggle_experimental_features)) },

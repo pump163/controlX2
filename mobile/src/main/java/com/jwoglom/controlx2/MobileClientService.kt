@@ -34,6 +34,11 @@ import com.jwoglom.controlx2.R
  * dispatching to local sync systems (Nightscout, xDrip+, etc.).
  */
 class MobileClientService : Service() {
+    // pumppan: 同上，客户端服务通知跟随语言开关
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(com.pumppan.controlx2.PumppanLocale.wrap(newBase))
+    }
+
     private var connectionState: ClientConnectionState = ClientConnectionState.UNKNOWN
 
     private lateinit var messageBus: MessageBus

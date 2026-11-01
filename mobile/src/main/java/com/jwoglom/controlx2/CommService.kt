@@ -28,6 +28,9 @@ import com.jwoglom.controlx2.pump.BleChangeReceiver
 import com.jwoglom.controlx2.pump.BolusManager
 import com.jwoglom.controlx2.pump.CommServiceCallbacks
 import com.jwoglom.controlx2.pump.PumpCommHandler
+import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
+import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.pump.PumpCommState
 import com.jwoglom.controlx2.pump.PumpFinderCommHandler
 import com.jwoglom.controlx2.pump.PumpHistoryLogFetcher
@@ -80,6 +83,11 @@ import com.jwoglom.controlx2.R
 
 
 class CommService : Service(), CommServiceCallbacks {
+    // pumppan: 通知栏文案跟随语言开关（Service 的 base context 不会继承 Application 的包装）
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(com.pumppan.controlx2.PumppanLocale.wrap(newBase))
+    }
+
     override val supervisorJob = SupervisorJob()
     private val scope = CoroutineScope(supervisorJob + Dispatchers.Main.immediate)
 
@@ -892,7 +900,12 @@ class CommService : Service(), CommServiceCallbacks {
                 openActivityAction(MainActivity.ACTION_OPEN_BOLUS, 2010)
             )
         }
-        if (Prefs(applicationContext).showTempRateNotificationButton()) {
+        // 临时基础率只有 Mobi 能远程操作（X2 控制页只能看），X2 上不显示按钮
+        val canTempRate = canControlPump(
+            dataStore.setupDeviceName.value?.let { determinePumpModel(it) },
+            SetTempRateRequest::class.java
+        )
+        if (Prefs(applicationContext).showTempRateNotificationButton() && canTempRate) {
             builder.addAction(
                 R.drawable.bolus_icon_secondary, getString(R.string.temp_basal_temp_rate),
                 openActivityAction(MainActivity.ACTION_OPEN_TEMP_RATE, 2011)

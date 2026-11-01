@@ -56,6 +56,8 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.jwoglom.controlx2.shared.util.canControlPump
+
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
@@ -83,6 +85,8 @@ fun Notifications(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    // X2 只能远程操作大剂量，无法远程消除泵上通知（真机验证）
+    val canDismissNotifications = canControlPump(determinePumpModel(deviceName.value ?: ""))
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -199,7 +203,8 @@ fun Notifications(
                                 .fillMaxSize()
                                 .wrapContentSize(Alignment.TopStart)
                         ) {
-                            NotificationItem(it, sendPumpCommands=sendPumpCommands, ::refresh)
+                            NotificationItem(it, sendPumpCommands=sendPumpCommands, ::refresh,
+                                dismissAllowed = canDismissNotifications)
                         }
                     }
                 }

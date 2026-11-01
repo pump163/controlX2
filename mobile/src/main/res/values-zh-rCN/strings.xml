@@ -1031,4 +1031,13 @@
     <string name="bolus_requesting_u_bolus">正在请求 %1$su 大剂量</string>
     <string name="fill_cannula_prime_amount">充盈量：%1$sU</string>
     <string name="fill_cannula_primed">已充盈 %1$sU。</string>
+    <string name="pumppan_language">语言</string>
+    <string name="pumppan_language_auto">自动（跟随系统）</string>
+    <string name="pumppan_language_zh">中文</string>
+    <string name="pumppan_language_en">English</string>
+    <string name="pumppan_pump_model">泵型号覆盖</string>
+    <string name="pumppan_pump_model_auto">自动（按实际）</string>
+    <string name="pumppan_pump_model_mobi">Mobi</string>
+    <string name="pumppan_pump_model_slimx2">t:slim X2</string>
+    <string name="pumppan_model_mismatch_warning">%1$s（显示的泵型号）与您的实际泵型号（%2$s）不符，后果自负！泵请勿连接人体！如果泵出现故障（MALFUNCTION）屏幕，说明泵检测到系统错误并已停止所有输注：请记下屏幕上的故障代码，点击警报静音，然后联系客户技术支持。若泵无响应，可尝试将其置于储存模式以恢复：连接电源，按住屏幕打开/快速大剂量按钮 30 秒，泵会发出 3 次蜂鸣声后进入储存模式，再从电源上断开；要使泵退出储存模式，只需重新连接电源。这不保证能排除泵的系统错误，请做好永久失去您的泵的准备！</string>
 </resources>

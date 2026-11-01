@@ -144,6 +144,11 @@ class MainActivity : ComponentActivity() {
         private const val REQUEST_BT_PERMISSIONS = 2
     }
 
+    // pumppan: 语言开关只对 Activity 生效（Application/Service 由 PumppanApplication 覆盖）
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(com.pumppan.controlx2.PumppanLocale.wrap(newBase))
+    }
+
     private lateinit var messageBus: MessageBus
     private lateinit var messageListener: MessageListener
     private val sheetLaunchRequestState = mutableStateOf<SheetLaunchRequest?>(null)

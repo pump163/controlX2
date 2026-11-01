@@ -62,6 +62,7 @@ import com.jwoglom.controlx2.shared.enums.CGMSessionState
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetDexcomG7PairingCodeRequest
@@ -102,6 +103,7 @@ fun CGMActions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -213,7 +215,7 @@ fun CGMActions(
                                     else -> Icon(Icons.Filled.Settings, contentDescription = null)
                                 }
                             },
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(enabled = canControl) {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> { showStopG6CgmSessionMenu = true }
                                     CGMSessionState.STOPPED -> { showStartG6CgmSessionMenu = true }
@@ -417,7 +419,7 @@ fun CGMActions(
                                     else -> Icon(Icons.Filled.Settings, contentDescription = null)
                                 }
                             },
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.clickable(enabled = canControl) {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> { showStopG7CgmSessionMenu = true }
                                     CGMSessionState.STOPPED -> { showStartG7CgmSessionMenu = true }

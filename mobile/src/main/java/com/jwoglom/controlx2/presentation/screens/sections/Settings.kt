@@ -42,7 +42,6 @@ import androidx.compose.material.icons.filled.DeveloperMode
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -73,13 +72,10 @@ import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest
-import com.jwoglom.pumpx2.pump.messages.request.control.PlaySoundRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
-import java.time.Instant
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -96,8 +92,6 @@ fun Settings(
     val coroutineScope = rememberCoroutineScope()
     var showPumpSetupConfirmDialog by remember { mutableStateOf(false) }
 
-    var showSyncTimeDialog by remember { mutableStateOf(false) }
-    var showPlaySoundDialog by remember { mutableStateOf(false) }
     var showSupportBundleDialog by remember { mutableStateOf(false) }
     var supportBundleSummary by remember { mutableStateOf<SupportBundleSummary?>(null) }
     var showDeviceRoleDialog by remember { mutableStateOf(false) }
@@ -118,6 +112,11 @@ fun Settings(
 
             item {
                 VersionInfo(context)
+                Divider()
+            }
+
+            item {
+                com.pumppan.controlx2.PumppanLanguageRow()
                 Divider()
             }
 
@@ -396,40 +395,6 @@ fun Settings(
 
             item {
                 ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_sync_pump_time)) },
-                    supportingContent = { Text(context.getString(R.string.settings_set_pump_s_clock_to)) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Timer,
-                            contentDescription = context.getString(R.string.settings_sync_time_icon),
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        showSyncTimeDialog = true
-                    }
-                )
-                Divider()
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_find_my_pump)) },
-                    supportingContent = { Text(context.getString(R.string.settings_play_sound_on_pump_to_help_locate)) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.NotificationsActive,
-                            contentDescription = context.getString(R.string.settings_play_sound_icon),
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        showPlaySoundDialog = true
-                    }
-                )
-                Divider()
-            }
-
-            item {
-                ListItem(
                     headlineContent = { Text(context.getString(R.string.settings_debug_options)) },
                     supportingContent = { Text(context.getString(R.string.settings_perform_debug_opts)) },
                     leadingContent = {
@@ -517,32 +482,6 @@ fun Settings(
         )
     }
 
-    // Sync Time Dialog
-    if (showSyncTimeDialog) {
-        AlertDialog(
-            onDismissRequest = { showSyncTimeDialog = false },
-            title = { Text(context.getString(R.string.settings_sync_pump_time_2)) },
-            text = { Text(context.getString(R.string.settings_set_pump_s_internal_clock_to_query)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    sendPumpCommands(
-                        SendType.STANDARD,
-                        listOf(ChangeTimeDateRequest(Instant.now()))
-                    )
-                    showSyncTimeDialog = false
-                    Toast.makeText(context, context.getString(R.string.settings_pump_time_sync_sent), Toast.LENGTH_SHORT).show()
-                }) {
-                    Text(context.getString(R.string.settings_sync))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSyncTimeDialog = false }) {
-                    Text(context.getString(R.string.settings_cancel))
-                }
-            }
-        )
-    }
-
     if (showDeviceRoleDialog) {
         val newRole = when (currentDeviceRole) {
             DeviceRole.PUMP_HOST -> DeviceRole.CLIENT
@@ -616,31 +555,6 @@ fun Settings(
         )
     }
 
-    // Play Sound Dialog
-    if (showPlaySoundDialog) {
-        AlertDialog(
-            onDismissRequest = { showPlaySoundDialog = false },
-            title = { Text(context.getString(R.string.settings_find_my_pump_2)) },
-            text = { Text(context.getString(R.string.settings_play_sound_on_pump_query)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    sendPumpCommands(
-                        SendType.STANDARD,
-                        listOf(PlaySoundRequest())
-                    )
-                    showPlaySoundDialog = false
-                    Toast.makeText(context, context.getString(R.string.settings_playing_sound_on_pump), Toast.LENGTH_SHORT).show()
-                }) {
-                    Text(context.getString(R.string.settings_play_sound))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPlaySoundDialog = false }) {
-                    Text(context.getString(R.string.settings_cancel))
-                }
-            }
-        )
-    }
 }
 
 @Preview(showBackground = true)

@@ -4,6 +4,7 @@
 
 package com.jwoglom.controlx2.presentation.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -142,6 +143,19 @@ fun Landing(
     var bottomScaffoldState by remember(_bottomScaffoldState) { mutableStateOf(_bottomScaffoldState) }
     var bolusPrefill by remember { mutableStateOf<BolusInputPrefill?>(null) }
     var tempRatePrefill by remember { mutableStateOf<TempRateInputPrefill?>(null) }
+
+    // 子菜单不是 NavHost 目的地，系统返回键默认会直接退出 App：先收起弹窗，再回上一级，
+    // 顶部导航页则回首页；只有已在首页时才交给系统退出。
+    val parentSection = selectedItem.parentSection()
+    BackHandler(enabled = parentSection != null || bottomScaffoldState != BottomScaffoldState.NONE ||
+        selectedItem != LandingSection.DASHBOARD) {
+        if (bottomScaffoldState != BottomScaffoldState.NONE) {
+            coroutineScope.launch { displayBottomScaffold.bottomSheetState.collapse() }
+            bottomScaffoldState = BottomScaffoldState.NONE
+        } else {
+            selectedItem = parentSection ?: LandingSection.DASHBOARD
+        }
+    }
 
     LaunchedEffect(bottomScaffoldState) {
         if (bottomScaffoldState != BottomScaffoldState.BOLUS_WINDOW) {
@@ -606,6 +620,25 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
     XDRIP_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     FEATURE_FLAGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     ;
+}
+
+/** 子菜单的上一级；顶部导航页返回 null（交给系统退出 App）。 */
+fun LandingSection.parentSection(): LandingSection? = when (this) {
+    LandingSection.DASHBOARD,
+    LandingSection.NOTIFICATIONS,
+    LandingSection.ACTIONS,
+    LandingSection.SETTINGS -> null
+    LandingSection.CGM_ACTIONS,
+    LandingSection.CARTRIDGE_ACTIONS,
+    LandingSection.PROFILE_ACTIONS,
+    LandingSection.SOUND_SETTINGS_ACTIONS,
+    LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS,
+    LandingSection.CONTROLIQ_SETTINGS_ACTIONS,
+    LandingSection.SAFETY_LIMITS_ACTIONS -> LandingSection.ACTIONS
+    LandingSection.DEBUG,
+    LandingSection.NIGHTSCOUT_SETTINGS,
+    LandingSection.XDRIP_SETTINGS -> LandingSection.SETTINGS
+    LandingSection.FEATURE_FLAGS -> LandingSection.DEBUG
 }
 
 enum class BottomScaffoldState {

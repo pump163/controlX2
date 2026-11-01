@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +59,9 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.canControlPump
+import com.jwoglom.controlx2.shared.util.determinePumpModel
+
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
 import kotlinx.coroutines.cancel
@@ -76,6 +80,10 @@ fun QuickBolusSettingsActions(
     navigateBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val ds = LocalDataStore.current
+    val deviceName = ds.setupDeviceName.observeAsState()
+    // X2 只能远程操作大剂量，快速大剂量设置无法写入
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -176,7 +184,7 @@ fun QuickBolusSettingsActions(
                             Text(stringResource(R.string.sound_config_quick_bolus_and_increment))
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(enabled = canControl) {
                             showQuickBolusDialog = true
                         }
                     )

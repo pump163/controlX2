@@ -1037,4 +1037,13 @@
     <string name="bolus_requesting_u_bolus">Requesting %1$su bolus</string>
     <string name="fill_cannula_prime_amount">Prime amount: %1$sU</string>
     <string name="fill_cannula_primed">%1$sU primed.</string>
+    <string name="pumppan_language">Language</string>
+    <string name="pumppan_language_auto">Auto (system)</string>
+    <string name="pumppan_language_zh">中文</string>
+    <string name="pumppan_language_en">English</string>
+    <string name="pumppan_pump_model">Pump model override</string>
+    <string name="pumppan_pump_model_auto">Auto (detect)</string>
+    <string name="pumppan_pump_model_mobi">Mobi</string>
+    <string name="pumppan_pump_model_slimx2">t:slim X2</string>
+    <string name="pumppan_model_mismatch_warning">%1$s (displayed pump model) does not match your actual pump model (%2$s). You are responsible for the consequences! Do not connect the pump to a human body! If the MALFUNCTION screen appears, your pump detected a system error and all deliveries have been stopped: write down the Malfunction Code, tap SILENCE ALARM, then contact Customer Technical Support. If the pump is unresponsive, try storage mode to recover: connect the pump to a power source, press and hold the Screen On/Quick Bolus button for 30 seconds - the pump beeps 3 times before going into storage mode, then disconnect it from the power source. To bring the pump out of storage mode, simply connect it to a power source. This does not guarantee clearing the system error; be prepared to permanently lose your pump!</string>
 </resources>

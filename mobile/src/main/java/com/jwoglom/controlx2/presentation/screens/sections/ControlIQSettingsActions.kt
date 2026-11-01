@@ -26,6 +26,8 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -61,6 +63,11 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.canControlPump
+
+import com.pumppan.controlx2.ui.rowTitleColor
+import com.jwoglom.controlx2.shared.util.determinePumpModel
+
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeControlIQSettingsRequest
@@ -84,6 +91,9 @@ fun ControlIQSettingsActions(
 ) {
     val context = LocalContext.current
     val ds = LocalDataStore.current
+    val deviceName = ds.setupDeviceName.observeAsState()
+    // X2 只能远程操作大剂量，Control-IQ 设置与睡眠时段无法写入
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
 
     val controlIQEnabled = ds.controlIQEnabled.observeAsState()
     val controlIQWeight = ds.controlIQWeight.observeAsState()
@@ -224,7 +234,11 @@ fun ControlIQSettingsActions(
                             Text(controlIQSummaryText)
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        colors = ListItemDefaults.colors(
+                            headlineColor = rowTitleColor(!canControl),
+                            leadingIconColor = rowTitleColor(!canControl),
+                        ),
+                        modifier = Modifier.clickable(enabled = canControl) {
                             showChangeControlIQDialog = true
                         }
                     )
@@ -266,7 +280,11 @@ fun ControlIQSettingsActions(
                                     }
                                 },
                                 leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                                modifier = Modifier.clickable {
+                                colors = ListItemDefaults.colors(
+                                    headlineColor = rowTitleColor(!canControl),
+                                    leadingIconColor = rowTitleColor(!canControl),
+                                ),
+                                modifier = Modifier.clickable(enabled = canControl) {
                                     editingSlot = index
                                     sleepEnabled = enabled
                                     if (enabled) {

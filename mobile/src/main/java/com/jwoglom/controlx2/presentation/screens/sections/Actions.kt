@@ -4,6 +4,10 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
+import com.pumppan.controlx2.ui.ActionRow
+import com.pumppan.controlx2.ui.NavigationRow
+import com.pumppan.controlx2.ui.ToggleRow
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,9 +33,11 @@ import androidx.compose.material.icons.filled.DevicesOther
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -39,9 +46,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -79,23 +87,42 @@ import com.jwoglom.controlx2.shared.enums.UserMode
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
+import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.PlaySoundRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetModesRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.StopTempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
+import java.time.Instant
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import androidx.compose.ui.res.stringResource
 import com.jwoglom.controlx2.R
+
+/** 分组边界的实线。 */
+@Composable
+private fun GroupBoundary() = HorizontalDivider(
+    thickness = 1.5.dp,
+    color = MaterialTheme.colorScheme.outline,
+)
+
+/** 组内各功能之间的灰色细分隔线。 */
+@Composable
+private fun GroupDivider() = HorizontalDivider(
+    thickness = 0.5.dp,
+    color = MaterialTheme.colorScheme.outlineVariant,
+)
 
 @Composable
 fun Actions(
@@ -115,6 +142,8 @@ fun Actions(
     var showResumeInsulinMenu by remember { mutableStateOf(_resumeInsulinMenuState) }
     var showSuspendInsulinMenu by remember { mutableStateOf(_suspendInsulinMenuState) }
     var showStopTempRateMenu by remember { mutableStateOf(_stopTempRateMenuState) }
+    var showSyncTimeDialog by remember { mutableStateOf(false) }
+    var showPlaySoundDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val ds = LocalDataStore.current
@@ -224,28 +253,29 @@ fun Actions(
                     }
                 }
                 item {
+                    com.pumppan.controlx2.PumppanModelOverrideBanner()
+                }
+                item { GroupBoundary() }
+                item {
                     val basalStatus = ds.basalStatus.observeAsState()
+val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), SuspendPumpingRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_start_insulin)
-                                    BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_start_insulin)
-                                    else -> context.getString(R.string.actions_stop_insulin)
-                                }
-                            )},
-                            supportingContent = { Text(
-                                when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_or_resume_insulin_deliveries)
-                                    BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_resume_insulin_deliveries)
-                                    else -> context.getString(R.string.actions_stop_insulin_deliveries)
-                                }
-                            ) },
-                            leadingContent = {
+                        ActionRow(
+                            title = when (basalStatus.value) {
+                                BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_start_insulin)
+                                BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_start_insulin)
+                                else -> context.getString(R.string.actions_stop_insulin)
+                            },
+                            subtitle = when (basalStatus.value) {
+                                BasalStatus.UNKNOWN, null -> context.getString(R.string.actions_stop_or_resume_insulin_deliveries)
+                                BasalStatus.PUMP_SUSPENDED -> context.getString(R.string.actions_resume_insulin_deliveries)
+                                else -> context.getString(R.string.actions_stop_insulin_deliveries)
+                            },
+                            leadingIcon = {
                                 Icon(
                                     when (basalStatus.value) {
                                         BasalStatus.UNKNOWN, null -> Icons.Filled.Close
@@ -255,23 +285,19 @@ fun Actions(
                                     contentDescription = null,
                                 )
                             },
-                            colors = ListItemDefaults.colors(
-                                containerColor = when (basalStatus.value) {
-                                    BasalStatus.UNKNOWN, null -> ListItemDefaults.containerColor
-                                    BasalStatus.PUMP_SUSPENDED -> Color.Green.copy(alpha = 0.5F)
-                                    else -> Color.Red.copy(alpha = 0.5F)
-                                }
-                            ),
-                            modifier = Modifier.clickable {
+                            emphasized = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
+                            readOnly = !canPumpControl,
+                            modifier = Modifier.heightIn(min = 88.dp),
+                            onClick = {
                                 when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> {}
                                     BasalStatus.PUMP_SUSPENDED -> {
                                         requestResumeLoadStatusCheck()
                                         showResumeInsulinMenu = true
                                     }
-                                    else -> {showSuspendInsulinMenu = true}
+                                    else -> { showSuspendInsulinMenu = true }
                                 }
-                            }
+                            },
                         )
                         DropdownMenu(
                             expanded = showResumeInsulinMenu,
@@ -377,37 +403,32 @@ fun Actions(
                     }
                 }
 
-                item {
-                    Line("\n")
-                }
+                item { GroupDivider() }
 
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
-                    val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
+                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), SetModesRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                when (controlIQMode.value) {
-                                    UserMode.EXERCISE -> context.getString(R.string.actions_disable_exercise_mode)
-                                    else -> context.getString(R.string.actions_enable_exercise_mode)
-                                }
-                            )},
-                            leadingContent = {
+                        ToggleRow(
+                            title = when (controlIQMode.value) {
+                                UserMode.EXERCISE -> context.getString(R.string.actions_disable_exercise_mode)
+                                else -> context.getString(R.string.actions_enable_exercise_mode)
+                            },
+                            checked = controlIQMode.value == UserMode.EXERCISE,
+                            emphasized = controlIQMode.value == UserMode.EXERCISE,
+                            readOnly = !canSetModes,
+                            leadingIcon = {
                                 Icon(
                                     Icons.AutoMirrored.Filled.DirectionsRun,
                                     contentDescription = null,
                                 )
                             },
-                            trailingContent = {
-                                Switch(
-                                    checked = controlIQMode.value == UserMode.EXERCISE,
-                                    enabled = isMobi,
-                                    onCheckedChange = { checked ->
+                            onCheckedChange = { checked ->
                                         if (checked) {
                                             // User toggling to ON
                                             if (controlIQMode.value == UserMode.NONE) {
@@ -453,43 +474,36 @@ fun Actions(
                                             }
                                         }
                                     }
-                                )
-                            }
                         )
                     }
                 }
 
-                item {
-                    Divider()
-                }
+                item { GroupDivider() }
 
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
-                    val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
+                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), SetModesRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                when (controlIQMode.value) {
-                                    UserMode.SLEEP -> context.getString(R.string.actions_disable_sleep_mode)
-                                    else -> context.getString(R.string.actions_enable_sleep_mode)
-                                }
-                            )},
-                            leadingContent = {
+                        ToggleRow(
+                            title = when (controlIQMode.value) {
+                                UserMode.SLEEP -> context.getString(R.string.actions_disable_sleep_mode)
+                                else -> context.getString(R.string.actions_enable_sleep_mode)
+                            },
+                            checked = controlIQMode.value == UserMode.SLEEP,
+                            emphasized = controlIQMode.value == UserMode.SLEEP,
+                            readOnly = !canSetModes,
+                            leadingIcon = {
                                 Icon(
                                     Icons.Filled.Bedtime,
                                     contentDescription = null,
                                 )
                             },
-                            trailingContent = {
-                                Switch(
-                                    checked = controlIQMode.value == UserMode.SLEEP,
-                                    enabled = isMobi,
-                                    onCheckedChange = { checked ->
+                            onCheckedChange = { checked ->
                                         if (checked) {
                                             // User toggling to ON
                                             if (controlIQMode.value == UserMode.NONE) {
@@ -533,21 +547,17 @@ fun Actions(
                                             )
                                         }
                                     }
-                                )
-                            }
                         )
                     }
                 }
 
-                item {
-                    Line("\n")
-                }
+                item { GroupDivider() }
 
 
                 item {
                     val tempRateActive = ds.tempRateActive.observeAsState()
                     val tempRateDetails = ds.tempRateDetails.observeAsState()
-                    val isMobi = determinePumpModel(deviceName.value ?: "") == KnownDeviceModel.MOBI
+                    val canTempRate = canControlPump(determinePumpModel(deviceName.value ?: ""), SetTempRateRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -557,20 +567,16 @@ fun Actions(
                             return "${minutes?.div(60)}h${minutes?.rem(60)}m"
                         }
 
-                        ListItem(
-                            headlineContent = { Text(
-                                when (tempRateActive.value) {
-                                    true -> context.getString(R.string.actions_stop_temp_rate)
-                                    else -> context.getString(R.string.actions_start_temp_rate)
-                                }
-                            )},
-                            supportingContent = { 
-                                when (tempRateActive.value) {
-                                    true -> Text(context.getString(R.string.actions_active_for_at, (tempRateDetails.value?.percentage ?: ""), (prettyDuration(tempRateDetails.value?.duration?.div(60)) ?: ""), (tempRateDetails.value?.startTimeInstant ?: "")))
-                                    else -> null
-                                }
+                        ActionRow(
+                            title = when (tempRateActive.value) {
+                                true -> context.getString(R.string.actions_stop_temp_rate)
+                                else -> context.getString(R.string.actions_start_temp_rate)
                             },
-                            leadingContent = {
+                            subtitle = when (tempRateActive.value) {
+                                true -> context.getString(R.string.actions_active_for_at, (tempRateDetails.value?.percentage ?: ""), (prettyDuration(tempRateDetails.value?.duration?.div(60)) ?: ""), (tempRateDetails.value?.startTimeInstant ?: ""))
+                                else -> null
+                            },
+                            leadingIcon = {
                                 Icon(
                                     when (tempRateActive.value) {
                                         true -> Icons.Filled.Cancel
@@ -579,13 +585,16 @@ fun Actions(
                                     contentDescription = null,
                                 )
                             },
-                            modifier = Modifier.clickable(enabled = isMobi) {
+                            emphasized = tempRateActive.value == true,
+                            readOnly = !canTempRate,
+                            modifier = Modifier.heightIn(min = 88.dp),
+                            onClick = {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }
                                     false -> { openTempRateWindow() }
                                     else -> {}
                                 }
-                            }
+                            },
                         )
                         DropdownMenu(
                             expanded = showStopTempRateMenu,
@@ -635,9 +644,7 @@ fun Actions(
                     }
                 }
 
-                item {
-                    Line("\n")
-                }
+                item { GroupBoundary() }
 
                 item {
                     Box(
@@ -645,21 +652,14 @@ fun Actions(
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_cartridge_settings)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Settings, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.CARTRIDGE_ACTIONS)
-                            }
+                        NavigationRow(
+                            title = context.getString(R.string.actions_cartridge_settings),
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            onClick = { navigateToSection(LandingSection.CARTRIDGE_ACTIONS) },
                         )
                     }
                 }
+                item { GroupDivider() }
 
                 item {
                     Box(
@@ -667,21 +667,14 @@ fun Actions(
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_cgm_settings)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.DevicesOther, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.CGM_ACTIONS)
-                            }
+                        NavigationRow(
+                            title = context.getString(R.string.actions_cgm_settings),
+                            leadingIcon = { Icon(Icons.Filled.DevicesOther, contentDescription = null) },
+                            onClick = { navigateToSection(LandingSection.CGM_ACTIONS) },
                         )
                     }
                 }
+                item { GroupDivider() }
 
 
                 item {
@@ -690,21 +683,14 @@ fun Actions(
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_profile_settings)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Create, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.PROFILE_ACTIONS)
-                            }
+                        NavigationRow(
+                            title = context.getString(R.string.actions_profile_settings),
+                            leadingIcon = { Icon(Icons.Filled.Create, contentDescription = null) },
+                            onClick = { navigateToSection(LandingSection.PROFILE_ACTIONS) },
                         )
                     }
                 }
+                item { GroupDivider() }
 
                 item {
                     Box(
@@ -712,39 +698,79 @@ fun Actions(
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(stringResource(R.string.sound_quick_bolus_settings)) },
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Bolt, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS)
-                            }
+                        NavigationRow(
+                            title = stringResource(R.string.sound_quick_bolus_settings),
+                            leadingIcon = { Icon(Icons.Filled.Bolt, contentDescription = null) },
+                            onClick = { navigateToSection(LandingSection.QUICK_BOLUS_SETTINGS_ACTIONS) },
                         )
                     }
                 }
+                item { GroupDivider() }
                 item {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_sound_settings)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
+                        NavigationRow(
+                            title = context.getString(R.string.actions_sound_settings),
+                            leadingIcon = {
                                 Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null)
                             },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.SOUND_SETTINGS_ACTIONS)
-                            }
+                            onClick = { navigateToSection(LandingSection.SOUND_SETTINGS_ACTIONS) },
                         )
                     }
+                }
+                item { GroupDivider() }
+
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.TopStart)
+                    ) {
+                        NavigationRow(
+                            title = context.getString(R.string.actions_ciq_settings),
+                            leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            onClick = { navigateToSection(LandingSection.CONTROLIQ_SETTINGS_ACTIONS) },
+                        )
+                    }
+                }
+                item { GroupBoundary() }
+
+                // X2 只能远程操作大剂量，泵设置类动作（改时钟/让泵响）在 X2 上不可触发
+                val canPumpSettings = canControlPump(determinePumpModel(deviceName.value ?: ""))
+
+                item {
+                    ActionRow(
+                        title = context.getString(R.string.settings_sync_pump_time),
+                        subtitle = context.getString(R.string.settings_set_pump_s_clock_to),
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Timer,
+                                contentDescription = context.getString(R.string.settings_sync_time_icon),
+                            )
+                        },
+                        readOnly = !canPumpSettings,
+                        onClick = { showSyncTimeDialog = true },
+                    )
+                    GroupDivider()
+                }
+
+                item {
+                    ActionRow(
+                        title = context.getString(R.string.settings_find_my_pump),
+                        subtitle = context.getString(R.string.settings_play_sound_on_pump_to_help_locate),
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.NotificationsActive,
+                                contentDescription = context.getString(R.string.settings_play_sound_icon),
+                            )
+                        },
+                        readOnly = !canPumpSettings,
+                        onClick = { showPlaySoundDialog = true },
+                    )
+                    GroupBoundary()
                 }
 
                 item {
@@ -753,42 +779,68 @@ fun Actions(
                             .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_ciq_settings)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
-                                Icon(Icons.Filled.Settings, contentDescription = null)
-                            },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.CONTROLIQ_SETTINGS_ACTIONS)
-                            }
-                        )
-                    }
-                }
-
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .wrapContentSize(Alignment.TopStart)
-                    ) {
-                        ListItem(
-                            headlineContent = { Text(
-                                context.getString(R.string.actions_safety_limits)
-                            )},
-                            supportingContent = {
-                            },
-                            leadingContent = {
+                        NavigationRow(
+                            title = context.getString(R.string.actions_safety_limits),
+                            leadingIcon = {
                                 Icon(Icons.Filled.HealthAndSafety, contentDescription = null)
                             },
-                            modifier = Modifier.clickable {
-                                navigateToSection(LandingSection.SAFETY_LIMITS_ACTIONS)
-                            }
+                            modifier = Modifier.heightIn(min = 88.dp),
+                            onClick = { navigateToSection(LandingSection.SAFETY_LIMITS_ACTIONS) },
                         )
                     }
+                }
+                item { GroupBoundary() }
+            }
+        )
+    }
+
+    // Sync Time Dialog
+    if (showSyncTimeDialog) {
+        AlertDialog(
+            onDismissRequest = { showSyncTimeDialog = false },
+            title = { Text(context.getString(R.string.settings_sync_pump_time_2)) },
+            text = { Text(context.getString(R.string.settings_set_pump_s_internal_clock_to_query)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    sendPumpCommands(
+                        SendType.STANDARD,
+                        listOf(ChangeTimeDateRequest(Instant.now()))
+                    )
+                    showSyncTimeDialog = false
+                    Toast.makeText(context, context.getString(R.string.settings_pump_time_sync_sent), Toast.LENGTH_SHORT).show()
+                }) {
+                    Text(context.getString(R.string.settings_sync))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSyncTimeDialog = false }) {
+                    Text(context.getString(R.string.settings_cancel))
+                }
+            }
+        )
+    }
+
+    // Play Sound Dialog
+    if (showPlaySoundDialog) {
+        AlertDialog(
+            onDismissRequest = { showPlaySoundDialog = false },
+            title = { Text(context.getString(R.string.settings_find_my_pump_2)) },
+            text = { Text(context.getString(R.string.settings_play_sound_on_pump_query)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    sendPumpCommands(
+                        SendType.STANDARD,
+                        listOf(PlaySoundRequest())
+                    )
+                    showPlaySoundDialog = false
+                    Toast.makeText(context, context.getString(R.string.settings_playing_sound_on_pump), Toast.LENGTH_SHORT).show()
+                }) {
+                    Text(context.getString(R.string.settings_play_sound))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPlaySoundDialog = false }) {
+                    Text(context.getString(R.string.settings_cancel))
                 }
             }
         )
