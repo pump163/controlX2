@@ -19,10 +19,11 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -79,6 +80,15 @@ import kotlinx.coroutines.delay
 // import java.time.Instant // 已移至控制页底部
 import androidx.compose.ui.res.stringResource
 
+/** 分隔线：灰色细线，组间与组内规格一致，行间不加额外留白。 */
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+    )
+}
+
 @Composable
 fun Settings(
     innerPadding: PaddingValues = PaddingValues(),
@@ -109,17 +119,17 @@ fun Settings(
         content = {
             item {
                 HeaderLine(context.getString(R.string.settings_settings))
-                Divider()
+                SettingsDivider()
             }
 
             item {
                 VersionInfo(context)
-                Divider()
+                SettingsDivider()
             }
 
             item {
                 com.pumppan.controlx2.PumppanLanguageRow()
-                Divider()
+                SettingsDivider()
             }
 
 //            // 已搬去 Debug 页
@@ -169,7 +179,7 @@ fun Settings(
                             }
                         }
                     )
-                    Divider()
+                    SettingsDivider()
                 }
             }
 //            item {
@@ -231,7 +241,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
 //            // 已移至 Nightscout 前
@@ -301,7 +311,7 @@ fun Settings(
                         showPumpSetupConfirmDialog = true
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -319,7 +329,6 @@ fun Settings(
                         navController?.navigate(Screen.AppSetup.route)
                     }
                 )
-                Divider()
             }
 
             item {
@@ -328,6 +337,7 @@ fun Settings(
                 ))}
 
                 if (ffEnabled) {
+                    SettingsDivider()
                     val roleLabel = when (currentDeviceRole) {
                         DeviceRole.PUMP_HOST -> context.getString(R.string.settings_phone_pump_host)
                         DeviceRole.CLIENT -> context.getString(R.string.settings_watch_pump_host)
@@ -345,7 +355,7 @@ fun Settings(
                             showDeviceRoleDialog = true
                         }
                     )
-                    Divider()
+                    SettingsDivider()
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.settings_reset_start_over_on_device)) },
                         supportingContent = { Text(context.getString(R.string.settings_force_pump_host_clear_bond)) },
@@ -359,8 +369,11 @@ fun Settings(
                             showRescueDialog = true
                         }
                     )
-                    Divider()
                 }
+            }
+
+            item {
+                SettingsDivider()
             }
 
             item {
@@ -385,7 +398,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -410,7 +423,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -438,7 +451,7 @@ fun Settings(
                         FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
                     },
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -460,7 +473,7 @@ fun Settings(
                         FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
                     },
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -482,7 +495,7 @@ fun Settings(
                         FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
                     },
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -499,7 +512,7 @@ fun Settings(
                         navigateToNightscoutSettings()
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
             item {
@@ -516,7 +529,7 @@ fun Settings(
                         navigateToXdripSettings()
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
 
 //            // 已移至控制页底部
@@ -568,7 +581,7 @@ fun Settings(
                         navigateToDebugOptions()
                     }
                 )
-                Divider()
+                SettingsDivider()
             }
         }
     )

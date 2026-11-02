@@ -75,7 +75,7 @@ fun PumppanPumpModelRow() {
         PumppanPumpModel.set(context, mode)
         Toast.makeText(
             context,
-            context.getString(R.string.pumppan_model_override_refresh_hint),
+            context.getString(R.string.pumppan_pump_model_refresh_hint),
             Toast.LENGTH_LONG
         ).show()
     }

@@ -288,6 +288,7 @@
     <string name="debug_get_history_logs">Get History Logs</string>
     <string name="debug_fetches_history_logs_within_given_range">Fetches history logs within the given range.</string>
     <string name="debug_view_history_log_mess">View History Log Messages</string>
+    <string name="debug_history_log_messages_not_loaded">No history log messages loaded yet. Get history logs first.</string>
     <string name="debug_displays_pump_history_log_mess">Displays pump history log messages</string>
     <string name="debug_ctrl_x2_history_log_json_data">ControlX2 History Log JSON data</string>
     <string name="debug_all">&lt;All&gt;</string>

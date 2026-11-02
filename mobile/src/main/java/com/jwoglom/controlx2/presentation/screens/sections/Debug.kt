@@ -41,18 +41,21 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -133,7 +136,7 @@ import com.jwoglom.controlx2.db.historylog.HistoryLogRepo
 import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
 import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.presentation.components.HistoryLogSyncProgressBar
-import com.jwoglom.controlx2.presentation.components.SupportBundleSummary
+import com.jwoglom.controlx2.presentation.util.SupportBundleSummary
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.formatLogLineCount
 import com.jwoglom.controlx2.presentation.util.getSupportBundleSummary
@@ -161,6 +164,37 @@ import kotlin.math.max
 import kotlin.math.min
 import com.jwoglom.controlx2.R
 
+
+/** 分隔线：与 Settings 页一致的灰色细线规格（1dp，无额外留白）。 */
+@Composable
+private fun DebugDivider() {
+    HorizontalDivider(
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+    )
+}
+
+/**
+ * 弹窗遮罩容器：统一使用主题表面色与 onSurface 内容色。
+ * Popup 内部没有 Material 层级，内容色会退化为默认黑色，暗色模式下就会「黑底黑字」，
+ * 因此所有全屏查看器都必须套这一层。
+ */
+@Composable
+private fun DebugPopupSurface(content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .wrapContentSize(Alignment.TopStart),
+        ) {
+            content()
+        }
+    }
+}
 
 @Composable
 fun Debug(
@@ -236,7 +270,7 @@ fun Debug(
         content = {
             item {
                 HeaderLine(context.getString(R.string.debug_debug))
-                Divider()
+                DebugDivider()
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
@@ -257,9 +291,33 @@ fun Debug(
                             }
                         }
                     )
-                    Divider()
+                    DebugDivider()
                 }
             }
+            // G2
+            item {
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
+                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Filled.Help,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        val summary = getSupportBundleSummary(context)
+                        if (summary == null) {
+                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
+                        } else {
+                            supportBundleSummary = summary
+                            showSupportBundleDialog = true
+                        }
+                    }
+                )
+                DebugDivider()
+            }
+
             item {
                 Box(
                     modifier = Modifier
@@ -431,15 +489,12 @@ fun Debug(
                                 },
                                 leadingIcon = {}
                             )
-                            Divider()
+                            DebugDivider()
                         }
                     }
 
                 }
-            }
-
-            item {
-                Divider()
+                DebugDivider()
             }
 
             item {
@@ -466,12 +521,7 @@ fun Debug(
                         }
 
                         val debugMessageCache = ds.debugMessageCache.observeAsState()
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.TopStart)
-                                .background(Color.Black.copy(alpha = 0.5f))
-                        ) {
+                        DebugPopupSurface {
                             LazyColumn {
                                 item {
                                     Spacer(Modifier.height(64.dp))
@@ -535,10 +585,7 @@ fun Debug(
                         }
                     }
                 }
-            }
-
-            item {
-                Divider()
+                DebugDivider()
             }
 
             // History Log Sync Progress Bar
@@ -548,9 +595,7 @@ fun Debug(
                         historyLogViewModel = it,
                         replaceWithPaddingWhenComplete = true
                     )
-                }
-                item {
-                    Divider()
+                    DebugDivider()
                 }
             }
 
@@ -586,10 +631,7 @@ fun Debug(
                         }
                     }
                 )
-            }
-
-            item {
-                Divider()
+                DebugDivider()
             }
 
             item {
@@ -603,10 +645,16 @@ fun Debug(
                         )
                     },
                     modifier = Modifier.clickable {
-                        sendMessage(MessagePaths.TO_PUMP_DEBUG_HISTORYLOG_CACHE, "".toByteArray())
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            showHistoryLogs = true
-                        }, 500)
+                        // 未拉取过历史日志时缓存为空，直接开弹窗会渲染出空白页面（点请求也无法立即得到数据），
+                        // 因此先判断缓存是否有可显示的消息，无数据时只做轻量提示。
+                        if (ds.historyLogCache.value?.isNotEmpty() != true) {
+                            Toast.makeText(context, context.getString(R.string.debug_history_log_messages_not_loaded), Toast.LENGTH_SHORT).show()
+                        } else {
+                            sendMessage(MessagePaths.TO_PUMP_DEBUG_HISTORYLOG_CACHE, "".toByteArray())
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                showHistoryLogs = true
+                            }, 500)
+                        }
                     }
                 )
 
@@ -620,12 +668,7 @@ fun Debug(
                         LaunchedEffect (historyLogCache.value) {
                             filterFields = historyLogCache.value?.entries?.map { shortHistoryLogPumpMessageTitle(it.value) }?.toSet()?.sorted()
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.TopStart)
-                                .background(Color.DarkGray.copy(alpha = 0.3f))
-                        ) {
+                        DebugPopupSurface {
                             LazyColumn {
                                 item {
                                     Spacer(Modifier.height(64.dp))
@@ -668,7 +711,6 @@ fun Debug(
                                     var textFieldSize by remember { mutableStateOf(Size.Zero)}
 
                                     Box (Modifier
-                                        .background(Color.White)
                                         .padding(start = 16.dp, end = 16.dp)
                                     ) {
                                         OutlinedTextField(
@@ -715,7 +757,7 @@ fun Debug(
                                         Text(
                                             context.getString(R.string.debug_no_history_log_entries_present_in_cache),
                                             modifier = Modifier
-                                                .background(Color.White)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                                 .fillMaxWidth()
                                                 .padding(16.dp)
                                         )
@@ -725,7 +767,7 @@ fun Debug(
                                         Text(
                                             "${historyLogCache.value?.size ?: 0} history log entries",
                                             modifier = Modifier
-                                                .background(Color.White)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                                 .fillMaxWidth()
                                                 .padding(16.dp)
                                                 .clickable {
@@ -767,152 +809,54 @@ fun Debug(
                         }
                     }
                 }
+                DebugDivider()
             }
 
-            item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
-                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Help,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        val summary = getSupportBundleSummary(context)
-                        if (summary == null) {
-                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
-                        } else {
-                            supportBundleSummary = summary
-                            showSupportBundleDialog = true
-                        }
-                    }
-                )
-                Divider()
-            }
+            // t:connect 共享连接特性已由上游关闭（FeatureFlags.ConnectionSharing=const false），此调试开关保留代码备查
+//            if (FeatureFlags.ConnectionSharing && Prefs(context).connectionSharingEnabled()) {
+//                item {
+//                    if (Prefs(context).onlySnoopBluetoothEnabled()) {
+//                        ListItem(
+//                            headlineContent = { Text(context.getString(R.string.debug_disable_only_snoop_bt)) },
+//                            supportingContent = { Text(context.getString(R.string.debug_re_enables_app_functionality)) },
+//                            leadingContent = {
+//                                Icon(
+//                                    Icons.Filled.Close,
+//                                    contentDescription = context.getString(R.string.debug_stop_icon),
+//                                )
+//                            },
+//                            modifier = Modifier.clickable {
+//                                Prefs(context).setOnlySnoopBluetoothEnabled(false)
+//                                coroutineScope.launch {
+//                                    delay(250)
+//                                    sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
+//                                }
+//                            }
+//                        )
+//                    } else {
+//                        ListItem(
+//                            headlineContent = { Text(context.getString(R.string.debug_enable_only_snoop_bt)) },
+//                            supportingContent = { Text(context.getString(R.string.debug_all_app_functionality_disabled)) },
+//                            leadingContent = {
+//                                Icon(
+//                                    Icons.Filled.Check,
+//                                    contentDescription = context.getString(R.string.debug_start_icon),
+//                                )
+//                            },
+//                            modifier = Modifier.clickable {
+//                                Prefs(context).setOnlySnoopBluetoothEnabled(true)
+//                                coroutineScope.launch {
+//                                    delay(250)
+//                                    sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
+//                                }
+//                            }
+//                        )
+//                    }
+//                    DebugDivider()
+//                }
+//            }
 
-            if (FeatureFlags.ConnectionSharing && Prefs(context).connectionSharingEnabled()) {
-                item {
-                    Divider()
-                }
-
-                item {
-                    if (Prefs(context).onlySnoopBluetoothEnabled()) {
-                        ListItem(
-                            headlineContent = { Text(context.getString(R.string.debug_disable_only_snoop_bt)) },
-                            supportingContent = { Text(context.getString(R.string.debug_re_enables_app_functionality)) },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.Close,
-                                    contentDescription = context.getString(R.string.debug_stop_icon),
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                Prefs(context).setOnlySnoopBluetoothEnabled(false)
-                                coroutineScope.launch {
-                                    delay(250)
-                                    sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
-                                }
-                            }
-                        )
-                    } else {
-                        ListItem(
-                            headlineContent = { Text(context.getString(R.string.debug_enable_only_snoop_bt)) },
-                            supportingContent = { Text(context.getString(R.string.debug_all_app_functionality_disabled)) },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.Check,
-                                    contentDescription = context.getString(R.string.debug_start_icon),
-                                )
-                            },
-                            modifier = Modifier.clickable {
-                                Prefs(context).setOnlySnoopBluetoothEnabled(true)
-                                coroutineScope.launch {
-                                    delay(250)
-                                    sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            item {
-                Divider()
-            }
-
-            item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_view_pump_state)) },
-                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_mac_pairing_key_and)) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Info,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        showPumpState = true
-                    }
-                )
-
-                if (showPumpState) {
-                    val exportedPumpState = PumpState.exportState(context)
-                    Popup(
-                        onDismissRequest = { showPumpState = false }
-                    ) {
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.TopStart)
-                                .background(Color.DarkGray.copy(alpha = 0.7f))
-                        ) {
-                            LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                                item {
-                                    Spacer(Modifier.height(64.dp))
-                                }
-                                item {
-                                    TextField(
-                                        value = exportedPumpState,
-                                        label = { Text("PumpState") },
-                                        onValueChange = {v -> },
-                                        modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp).background(Color.White)
-                                    )
-                                }
-
-                                item {
-                                    LazyRow {
-                                        item {
-                                            Button(onClick = {
-                                                setClipboard(exportedPumpState)
-                                            }) {
-                                                Text(context.getString(R.string.debug_save_to_clipboard))
-                                            }
-                                        }
-                                        item {
-                                            Spacer(Modifier.width(16.dp))
-                                        }
-                                        item {
-                                            Button(onClick = {
-                                                showPumpState = false
-                                            }) {
-                                                Text(context.getString(R.string.debug_close))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Divider()
-            }
-
+            // G3
             item {
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.debug_clear_debug_logs)) },
@@ -927,6 +871,7 @@ fun Debug(
                         clearDebugLog(context)
                     }
                 )
+                DebugDivider()
             }
 
             item {
@@ -943,12 +888,10 @@ fun Debug(
                         emptyDatabase(context)
                     }
                 )
+                DebugDivider()
             }
 
-            item {
-                Divider()
-            }
-
+            // G4
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
                 ListItem(
@@ -970,6 +913,7 @@ fun Debug(
                         ).show()
                     }
                 )
+                DebugDivider()
             }
 
             item {
@@ -991,6 +935,7 @@ fun Debug(
                 )
 
                 if (httpDebugApiEnabled) {
+                    DebugDivider()
                     var username by remember { mutableStateOf(Prefs(context).httpDebugApiUsername()) }
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.debug_api_username)) },
@@ -1015,6 +960,7 @@ fun Debug(
                             )
                         }
                     )
+                    DebugDivider()
                     var password by remember { mutableStateOf(Prefs(context).httpDebugApiPassword()) }
                     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -1056,12 +1002,79 @@ fun Debug(
                         }
                     )
                 }
+                DebugDivider()
+            }
+
+            // G5
+            item {
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.debug_view_pump_state)) },
+                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_mac_pairing_key_and)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        showPumpState = true
+                    }
+                )
+
+                if (showPumpState) {
+                    val exportedPumpState = PumpState.exportState(context)
+                    Popup(
+                        onDismissRequest = { showPumpState = false }
+                    ) {
+
+                        DebugPopupSurface {
+                            LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                                item {
+                                    Spacer(Modifier.height(64.dp))
+                                }
+                                item {
+                                    TextField(
+                                        value = exportedPumpState,
+                                        label = { Text("PumpState") },
+                                        onValueChange = {v -> },
+                                        modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp)
+                                    )
+                                }
+
+                                item {
+                                    LazyRow {
+                                        item {
+                                            Button(onClick = {
+                                                setClipboard(exportedPumpState)
+                                            }) {
+                                                Text(context.getString(R.string.debug_save_to_clipboard))
+                                            }
+                                        }
+                                        item {
+                                            Spacer(Modifier.width(16.dp))
+                                        }
+                                        item {
+                                            Button(onClick = {
+                                                showPumpState = false
+                                            }) {
+                                                Text(context.getString(R.string.debug_close))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                DebugDivider()
             }
 
             item {
                 com.pumppan.controlx2.PumppanPumpModelRow()
+                DebugDivider()
             }
 
+            // G6
             item {
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.debug_feature_flags)) },
@@ -1074,8 +1087,10 @@ fun Debug(
                     },
                     modifier = Modifier.clickable { navigateToFeatureFlags() },
                 )
+                DebugDivider()
             }
 
+            // 页尾：返回（不属于任何分组）
             item {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.app_back)) },

@@ -282,6 +282,7 @@
     <string name="debug_get_history_logs">查看历史日志</string>
     <string name="debug_fetches_history_logs_within_given_range">获取指定范围内的历史日志。</string>
     <string name="debug_view_history_log_mess">显示泵运行日志消息</string>
+    <string name="debug_history_log_messages_not_loaded">尚未加载历史日志消息，请先「查看历史日志」拉取记录。</string>
     <string name="debug_displays_pump_history_log_mess">显示泵运行日志消息</string>
     <string name="debug_ctrl_x2_history_log_json_data">ControlX2 历史日志 JSON 数据</string>
     <string name="debug_all">&lt;全部&gt;</string>
