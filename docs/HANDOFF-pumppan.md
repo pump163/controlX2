@@ -32,10 +32,15 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 1. **签名沿用现状**：继续使用仓库内公开的 `debug.keystore`（`mobile/build.gradle:12-15` 的 `signingConfigs.release`，默认口令 `password`、别名 `alias_name`）。三棵树 main / dev / pumppan 的配置与 keystore 完全一致（同一 blob `43135b2f`，上游 `65c6a95` 提交）；**release 证书 SHA-256 前缀 `1289b7a3…`**。debug 走本机 AGP 自动生成的 `~/.android/debug.keystore`（证书 `6d5cd025…`）。
 2. **默认构建 release**：日常出包用 `.\gradlew :mobile:assembleRelease`，不再用 debug。
-3. **产物命名约定**：三条线固定后缀，统一放 `D:\Programming\apk`：
-   - `mobile-release_main.apk`（i18n main）
-   - `mobile-release_dev.apk`（i18n dev）
-   - `mobile-release_pumppan.apk`（pumppan）
+3. **产物命名约定**：三条线用后缀区分，避免覆盖，统一放 `D:\Programming\apk`：
+
+   | 支线 | mobile | wear |
+   |------|--------|------|
+   | main | `mobile-release.apk`（**不带后缀**） | `wear-release.apk`（不带后缀） |
+   | dev | `mobile-release_dev.apk`（`_dev`） | `wear-release_dev.apk`（`_dev`） |
+   | pumppan | `mobile-release_pumppan.apk`（`_pumppan`） | （暂无） |
+
+   `controlX2_mobile-release_约旦大兵汉化.apk` / `controlX2_wear-release_约旦大兵汉化.apk` 属旧 main-zh 遗留产物，**不再产出、不要覆盖**（仅作存档）。
 4. **覆盖签名途径**：只能通过 JVM 系统属性 `-DRELEASE_STORE_FILE=… -DRELEASE_STORE_PASSWORD=… -DRELEASE_KEY_ALIAS=… -DRELEASE_KEY_PASSWORD=…`（`build.gradle` 读的是 `System.properties`）；写进 `gradle.properties` 无效。
 5. **注意**：debug 与 release 证书不同（`6d5cd025…` vs `1289b7a3…`），同一 `applicationId` 不能互相覆盖安装，切换前先卸载。
 
