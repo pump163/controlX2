@@ -27,7 +27,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -64,8 +63,6 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
-
-import com.pumppan.controlx2.ui.rowTitleColor
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -234,11 +231,7 @@ fun ControlIQSettingsActions(
                             Text(controlIQSummaryText)
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        colors = ListItemDefaults.colors(
-                            headlineColor = rowTitleColor(!canControl),
-                            leadingIconColor = rowTitleColor(!canControl),
-                        ),
-                        modifier = Modifier.clickable(enabled = canControl) {
+                        modifier = Modifier.clickable {
                             showChangeControlIQDialog = true
                         }
                     )
@@ -280,11 +273,7 @@ fun ControlIQSettingsActions(
                                     }
                                 },
                                 leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                                colors = ListItemDefaults.colors(
-                                    headlineColor = rowTitleColor(!canControl),
-                                    leadingIconColor = rowTitleColor(!canControl),
-                                ),
-                                modifier = Modifier.clickable(enabled = canControl) {
+                                modifier = Modifier.clickable {
                                     editingSlot = index
                                     sleepEnabled = enabled
                                     if (enabled) {
@@ -329,6 +318,12 @@ fun ControlIQSettingsActions(
             onDismissRequest = { showChangeControlIQDialog = false },
             title = { Text(stringResource(R.string.ciq_change_ciq_settings)) },
             text = {
+                if (!canControl) {
+                    val reasonModel = determinePumpModel(deviceName.value ?: "")
+                    if (reasonModel != null) {
+                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                    }
+                }
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -357,7 +352,9 @@ fun ControlIQSettingsActions(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(
+                    enabled = canControl,
+                    onClick = {
                     val weight = weightText.toIntOrNull()
                     val tdi = tdiText.toIntOrNull()
                     if (weight != null && tdi != null) {
@@ -391,6 +388,12 @@ fun ControlIQSettingsActions(
             onDismissRequest = { showEditSleepScheduleDialog = false },
             title = { Text(stringResource(R.string.ciq_sleep_schedule_next, editingSlot + 1)) },
             text = {
+                if (!canControl) {
+                    val reasonModel = determinePumpModel(deviceName.value ?: "")
+                    if (reasonModel != null) {
+                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                    }
+                }
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -450,7 +453,9 @@ fun ControlIQSettingsActions(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(
+                    enabled = canControl,
+                    onClick = {
                     val startH = sleepStartHour.toIntOrNull() ?: 0
                     val startM = sleepStartMin.toIntOrNull() ?: 0
                     val endH = sleepEndHour.toIntOrNull() ?: 0

@@ -34,7 +34,9 @@ import com.jwoglom.controlx2.R
 @Composable
 fun AddProfileDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Int, Int, Int, Int, Int, Boolean) -> Unit
+    onConfirm: (String, Int, Int, Int, Int, Int, Boolean) -> Unit,
+    enabled: Boolean = true,
+    reasonText: String? = null
 ) {
     val dataStore = LocalDataStore.current
     val glucoseUnit by dataStore.glucoseUnitPreference.observeAsState(GlucoseUnit.MGDL)
@@ -60,6 +62,9 @@ fun AddProfileDialog(
             Text(stringResource(R.string.profile_add_new_profile))
         },
         text = {
+            if (reasonText != null) {
+                Text(reasonText)
+            }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -173,7 +178,7 @@ fun AddProfileDialog(
                         carbEntryEnabled
                     )
                 },
-                enabled = profileName.isNotBlank()
+                enabled = enabled && profileName.isNotBlank()
             ) {
                 Text(stringResource(R.string.profile_create))
             }

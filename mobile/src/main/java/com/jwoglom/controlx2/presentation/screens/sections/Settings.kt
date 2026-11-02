@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,9 +40,10 @@ import android.app.Activity
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DataThresholding
 import androidx.compose.material.icons.filled.DeveloperMode
-import androidx.compose.material.icons.filled.Help
+// import androidx.compose.material.icons.filled.Help // 已搬去 Debug 页
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Sync
+// import androidx.compose.material.icons.filled.Timer // 已移至控制页底部
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -57,11 +59,7 @@ import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.presentation.navigation.Screen
 import com.jwoglom.controlx2.presentation.screens.sections.components.VersionInfo
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
-import com.jwoglom.controlx2.presentation.util.SupportBundleSummary
-import com.jwoglom.controlx2.presentation.util.formatLogLineCount
-import com.jwoglom.controlx2.presentation.util.getSupportBundleSummary
-import com.jwoglom.controlx2.presentation.util.sendSupportBundleEmail
-import com.jwoglom.controlx2.presentation.util.shareSupportBundle
+
 import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.enums.DeviceRole
@@ -72,10 +70,13 @@ import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
+// import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest // 已移至控制页底部
+// import com.jwoglom.pumpx2.pump.messages.request.control.PlaySoundRequest // 已移至控制页底部
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
+// import java.time.Instant // 已移至控制页底部
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -92,8 +93,9 @@ fun Settings(
     val coroutineScope = rememberCoroutineScope()
     var showPumpSetupConfirmDialog by remember { mutableStateOf(false) }
 
-    var showSupportBundleDialog by remember { mutableStateOf(false) }
-    var supportBundleSummary by remember { mutableStateOf<SupportBundleSummary?>(null) }
+//    // 已移至控制页底部
+//    var showSyncTimeDialog by remember { mutableStateOf(false) }
+//    var showPlaySoundDialog by remember { mutableStateOf(false) }
     var showDeviceRoleDialog by remember { mutableStateOf(false) }
     var showRescueDialog by remember { mutableStateOf(false) }
     var currentDeviceRole by remember { mutableStateOf(Prefs(context).deviceRole()) }
@@ -120,28 +122,29 @@ fun Settings(
                 Divider()
             }
 
-            item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
-                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
-                    leadingContent = {
-                        Icon(
-                            Icons.Filled.Help,
-                            contentDescription = null,
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        val summary = getSupportBundleSummary(context)
-                        if (summary == null) {
-                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
-                        } else {
-                            supportBundleSummary = summary
-                            showSupportBundleDialog = true
-                        }
-                    }
-                )
-                Divider()
-            }
+//            // 已搬去 Debug 页
+//            item {
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
+//                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
+//                    leadingContent = {
+//                        Icon(
+//                            Icons.Filled.Help,
+//                            contentDescription = null,
+//                        )
+//                    },
+//                    modifier = Modifier.clickable {
+//                        val summary = getSupportBundleSummary(context)
+//                        if (summary == null) {
+//                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
+//                        } else {
+//                            supportBundleSummary = summary
+//                            showSupportBundleDialog = true
+//                        }
+//                    }
+//                )
+//                Divider()
+//            }
 
             item {
                 if (!Prefs(context).serviceEnabled()) {
@@ -231,55 +234,56 @@ fun Settings(
                 Divider()
             }
 
-            item {
-                var bolusButton by remember { mutableStateOf(Prefs(context).showBolusNotificationButton()) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_2)) },
-                    supportingContent = {
-                        Text(
-                            if (bolusButton) context.getString(R.string.settings_reload_icon_3)
-                            else context.getString(R.string.settings_reload_icon_4)
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            if (bolusButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
-                            contentDescription = stringResource(R.string.settings_reload_icon_5),
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        bolusButton = !bolusButton
-                        Prefs(context).setShowBolusNotificationButton(bolusButton)
-                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
-                    }
-                )
-                Divider()
-            }
-
-            item {
-                var tempRateButton by remember { mutableStateOf(Prefs(context).showTempRateNotificationButton()) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_6)) },
-                    supportingContent = {
-                        Text(
-                            if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
-                            else context.getString(R.string.settings_reload_icon_8)
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            if (tempRateButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
-                            contentDescription = stringResource(R.string.settings_reload_icon_9),
-                        )
-                    },
-                    modifier = Modifier.clickable {
-                        tempRateButton = !tempRateButton
-                        Prefs(context).setShowTempRateNotificationButton(tempRateButton)
-                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
-                    }
-                )
-                Divider()
-            }
+//            // 已移至 Nightscout 前
+//            item {
+//                var bolusButton by remember { mutableStateOf(Prefs(context).showBolusNotificationButton()) }
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_2)) },
+//                    supportingContent = {
+//                        Text(
+//                            if (bolusButton) context.getString(R.string.settings_reload_icon_3)
+//                            else context.getString(R.string.settings_reload_icon_4)
+//                        )
+//                    },
+//                    leadingContent = {
+//                        Icon(
+//                            if (bolusButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
+//                            contentDescription = stringResource(R.string.settings_reload_icon_5),
+//                        )
+//                    },
+//                    modifier = Modifier.clickable {
+//                        bolusButton = !bolusButton
+//                        Prefs(context).setShowBolusNotificationButton(bolusButton)
+//                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
+//                    }
+//                )
+//                Divider()
+//            }
+//
+//            item {
+//                var tempRateButton by remember { mutableStateOf(Prefs(context).showTempRateNotificationButton()) }
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_6)) },
+//                    supportingContent = {
+//                        Text(
+//                            if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
+//                            else context.getString(R.string.settings_reload_icon_8)
+//                        )
+//                    },
+//                    leadingContent = {
+//                        Icon(
+//                            if (tempRateButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
+//                            contentDescription = stringResource(R.string.settings_reload_icon_9),
+//                        )
+//                    },
+//                    modifier = Modifier.clickable {
+//                        tempRateButton = !tempRateButton
+//                        Prefs(context).setShowTempRateNotificationButton(tempRateButton)
+//                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
+//                    }
+//                )
+//                Divider()
+//            }
 
             item {
                 ListItem(
@@ -360,6 +364,128 @@ fun Settings(
             }
 
             item {
+                var bolusButton by remember { mutableStateOf(Prefs(context).showBolusNotificationButton()) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_2)) },
+                    supportingContent = {
+                        Text(
+                            if (bolusButton) context.getString(R.string.settings_reload_icon_3)
+                            else context.getString(R.string.settings_reload_icon_4)
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            if (bolusButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
+                            contentDescription = stringResource(R.string.settings_reload_icon_5),
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        bolusButton = !bolusButton
+                        Prefs(context).setShowBolusNotificationButton(bolusButton)
+                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
+                    }
+                )
+                Divider()
+            }
+
+            item {
+                var tempRateButton by remember { mutableStateOf(Prefs(context).showTempRateNotificationButton()) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_6)) },
+                    supportingContent = {
+                        Text(
+                            if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
+                            else context.getString(R.string.settings_reload_icon_8)
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            if (tempRateButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
+                            contentDescription = stringResource(R.string.settings_reload_icon_9),
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        tempRateButton = !tempRateButton
+                        Prefs(context).setShowTempRateNotificationButton(tempRateButton)
+                        sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
+                    }
+                )
+                Divider()
+            }
+
+            item {
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_home_show_section)) },
+                )
+            }
+
+            item {
+                var cgmEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.CgmChartVisible)) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_home_show_cgm_chart)) },
+                    supportingContent = { Text(context.getString(R.string.settings_home_show_cgm_chart_sub)) },
+                    trailingContent = {
+                        Switch(
+                            checked = cgmEnabled,
+                            onCheckedChange = {
+                                cgmEnabled = it
+                                FeatureFlag.set(context, FeatureFlag.CgmChartVisible, it)
+                            },
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        cgmEnabled = !cgmEnabled
+                        FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
+                    },
+                )
+                Divider()
+            }
+
+            item {
+                var sensorEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.SensorInfoCardVisible)) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_home_show_sensor_info)) },
+                    supportingContent = { Text(context.getString(R.string.settings_home_show_sensor_info_sub)) },
+                    trailingContent = {
+                        Switch(
+                            checked = sensorEnabled,
+                            onCheckedChange = {
+                                sensorEnabled = it
+                                FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, it)
+                            },
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        sensorEnabled = !sensorEnabled
+                        FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
+                    },
+                )
+                Divider()
+            }
+
+            item {
+                var historyEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.HistoryLogSyncBarVisible)) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_home_show_history_sync)) },
+                    supportingContent = { Text(context.getString(R.string.settings_home_show_history_sync_sub)) },
+                    trailingContent = {
+                        Switch(
+                            checked = historyEnabled,
+                            onCheckedChange = {
+                                historyEnabled = it
+                                FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, it)
+                            },
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        historyEnabled = !historyEnabled
+                        FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
+                    },
+                )
+                Divider()
+            }
+
+            item {
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.settings_nightscout)) },
                     supportingContent = { Text(context.getString(R.string.settings_config_nightscout_sync)) },
@@ -392,6 +518,41 @@ fun Settings(
                 )
                 Divider()
             }
+
+//            // 已移至控制页底部
+//            item {
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_sync_pump_time)) },
+//                    supportingContent = { Text(context.getString(R.string.settings_set_pump_s_clock_to)) },
+//                    leadingContent = {
+//                        Icon(
+//                            Icons.Filled.Timer,
+//                            contentDescription = context.getString(R.string.settings_sync_time_icon),
+//                        )
+//                    },
+//                    modifier = Modifier.clickable {
+//                        showSyncTimeDialog = true
+//                    }
+//                )
+//                Divider()
+//            }
+//
+//            item {
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_find_my_pump)) },
+//                    supportingContent = { Text(context.getString(R.string.settings_play_sound_on_pump_to_help_locate)) },
+//                    leadingContent = {
+//                        Icon(
+//                            Icons.Filled.NotificationsActive,
+//                            contentDescription = context.getString(R.string.settings_play_sound_icon),
+//                        )
+//                    },
+//                    modifier = Modifier.clickable {
+//                        showPlaySoundDialog = true
+//                    }
+//                )
+//                Divider()
+//            }
 
             item {
                 ListItem(
@@ -437,45 +598,6 @@ fun Settings(
             },
             dismissButton = {
                 TextButton(onClick = { showPumpSetupConfirmDialog = false }) {
-                    Text(context.getString(R.string.settings_cancel))
-                }
-            }
-        )
-    }
-
-    if (showSupportBundleDialog && supportBundleSummary != null) {
-        val summary = supportBundleSummary!!
-        AlertDialog(
-            onDismissRequest = {
-                showSupportBundleDialog = false
-                supportBundleSummary = null
-            },
-            title = { Text(context.getString(R.string.settings_send_pump_x2_support_bundle)) },
-            text = {
-                Text("Send ${summary.debugFileCount} debug files with ${formatLogLineCount(summary.totalLogLines)} total logs from ${summary.rangeStart} - ${summary.rangeEnd} to the developers for assistance?")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    sendSupportBundleEmail(context)
-                    showSupportBundleDialog = false
-                    supportBundleSummary = null
-                }) {
-                    Text(context.getString(R.string.settings_send_email))
-                }
-
-                TextButton(onClick = {
-                    shareSupportBundle(context)
-                    showSupportBundleDialog = false
-                    supportBundleSummary = null
-                }) {
-                    Text(context.getString(R.string.settings_share))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showSupportBundleDialog = false
-                    supportBundleSummary = null
-                }) {
                     Text(context.getString(R.string.settings_cancel))
                 }
             }
@@ -554,6 +676,99 @@ fun Settings(
             }
         )
     }
+
+//    // 已搬去 Debug 页
+//    if (showSupportBundleDialog && supportBundleSummary != null) {
+//        val summary = supportBundleSummary!!
+//        AlertDialog(
+//            onDismissRequest = {
+//                showSupportBundleDialog = false
+//                supportBundleSummary = null
+//            },
+//            title = { Text(context.getString(R.string.settings_send_pump_x2_support_bundle)) },
+//            text = {
+//                Text("Send ${summary.debugFileCount} debug files with ${formatLogLineCount(summary.totalLogLines)} total logs from ${summary.rangeStart} - ${summary.rangeEnd} to the developers for assistance?")
+//            },
+//            confirmButton = {
+//                TextButton(onClick = {
+//                    sendSupportBundleEmail(context)
+//                    showSupportBundleDialog = false
+//                    supportBundleSummary = null
+//                }) {
+//                    Text(context.getString(R.string.settings_send_email))
+//                }
+//
+//                TextButton(onClick = {
+//                    shareSupportBundle(context)
+//                    showSupportBundleDialog = false
+//                    supportBundleSummary = null
+//                }) {
+//                    Text(context.getString(R.string.settings_share))
+//                }
+//            },
+//            dismissButton = {
+//                TextButton(onClick = {
+//                    showSupportBundleDialog = false
+//                    supportBundleSummary = null
+//                }) {
+//                    Text(context.getString(R.string.settings_cancel))
+//                }
+//            }
+//        )
+//    }
+
+//    // 已移至控制页底部
+//    // Sync Time Dialog
+//    if (showSyncTimeDialog) {
+//        AlertDialog(
+//            onDismissRequest = { showSyncTimeDialog = false },
+//            title = { Text(context.getString(R.string.settings_sync_pump_time_2)) },
+//            text = { Text(context.getString(R.string.settings_set_pump_s_internal_clock_to_query)) },
+//            confirmButton = {
+//                TextButton(onClick = {
+//                    sendPumpCommands(
+//                        SendType.STANDARD,
+//                        listOf(ChangeTimeDateRequest(Instant.now()))
+//                    )
+//                    showSyncTimeDialog = false
+//                    Toast.makeText(context, context.getString(R.string.settings_pump_time_sync_sent), Toast.LENGTH_SHORT).show()
+//                }) {
+//                    Text(context.getString(R.string.settings_sync))
+//                }
+//            },
+//            dismissButton = {
+//                TextButton(onClick = { showSyncTimeDialog = false }) {
+//                    Text(context.getString(R.string.settings_cancel))
+//                }
+//            }
+//        )
+//    }
+//
+//    // Play Sound Dialog
+//    if (showPlaySoundDialog) {
+//        AlertDialog(
+//            onDismissRequest = { showPlaySoundDialog = false },
+//            title = { Text(context.getString(R.string.settings_find_my_pump_2)) },
+//            text = { Text(context.getString(R.string.settings_play_sound_on_pump_query)) },
+//            confirmButton = {
+//                TextButton(onClick = {
+//                    sendPumpCommands(
+//                        SendType.STANDARD,
+//                        listOf(PlaySoundRequest())
+//                    )
+//                    showPlaySoundDialog = false
+//                    Toast.makeText(context, context.getString(R.string.settings_playing_sound_on_pump), Toast.LENGTH_SHORT).show()
+//                }) {
+//                    Text(context.getString(R.string.settings_play_sound))
+//                }
+//            },
+//            dismissButton = {
+//                TextButton(onClick = { showPlaySoundDialog = false }) {
+//                    Text(context.getString(R.string.settings_cancel))
+//                }
+//            }
+//        )
+//    }
 
 }
 

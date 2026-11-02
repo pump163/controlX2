@@ -215,7 +215,7 @@ fun CGMActions(
                                     else -> Icon(Icons.Filled.Settings, contentDescription = null)
                                 }
                             },
-                            modifier = Modifier.clickable(enabled = canControl) {
+                            modifier = Modifier.clickable {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> { showStopG6CgmSessionMenu = true }
                                     CGMSessionState.STOPPED -> { showStartG6CgmSessionMenu = true }
@@ -238,6 +238,13 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_start_g6_cgm_session))
                                 },
                                 text = {
+                                    if (!canControl) {
+                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                        if (reasonModel != null) {
+                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                                            Text("\n")
+                                        }
+                                    }
                                     LazyColumn(
                                         contentPadding = innerPadding,
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -327,7 +334,7 @@ fun CGMActions(
                                                 )
                                             }
                                         },
-                                        enabled = startG6CgmSessionInProgressTxId == null,
+                                        enabled = canControl && startG6CgmSessionInProgressTxId == null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
                                         Text(context.getString(R.string.cgm_start_sensor))
@@ -349,6 +356,13 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_stop_g6_cgm_session))
                                 },
                                 text = {
+                                    if (!canControl) {
+                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                        if (reasonModel != null) {
+                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                                            Text("\n")
+                                        }
+                                    }
                                     Text(context.getString(R.string.cgm_dexcom_g6_sensor_will_be_stopped))
                                 },
                                 dismissButton = {
@@ -363,6 +377,7 @@ fun CGMActions(
                                 },
                                 confirmButton = {
                                     TextButton(
+                                        enabled = canControl,
                                         onClick = {
                                             refreshScope.launch {
                                                 sendPumpCommands(SendType.BUST_CACHE, listOf(
@@ -419,7 +434,7 @@ fun CGMActions(
                                     else -> Icon(Icons.Filled.Settings, contentDescription = null)
                                 }
                             },
-                            modifier = Modifier.clickable(enabled = canControl) {
+                            modifier = Modifier.clickable {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> { showStopG7CgmSessionMenu = true }
                                     CGMSessionState.STOPPED -> { showStartG7CgmSessionMenu = true }
@@ -441,6 +456,13 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_start_g7_cgm_session))
                                 },
                                 text = {
+                                    if (!canControl) {
+                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                        if (reasonModel != null) {
+                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                                            Text("\n")
+                                        }
+                                    }
                                     LazyColumn(
                                         contentPadding = innerPadding,
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -504,7 +526,7 @@ fun CGMActions(
                                                 showStartG6CgmSessionMenu = false
                                             }
                                         },
-                                        enabled = cgmSetupG7SensorCode.value != null,
+                                        enabled = canControl && cgmSetupG7SensorCode.value != null,
                                         modifier = Modifier.padding(top = 16.dp)
                                     ) {
                                         Text(context.getString(R.string.cgm_start_sensor))

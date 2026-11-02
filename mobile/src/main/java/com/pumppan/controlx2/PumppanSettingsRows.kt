@@ -3,6 +3,7 @@ package com.pumppan.controlx2
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,11 @@ fun PumppanLanguageRow() {
     ) { mode ->
         current = mode
         PumppanPrefs.setLocale(context, mode)
+        Toast.makeText(
+            context,
+            context.getString(R.string.pumppan_language_restart_hint),
+            Toast.LENGTH_LONG
+        ).show()
         context.findActivity()?.recreate()
     }
 }
@@ -67,6 +73,11 @@ fun PumppanPumpModelRow() {
     ) { mode ->
         current = mode
         PumppanPumpModel.set(context, mode)
+        Toast.makeText(
+            context,
+            context.getString(R.string.pumppan_model_override_refresh_hint),
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
 

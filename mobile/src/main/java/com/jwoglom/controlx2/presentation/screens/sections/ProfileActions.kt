@@ -117,6 +117,11 @@ fun ProfileActions(
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
     val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val readonlyReason = if (!canControl) {
+        determinePumpModel(deviceName.value ?: "")?.let {
+            stringResource(R.string.cartridge_insulin_control_unsupported_model, it)
+        }
+    } else null
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -354,11 +359,7 @@ fun ProfileActions(
                                                                         append("\n")
                                                                     })
                                                                 },
-                                                                colors = ListItemDefaults.colors(
-                                                                    headlineColor = rowTitleColor(!canControl),
-                                                                    leadingIconColor = rowTitleColor(!canControl),
-                                                                ),
-                                                                modifier = Modifier.clickable(enabled = canControl) {
+                                                                modifier = Modifier.clickable {
                                                                     refreshScope.launch {
                                                                         showEditSegmentDialog = Pair(profile, segmentIndex)
                                                                     }
@@ -383,11 +384,7 @@ fun ProfileActions(
                                                                     contentDescription = null,
                                                                 )
                                                             },
-                                                            colors = ListItemDefaults.colors(
-                                                                headlineColor = rowTitleColor(!canControl),
-                                                                leadingIconColor = rowTitleColor(!canControl),
-                                                            ),
-                                                            modifier = Modifier.clickable(enabled = canControl) {
+                                                            modifier = Modifier.clickable {
                                                                 refreshScope.launch {
                                                                     showAddSegmentDialog = profile
                                                                 }
@@ -498,11 +495,7 @@ fun ProfileActions(
                             leadingContent = {
                                 Icon(Icons.Filled.Add, contentDescription = null)
                             },
-                            colors = ListItemDefaults.colors(
-                                headlineColor = rowTitleColor(!canControl),
-                                leadingIconColor = rowTitleColor(!canControl),
-                            ),
-                            modifier = Modifier.clickable(enabled = canControl) {
+                            modifier = Modifier.clickable {
                                 showAddProfileDialog = true
                             }
                         )
@@ -539,6 +532,8 @@ fun ProfileActions(
     // Add Profile Dialog
     if (showAddProfileDialog) {
         AddProfileDialog(
+            enabled = canControl,
+            reasonText = readonlyReason,
             onDismiss = { showAddProfileDialog = false },
             onConfirm = { profileName, carbRatioInt, basalRateMilliunits, targetBGInt, isfInt, insulinDurationInt, carbEntryEnabled ->
                 refreshScope.launch {
@@ -572,6 +567,8 @@ fun ProfileActions(
     showAddSegmentDialog?.let { profile ->
         key(profile.idpId) {
             AddSegmentDialog(
+                enabled = canControl,
+                reasonText = readonlyReason,
                 profile = profile,
                 onDismiss = { showAddSegmentDialog = null },
                 onConfirm = { startTime, basalRateFloat, carbRatioLong, targetBGInt, isfInt ->
@@ -602,6 +599,8 @@ fun ProfileActions(
         profile.segments?.getOrNull(segmentIndex)?.let { segment ->
             key("${profile.idpId}-$segmentIndex") {
                 EditSegmentDialog(
+                    enabled = canControl,
+                    reasonText = readonlyReason,
                     profile = profile,
                     segment = segment,
                     segmentIndex = segmentIndex,

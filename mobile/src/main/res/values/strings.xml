@@ -779,6 +779,13 @@
     <string name="settings_reload_icon_7">Shown. Tap to remove the Temp Rate shortcut from the ongoing notification.</string>
     <string name="settings_reload_icon_8">Hidden. Tap to add a Temp Rate shortcut to the ongoing notification.</string>
     <string name="settings_reload_icon_9">Temp rate notification button</string>
+    <string name="settings_home_show_section">Home display</string>
+    <string name="settings_home_show_cgm_chart">Show CGM chart</string>
+    <string name="settings_home_show_cgm_chart_sub">Toggle the CGM chart and legend on the home screen.</string>
+    <string name="settings_home_show_sensor_info">Show sensor info card</string>
+    <string name="settings_home_show_sensor_info_sub">Toggle the sensor expiration and transmitter status card on the home screen.</string>
+    <string name="settings_home_show_history_sync">Show history sync progress bar</string>
+    <string name="settings_home_show_history_sync_sub">Toggle the history log sync progress bar at the bottom of the home screen.</string>
     <string name="sound_back">Back</string>
     <string name="sound_settings">Sound Settings</string>
     <string name="sound_loading_sound_settings">Loading sound settings...</string>
@@ -1039,9 +1046,11 @@
     <string name="fill_cannula_primed">%1$sU primed.</string>
     <string name="pumppan_language">Language</string>
     <string name="pumppan_language_auto">Auto (system)</string>
+    <string name="pumppan_language_restart_hint">Language applied. Some notification text will update after restarting the app.</string>
     <string name="pumppan_language_zh">中文</string>
     <string name="pumppan_language_en">English</string>
     <string name="pumppan_pump_model">Pump model override</string>
+    <string name="pumppan_pump_model_refresh_hint">Pump model override saved. Pages that are already open need to be revisited to re-evaluate.</string>
     <string name="pumppan_pump_model_auto">Auto (detect)</string>
     <string name="pumppan_pump_model_mobi">Mobi</string>
     <string name="pumppan_pump_model_slimx2">t:slim X2</string>

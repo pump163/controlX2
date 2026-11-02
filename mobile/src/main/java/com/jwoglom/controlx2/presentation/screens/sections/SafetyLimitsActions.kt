@@ -25,7 +25,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,7 +60,6 @@ import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 
-import com.pumppan.controlx2.ui.rowTitleColor
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -203,11 +201,7 @@ fun SafetyLimitsActions(
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        colors = ListItemDefaults.colors(
-                            headlineColor = rowTitleColor(!canControl),
-                            leadingIconColor = rowTitleColor(!canControl),
-                        ),
-                        modifier = Modifier.clickable(enabled = canControl) {
+                        modifier = Modifier.clickable {
                             maxBolusText = if (bolus != null) {
                                 InsulinUnit.from1000To1(bolus.maxBolus.toLong()).toString()
                             } else ""
@@ -234,11 +228,7 @@ fun SafetyLimitsActions(
                             }
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        colors = ListItemDefaults.colors(
-                            headlineColor = rowTitleColor(!canControl),
-                            leadingIconColor = rowTitleColor(!canControl),
-                        ),
-                        modifier = Modifier.clickable(enabled = canControl) {
+                        modifier = Modifier.clickable {
                             maxBasalText = if (basal != null) {
                                 InsulinUnit.from1000To1(basal.basalLimit).toString()
                             } else ""
@@ -265,6 +255,12 @@ fun SafetyLimitsActions(
             onDismissRequest = { showMaxBolusDialog = false },
             title = { Text(stringResource(R.string.safety_limits_set_maximum_bolus)) },
             text = {
+                if (!canControl) {
+                    val reasonModel = determinePumpModel(deviceName.value ?: "")
+                    if (reasonModel != null) {
+                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                    }
+                }
                 OutlinedTextField(
                     value = maxBolusText,
                     onValueChange = { maxBolusText = it },
@@ -274,7 +270,9 @@ fun SafetyLimitsActions(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(
+                    enabled = canControl,
+                    onClick = {
                     val units = maxBolusText.toDoubleOrNull()
                     if (units != null) {
                         val milliunits = (units * 1000).toInt()
@@ -312,6 +310,12 @@ fun SafetyLimitsActions(
             onDismissRequest = { showMaxBasalDialog = false },
             title = { Text(stringResource(R.string.safety_limits_set_maximum_basal_rate)) },
             text = {
+                if (!canControl) {
+                    val reasonModel = determinePumpModel(deviceName.value ?: "")
+                    if (reasonModel != null) {
+                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                    }
+                }
                 OutlinedTextField(
                     value = maxBasalText,
                     onValueChange = { maxBasalText = it },
@@ -321,7 +325,9 @@ fun SafetyLimitsActions(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(
+                    enabled = canControl,
+                    onClick = {
                     val units = maxBasalText.toDoubleOrNull()
                     if (units != null) {
                         val milliunits = (units * 1000).toInt()

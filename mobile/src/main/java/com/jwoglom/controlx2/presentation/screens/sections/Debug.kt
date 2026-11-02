@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -132,7 +133,12 @@ import com.jwoglom.controlx2.db.historylog.HistoryLogRepo
 import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
 import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.presentation.components.HistoryLogSyncProgressBar
+import com.jwoglom.controlx2.presentation.components.SupportBundleSummary
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
+import com.jwoglom.controlx2.presentation.util.formatLogLineCount
+import com.jwoglom.controlx2.presentation.util.getSupportBundleSummary
+import com.jwoglom.controlx2.presentation.util.sendSupportBundleEmail
+import com.jwoglom.controlx2.presentation.util.shareSupportBundle
 import com.jwoglom.controlx2.shared.FeatureFlags
 import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
@@ -174,6 +180,8 @@ fun Debug(
     var showMessageCache by remember { mutableStateOf(false) }
     var showHistoryLogs by remember { mutableStateOf(false) }
     var showPumpState by remember { mutableStateOf(false) }
+    var showSupportBundleDialog by remember { mutableStateOf(false) }
+    var supportBundleSummary by remember { mutableStateOf<SupportBundleSummary?>(null) }
 
     val context = LocalContext.current
     val ds = LocalDataStore.current
@@ -761,6 +769,29 @@ fun Debug(
                 }
             }
 
+            item {
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
+                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
+                    leadingContent = {
+                        Icon(
+                            Icons.Filled.Help,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier.clickable {
+                        val summary = getSupportBundleSummary(context)
+                        if (summary == null) {
+                            Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
+                        } else {
+                            supportBundleSummary = summary
+                            showSupportBundleDialog = true
+                        }
+                    }
+                )
+                Divider()
+            }
+
             if (FeatureFlags.ConnectionSharing && Prefs(context).connectionSharingEnabled()) {
                 item {
                     Divider()
@@ -1054,6 +1085,45 @@ fun Debug(
             }
         }
     )
+
+    if (showSupportBundleDialog && supportBundleSummary != null) {
+        val summary = supportBundleSummary!!
+        AlertDialog(
+            onDismissRequest = {
+                showSupportBundleDialog = false
+                supportBundleSummary = null
+            },
+            title = { Text(context.getString(R.string.settings_send_pump_x2_support_bundle)) },
+            text = {
+                Text(context.getString(R.string.settings_send_debug_files_with_logs_query, summary.debugFileCount, formatLogLineCount(summary.totalLogLines), summary.rangeStart, summary.rangeEnd))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    sendSupportBundleEmail(context)
+                    showSupportBundleDialog = false
+                    supportBundleSummary = null
+                }) {
+                    Text(context.getString(R.string.settings_send_email))
+                }
+
+                TextButton(onClick = {
+                    shareSupportBundle(context)
+                    showSupportBundleDialog = false
+                    supportBundleSummary = null
+                }) {
+                    Text(context.getString(R.string.settings_share))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showSupportBundleDialog = false
+                    supportBundleSummary = null
+                }) {
+                    Text(context.getString(R.string.debug_cancel))
+                }
+            }
+        )
+    }
 }
 
 

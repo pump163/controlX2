@@ -184,7 +184,7 @@ fun QuickBolusSettingsActions(
                             Text(stringResource(R.string.sound_config_quick_bolus_and_increment))
                         },
                         leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        modifier = Modifier.clickable(enabled = canControl) {
+                        modifier = Modifier.clickable {
                             showQuickBolusDialog = true
                         }
                     )
@@ -210,6 +210,12 @@ fun QuickBolusSettingsActions(
             onDismissRequest = { showQuickBolusDialog = false },
             title = { Text(stringResource(R.string.sound_quick_bolus_settings)) },
             text = {
+                if (!canControl) {
+                    val reasonModel = determinePumpModel(deviceName.value ?: "")
+                    if (reasonModel != null) {
+                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                    }
+                }
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -254,7 +260,9 @@ fun QuickBolusSettingsActions(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(
+                    enabled = canControl,
+                    onClick = {
                     val message = SetQuickBolusSettingsRequest(quickBolusIncrement)
                     sendPumpCommands(SendType.STANDARD, listOf(message))
                     showQuickBolusDialog = false

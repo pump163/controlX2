@@ -6,6 +6,8 @@ import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
  * pumppan: 调试用的型号覆盖。非 null 时 [determinePumpModel] 一律返回它，
  * 让 UI 按另一型号渲染（只看不点，Mobi 专有操作在真实 X2 上可能出错）。
  * 置空即恢复按蓝牙名判定。进程级变量，由 PumppanApplication 在启动时灌入。
+ * 不是 Compose State——改这里不会触发重组，已打开的页面要切走再切回来
+ * （或重启）才会按新型号重新计算门控。
  */
 @Volatile
 var pumppanModelOverride: KnownDeviceModel? = null

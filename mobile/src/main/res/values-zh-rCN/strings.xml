@@ -773,6 +773,13 @@
     <string name="settings_reload_icon_7">已显示。点击可从常驻通知中移除临时基础率快捷按钮。</string>
     <string name="settings_reload_icon_8">已隐藏。点击可在常驻通知中添加临时基础率快捷按钮。</string>
     <string name="settings_reload_icon_9">常驻通知临时基础率按钮</string>
+    <string name="settings_home_show_section">首页显示</string>
+    <string name="settings_home_show_cgm_chart">显示 CGM 图表</string>
+    <string name="settings_home_show_cgm_chart_sub">切换首页的 CGM 图表和图例显示。</string>
+    <string name="settings_home_show_sensor_info">显示传感器信息</string>
+    <string name="settings_home_show_sensor_info_sub">切换首页的传感器到期时间和发射器状态卡片。</string>
+    <string name="settings_home_show_history_sync">显示历史同步进度条</string>
+    <string name="settings_home_show_history_sync_sub">切换首页下方的历史记录同步进度条。</string>
     <string name="sound_back">返回</string>
     <string name="sound_settings">声音设置</string>
     <string name="sound_loading_sound_settings">正在加载声音设置...</string>
@@ -1033,9 +1040,11 @@
     <string name="fill_cannula_primed">已充盈 %1$sU。</string>
     <string name="pumppan_language">语言</string>
     <string name="pumppan_language_auto">自动（跟随系统）</string>
+    <string name="pumppan_language_restart_hint">语言已切换。部分通知文案将在重启应用后更新。</string>
     <string name="pumppan_language_zh">中文</string>
     <string name="pumppan_language_en">English</string>
     <string name="pumppan_pump_model">泵型号覆盖</string>
+    <string name="pumppan_pump_model_refresh_hint">泵型号覆盖已保存，已打开的页面需重新进入后生效。</string>
     <string name="pumppan_pump_model_auto">自动（按实际）</string>
     <string name="pumppan_pump_model_mobi">Mobi</string>
     <string name="pumppan_pump_model_slimx2">t:slim X2</string>

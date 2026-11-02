@@ -5,6 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+
+/** 危险操作行（停止/启动胰岛素、临时基础率等）的最小行高，保证多行文案不被裁切。 */
+val DangerousRowMinHeight = 88.dp
 
 /**
  * 行标题样式。放大用「主题字号 × 比例」而不是写死 sp，

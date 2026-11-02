@@ -39,7 +39,9 @@ import com.jwoglom.controlx2.R
 fun AddSegmentDialog(
     profile: IDPManager.Profile,
     onDismiss: () -> Unit,
-    onConfirm: (MinsTime, Float, Long, Int, Int) -> Unit
+    onConfirm: (MinsTime, Float, Long, Int, Int) -> Unit,
+    enabled: Boolean = true,
+    reasonText: String? = null
 ) {
     val context = LocalContext.current
     val timePickerState = rememberTimePickerState(
@@ -59,6 +61,9 @@ fun AddSegmentDialog(
             Text(stringResource(R.string.profile_add_profile_segment))
         },
         text = {
+            if (reasonText != null) {
+                Text(reasonText)
+            }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
@@ -136,6 +141,7 @@ fun AddSegmentDialog(
         },
         confirmButton = {
             TextButton(
+                enabled = enabled,
                 onClick = {
                     try {
                         val hours = timePickerState.hour

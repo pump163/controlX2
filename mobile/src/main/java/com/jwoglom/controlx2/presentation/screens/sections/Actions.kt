@@ -5,6 +5,7 @@
 package com.jwoglom.controlx2.presentation.screens.sections
 
 import com.pumppan.controlx2.ui.ActionRow
+import com.pumppan.controlx2.ui.DangerousRowMinHeight
 import com.pumppan.controlx2.ui.NavigationRow
 import com.pumppan.controlx2.ui.ToggleRow
 
@@ -258,7 +259,7 @@ fun Actions(
                 item { GroupBoundary() }
                 item {
                     val basalStatus = ds.basalStatus.observeAsState()
-val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), SuspendPumpingRequest::class.java)
+                    val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), SuspendPumpingRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -287,7 +288,7 @@ val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), 
                             },
                             emphasized = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
                             readOnly = !canPumpControl,
-                            modifier = Modifier.heightIn(min = 88.dp),
+                            modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> {}
@@ -587,7 +588,7 @@ val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), 
                             },
                             emphasized = tempRateActive.value == true,
                             readOnly = !canTempRate,
-                            modifier = Modifier.heightIn(min = 88.dp),
+                            modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }
@@ -784,7 +785,7 @@ val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), 
                             leadingIcon = {
                                 Icon(Icons.Filled.HealthAndSafety, contentDescription = null)
                             },
-                            modifier = Modifier.heightIn(min = 88.dp),
+                            modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = { navigateToSection(LandingSection.SAFETY_LIMITS_ACTIONS) },
                         )
                     }

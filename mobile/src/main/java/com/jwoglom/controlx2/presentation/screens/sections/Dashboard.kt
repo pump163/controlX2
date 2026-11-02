@@ -69,6 +69,7 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
+import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
@@ -222,10 +223,12 @@ fun Dashboard(
 
 
                 // CGM Chart with Vico - shows glucose, boluses, basal, carbs
-                item {
-                    VicoCgmChartCard(
-                        historyLogViewModel = historyLogViewModel
-                    )
+                if (FeatureFlag.cgmChartVisibleState.value) {
+                    item {
+                        VicoCgmChartCard(
+                            historyLogViewModel = historyLogViewModel
+                        )
+                    }
                 }
 
                 // Active Therapy Card - Basal, Last Bolus, Mode
@@ -234,17 +237,21 @@ fun Dashboard(
                 }
 
                 // Sensor Info Card - Sensor expiration, Transmitter status
-                item {
-                    SensorInfoCardFromDataStore()
+                if (FeatureFlag.sensorInfoCardVisibleState.value) {
+                    item {
+                        SensorInfoCardFromDataStore()
+                    }
                 }
 
                 // History Log Sync Progress
-                historyLogViewModel?.let {
-                    item {
-                        HistoryLogSyncProgressBar(
-                            historyLogViewModel = it,
-                            replaceWithPaddingWhenComplete = true
-                        )
+                if (FeatureFlag.historyLogSyncBarVisibleState.value) {
+                    historyLogViewModel?.let {
+                        item {
+                            HistoryLogSyncProgressBar(
+                                historyLogViewModel = it,
+                                replaceWithPaddingWhenComplete = true
+                            )
+                        }
                     }
                 }
             }
