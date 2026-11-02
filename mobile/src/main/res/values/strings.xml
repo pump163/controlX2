@@ -289,6 +289,16 @@
     <string name="debug_fetches_history_logs_within_given_range">Fetches history logs within the given range.</string>
     <string name="debug_view_history_log_mess">View History Log Messages</string>
     <string name="debug_history_log_messages_not_loaded">No history log messages loaded yet. Get history logs first.</string>
+    <string name="debug_qualifying_event_toasts_enabled">Qualifying event toasts enabled</string>
+    <string name="debug_qualifying_event_toasts_disabled">Qualifying event toasts disabled</string>
+    <string name="debug_http_debug_api_enabled_restart">HTTP Debug API enabled. Restart service to apply.</string>
+    <string name="debug_http_debug_api_disabled_restart">HTTP Debug API disabled. Restart service to apply.</string>
+    <string name="debug_pump_state">PumpState</string>
+    <string name="debug_filter_dropdown_icon">Choose history log filter</string>
+    <string name="debug_debug_logs_cleared">Debug logs cleared</string>
+    <string name="debug_no_debug_logs_to_clear">No debug log file to clear</string>
+    <string name="debug_history_log_range_unavailable">Could not retrieve the history log range from the pump. Make sure the pump is connected and try again — you can still enter the start ID manually.</string>
+    <string name="debug_enter_first_log_id_with_range">Enter the ID of the first history log item to return:\n\n%1$s</string>
     <string name="debug_displays_pump_history_log_mess">Displays pump history log messages</string>
     <string name="debug_ctrl_x2_history_log_json_data">ControlX2 History Log JSON data</string>
     <string name="debug_all">&lt;All&gt;</string>

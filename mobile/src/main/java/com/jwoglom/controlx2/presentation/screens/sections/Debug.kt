@@ -240,8 +240,15 @@ fun Debug(
             .setPositiveButton(context.getString(R.string.debug_delete)) { dialog, _ ->
                 dialog.dismiss()
                 val filePath = File(context.filesDir, "debugLog-MUA.txt")
-                filePath.delete()
-
+                val deleted = filePath.delete()
+                Toast.makeText(
+                    context,
+                    context.getString(
+                        if (deleted) R.string.debug_debug_logs_cleared
+                        else R.string.debug_no_debug_logs_to_clear
+                    ),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             .show()
     }
@@ -714,11 +721,9 @@ fun Debug(
                                         .padding(start = 16.dp, end = 16.dp)
                                     ) {
                                         OutlinedTextField(
-                                            value = when (filterToType) {
-                                                null -> context.getString(R.string.debug_all)
-                                                else -> "$filterToType"
-                                            },
-                                            onValueChange = { filterToType = it },
+                                            value = filterToType ?: context.getString(R.string.debug_all),
+                                            onValueChange = { },
+                                            readOnly = true,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .onGloballyPositioned { coordinates ->
@@ -728,10 +733,19 @@ fun Debug(
                                                 },
                                             label = { Text(context.getString(R.string.debug_filter)) },
                                             trailingIcon = {
-                                                Icon(icon, "contentDescription",
-                                                    Modifier.clickable { expanded = !expanded })
+                                                Icon(
+                                                    icon,
+                                                    context.getString(R.string.debug_filter_dropdown_icon),
+                                                    Modifier.clickable { expanded = !expanded }
+                                                )
                                             },
                                             textStyle = TextStyle.Default.copy(fontSize = 16.sp),
+                                        )
+                                        // 只读展示：整行点击展开下拉，避免输入内容被当成过滤值
+                                        Box(
+                                            Modifier
+                                                .matchParentSize()
+                                                .clickable { expanded = !expanded }
                                         )
 
                                         DropdownMenu(
@@ -765,7 +779,10 @@ fun Debug(
                                 } else {
                                     item {
                                         Text(
-                                            "${historyLogCache.value?.size ?: 0} history log entries",
+                                            context.getString(
+                                                R.string.debug_history_log_entries,
+                                                (historyLogCache.value?.size ?: 0).toString()
+                                            ),
                                             modifier = Modifier
                                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                                 .fillMaxWidth()
@@ -908,7 +925,13 @@ fun Debug(
                         Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
                         Toast.makeText(
                             context,
-                            "Qualifying event toasts ${if (qualifyingEventToastsEnabled) "enabled" else "disabled"}",
+                            context.getString(
+                                if (qualifyingEventToastsEnabled) {
+                                    R.string.debug_qualifying_event_toasts_enabled
+                                } else {
+                                    R.string.debug_qualifying_event_toasts_disabled
+                                }
+                            ),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -930,7 +953,17 @@ fun Debug(
                     modifier = Modifier.clickable {
                         httpDebugApiEnabled = !httpDebugApiEnabled
                         Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
-                        Toast.makeText(context, "HTTP Debug API ${if (httpDebugApiEnabled) "enabled" else "disabled"}. Restart service to apply.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                if (httpDebugApiEnabled) {
+                                    R.string.debug_http_debug_api_enabled_restart
+                                } else {
+                                    R.string.debug_http_debug_api_disabled_restart
+                                }
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
 
@@ -1035,7 +1068,7 @@ fun Debug(
                                 item {
                                     TextField(
                                         value = exportedPumpState,
-                                        label = { Text("PumpState") },
+                                        label = { Text(context.getString(R.string.debug_pump_state)) },
                                         onValueChange = {v -> },
                                         modifier = Modifier.fillMaxWidth().height(200.dp).padding(10.dp)
                                     )
@@ -1217,7 +1250,13 @@ fun triggerHistoryLogRequestDialog(
 ) {
     val builder = AlertDialog.Builder(context)
     builder.setTitle(context.getString(R.string.debug_enter_start_log_id))
-    builder.setMessage("Enter the ID of the first history log item to return:\n\n${historyLogStatus ?: ""}")
+    builder.setMessage(
+        if (historyLogStatus == null) {
+            context.getString(R.string.debug_history_log_range_unavailable)
+        } else {
+            context.getString(R.string.debug_enter_first_log_id_with_range, historyLogStatus.toString())
+        }
+    )
     val input1 = EditText(context)
     input1.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_NORMAL
     input1.width = 200

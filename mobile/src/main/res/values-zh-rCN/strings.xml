@@ -283,6 +283,16 @@
     <string name="debug_fetches_history_logs_within_given_range">获取指定范围内的历史日志。</string>
     <string name="debug_view_history_log_mess">显示泵运行日志消息</string>
     <string name="debug_history_log_messages_not_loaded">尚未加载历史日志消息，请先「查看历史日志」拉取记录。</string>
+    <string name="debug_qualifying_event_toasts_enabled">合格事件小弹窗已开启</string>
+    <string name="debug_qualifying_event_toasts_disabled">合格事件小弹窗已关闭</string>
+    <string name="debug_http_debug_api_enabled_restart">HTTP 调试 API 已开启，重启服务后生效。</string>
+    <string name="debug_http_debug_api_disabled_restart">HTTP 调试 API 已关闭，重启服务后生效。</string>
+    <string name="debug_pump_state">泵状态</string>
+    <string name="debug_filter_dropdown_icon">选择历史日志筛选条件</string>
+    <string name="debug_debug_logs_cleared">调试日志已清除</string>
+    <string name="debug_no_debug_logs_to_clear">没有可清除的调试日志文件</string>
+    <string name="debug_history_log_range_unavailable">未能从泵获取历史日志范围。请确认泵已连接后重试；仍可手动输入起始 ID。</string>
+    <string name="debug_enter_first_log_id_with_range">请输入要返回的第一条历史日志 ID：\n\n%1$s</string>
     <string name="debug_displays_pump_history_log_mess">显示泵运行日志消息</string>
     <string name="debug_ctrl_x2_history_log_json_data">ControlX2 历史日志 JSON 数据</string>
     <string name="debug_all">&lt;全部&gt;</string>

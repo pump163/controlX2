@@ -76,14 +76,7 @@ fun HistoryLogSyncProgressBar(
         val isSynced = syncedLogs >= totalLogs
 
         if (replaceWithPaddingWhenComplete && isSynced) {
-            Column(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .height(50.dp)
-            ) {
-                Spacer(modifier = Modifier.fillMaxWidth())
-            }
+            // 同步完成后不再占位（原先留 50dp 空白，在偶数列里形成明显空档）
             return
         }
 
