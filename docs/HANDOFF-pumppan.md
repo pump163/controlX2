@@ -46,6 +46,29 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 **当前产物状态**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,621,279 bytes，2026-11-03 构建，签名 `1289b7a3…`。
 
+### 1.2 环境与单测
+
+1. **本机资产目录 `D:\winapps`（缺工具链先在这里找，不要重复下载）**：
+
+   | 目录 | 体积 | 用途 |
+   |------|------|------|
+   | `android-sdk` | ~11.7 GB | Android SDK，`ANDROID_HOME` / `ANDROID_SDK_ROOT`（机器级） |
+   | `android-avd` | ~11.0 GB | 模拟器镜像 |
+   | `.gradle` | ~4.5 GB | **`GRADLE_USER_HOME`**：依赖缓存、wrapper、init.d |
+   | `robolectric` | ~1.5 GB | 11 个 `android-all-instrumented` jar（SDK 26–36），平铺存放 |
+   | `jdk-21.0.12.1` | ~318 MB | `JAVA_HOME`（用户级）+ `org.gradle.java.home` |
+   | `node-v24.22.1-win-x64` | ~102 MB | Node 运行时 |
+
+2. **Gradle init 脚本只能放 `D:\winapps\.gradle\init.d\robolectric-mirror.gradle`**：`GRADLE_USER_HOME=D:\winapps\.gradle` 是机器级设置，放 `%USERPROFILE%\.gradle\init.d` **不会加载**。脚本做两件事：① 追加阿里云 Maven 镜像（`maven.aliyun.com/repository/public`、`/google`，不替换原有 `google()/mavenCentral()/jitpack`）；② 给所有 `Test` 任务设 `robolectric.offline=true` 与 `robolectric.dependency.dir=D:\winapps\robolectric`。回退方式：删除该文件。
+
+3. **终端 `CI=true` 会踩坑**：`mobile/build.gradle:78-80` 在 `CI=true` 时把 Robolectric 切到离线模式并指向 `~/.robolectric`（只有 API 35 一个 jar），导致 40 例测试报 `Path is not a file`。本地跑测前先 `Remove-Item Env:\CI`。（`CI` 只存在于当前终端会话，不是用户级/机器级变量。）
+
+4. **`local.properties` 被 `.gitignore:18` 忽略**：三棵树各自已有 `sdk.dir=D:/winapps/android-sdk`，但新 worktree **不会自动生成**；因 `ANDROID_HOME` 已在机器级，AGP 可回退环境变量，不阻塞构建。
+
+5. **测试现状**（2026-11-03）：`:shared` 15/15 通过，`:mobile` 98/99 通过；唯一失败是基线 DST 用例 `VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection`，三棵树实现与测试完全一致，见 [bug-基线单测DST失败.md](bug-基线单测DST失败.md)。
+
+6. **Robolectric jar 缺失时**：从阿里云 `https://maven.aliyun.com/repository/central/org/robolectric/android-all-instrumented/<ver>/` 取（`<ver>` 形如 `13-robolectric-9030017-i7`），jar **平铺**放入 `D:\winapps\robolectric`（文件名即 `android-all-instrumented-<ver>.jar`），Robolectric 从此目录直接读取，不再写 C 盘 `~/.m2` 或 `~/.robolectric`。
+
 ---
 
 ## 2. 推进路线
