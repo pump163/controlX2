@@ -2407,15 +2407,16 @@ fun triggerSetPumpSoundsRequestMessage(
 //        sendPumpCommands(SendType.DEBUG_PROMPT, (-127..128).flatMap { i -> listOf(message(i)) } )
 //    }
     builder.setPositiveButton(context.getString(R.string.debug_send)) { dialog, _ ->
+        // 空输入此前会抛 NumberFormatException；调试弹窗统一按 0 处理
         val message = SetPumpSoundsRequest(
-            quickBolusInput.text.toString().toInt(),
-            generalInput.text.toString().toInt(),
-            reminderInput.text.toString().toInt(),
-            alertInput.text.toString().toInt(),
-            alarmInput.text.toString().toInt(),
-            cgmAInput.text.toString().toInt(),
-            cgmBInput.text.toString().toInt(),
-            changeBitmaskInput.text.toString().toInt(),
+            quickBolusInput.text.toString().toIntOrNull() ?: 0,
+            generalInput.text.toString().toIntOrNull() ?: 0,
+            reminderInput.text.toString().toIntOrNull() ?: 0,
+            alertInput.text.toString().toIntOrNull() ?: 0,
+            alarmInput.text.toString().toIntOrNull() ?: 0,
+            cgmAInput.text.toString().toIntOrNull() ?: 0,
+            cgmBInput.text.toString().toIntOrNull() ?: 0,
+            changeBitmaskInput.text.toString().toIntOrNull() ?: 0,
         )
         sendPumpCommands(SendType.DEBUG_PROMPT, listOf(message))
         dialog.dismiss()
