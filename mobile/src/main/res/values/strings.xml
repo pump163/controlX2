@@ -819,16 +819,6 @@
     <string name="sound_alarm_annunciation">Alarm annunciation</string>
     <string name="sound_cgm_alert_annunciation">CGM alert annunciation A</string>
     <string name="sound_cgm_alert_annunciation_b">CGM alert annunciation B</string>
-    <string name="sound_change_bitmask">Change bitmask</string>
-    <string name="sound_change_scope">Changes to apply (automatic)</string>
-    <string name="sound_scope_none">Nothing to change</string>
-    <string name="sound_scope_quick_bolus">Quick bolus</string>
-    <string name="sound_scope_general">General</string>
-    <string name="sound_scope_reminder">Reminder</string>
-    <string name="sound_scope_alert">Alert</string>
-    <string name="sound_scope_alarm">Alarm</string>
-    <string name="sound_scope_cgm">CGM alert</string>
-    <string name="sound_raw_mask">Raw value</string>
     <string name="sound_option_high">High volume</string>
     <string name="sound_option_medium">Medium volume</string>
     <string name="sound_option_low">Low volume</string>
@@ -841,6 +831,7 @@
     <string name="sound_invalid_value">Invalid sound value, nothing sent</string>
     <string name="sound_apply_sound_settings">Apply sound settings</string>
     <string name="sound_send_set_pump_sounds_request_withse">Send SetPumpSoundsRequest with these values</string>
+    <string name="sound_control_unsupported_view_only">Sound settings cannot be changed on this device model (%1$s). Values are shown read-only.</string>
     <string name="sound_alert_snooze">Alert Snooze</string>
     <string name="sound_button_snooze">Button Snooze</string>
     <string name="sound_config_triple_press_snooze">Configure triple-press button to snooze alerts</string>
