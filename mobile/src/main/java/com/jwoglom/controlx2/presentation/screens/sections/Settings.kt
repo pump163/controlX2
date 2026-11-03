@@ -82,12 +82,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 
-/** 分隔线：与控制页分组横线同规格（1.5dp、colorScheme.outline、无左右内边距、行间无额外留白）。 */
+/** 组间分隔线：与控制页 GroupBoundary 同规格（1.5dp、colorScheme.outline、无额外留白）。 */
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
         thickness = 1.5.dp,
         color = MaterialTheme.colorScheme.outline,
+    )
+}
+
+/** 组内行间分隔线：与控制页 GroupDivider 同规格（0.5dp、colorScheme.outlineVariant）。 */
+@Composable
+private fun SettingsRowDivider() {
+    HorizontalDivider(
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant,
     )
 }
 
@@ -121,12 +130,12 @@ fun Settings(
         content = {
             item {
                 HeaderLine(context.getString(R.string.settings_settings))
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
                 VersionInfo(context)
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
@@ -181,7 +190,7 @@ fun Settings(
                             }
                         }
                     )
-                    SettingsDivider()
+                    SettingsRowDivider()
                 }
             }
 //            item {
@@ -243,7 +252,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
                     }
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
 //            // 已移至 Nightscout 前
@@ -313,7 +322,7 @@ fun Settings(
                         showPumpSetupConfirmDialog = true
                     }
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
@@ -339,7 +348,7 @@ fun Settings(
                 ))}
 
                 if (ffEnabled) {
-                    SettingsDivider()
+                    SettingsRowDivider()
                     val roleLabel = when (currentDeviceRole) {
                         DeviceRole.PUMP_HOST -> context.getString(R.string.settings_phone_pump_host)
                         DeviceRole.CLIENT -> context.getString(R.string.settings_watch_pump_host)
@@ -357,7 +366,7 @@ fun Settings(
                             showDeviceRoleDialog = true
                         }
                     )
-                    SettingsDivider()
+                    SettingsRowDivider()
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.settings_reset_start_over_on_device)) },
                         supportingContent = { Text(context.getString(R.string.settings_force_pump_host_clear_bond)) },
@@ -400,7 +409,7 @@ fun Settings(
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
                     }
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
@@ -428,11 +437,12 @@ fun Settings(
                 SettingsDivider()
             }
 
-            item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_home_show_section)) },
-                )
-            }
+//            // 已注释：三项开关副标题已含首页语义，保留组标题反而不整齐
+//            item {
+//                ListItem(
+//                    headlineContent = { Text(context.getString(R.string.settings_home_show_section)) },
+//                )
+//            }
 
             item {
                 var cgmEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.CgmChartVisible)) }
@@ -456,7 +466,7 @@ fun Settings(
                             )
                         },
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
@@ -481,7 +491,7 @@ fun Settings(
                             )
                         },
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
@@ -523,7 +533,7 @@ fun Settings(
                         navigateToNightscoutSettings()
                     }
                 )
-                SettingsDivider()
+                SettingsRowDivider()
             }
 
             item {
