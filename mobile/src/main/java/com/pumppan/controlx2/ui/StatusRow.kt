@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.dp
  * 只读状态行：标题 + 当前值。用于 X2 上能读不能写的设置项。
  * 数值照常显示，不因不可操作而变灰。
  *
+ * 当前 0 调用，预留给状态行展示，勿删。
+ *
  * @param title 行标题
  * @param status 当前状态值文本，null 时只显示标题
  * @param leadingIcon 可选前置图标
