@@ -167,12 +167,21 @@ import kotlin.math.min
 import com.jwoglom.controlx2.R
 
 
-/** 分隔线：与控制页分组横线同规格（1.5dp、colorScheme.outline、无额外留白）。 */
+/** 组间分隔线：与控制页 GroupBoundary 同规格（1.5dp、colorScheme.outline）。 */
 @Composable
 private fun DebugDivider() {
     HorizontalDivider(
         thickness = 1.5.dp,
         color = MaterialTheme.colorScheme.outline,
+    )
+}
+
+/** 组内行间分隔线：与控制页 GroupDivider 同规格（0.5dp、colorScheme.outlineVariant）。 */
+@Composable
+private fun DebugRowDivider() {
+    HorizontalDivider(
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant,
     )
 }
 
@@ -287,7 +296,7 @@ fun Debug(
         content = {
             item {
                 HeaderLine(context.getString(R.string.debug_debug))
-                DebugDivider()
+                DebugRowDivider()
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
@@ -332,7 +341,7 @@ fun Debug(
                         }
                     }
                 )
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
@@ -511,7 +520,7 @@ fun Debug(
                     }
 
                 }
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
@@ -602,7 +611,7 @@ fun Debug(
                         }
                     }
                 }
-                DebugDivider()
+                DebugRowDivider()
             }
 
             // History Log Sync Progress Bar
@@ -612,7 +621,7 @@ fun Debug(
                         historyLogViewModel = it,
                         replaceWithPaddingWhenComplete = true
                     )
-                    DebugDivider()
+                    DebugRowDivider()
                 }
             }
 
@@ -648,7 +657,7 @@ fun Debug(
                         }
                     }
                 )
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
@@ -898,7 +907,7 @@ fun Debug(
                         clearDebugLog(context)
                     }
                 )
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
@@ -952,7 +961,7 @@ fun Debug(
                             )
                         }
                 )
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
@@ -990,7 +999,7 @@ fun Debug(
                 )
 
                 if (httpDebugApiEnabled) {
-                    DebugDivider()
+                    DebugRowDivider()
                     var username by remember { mutableStateOf(Prefs(context).httpDebugApiUsername()) }
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.debug_api_username)) },
@@ -1015,7 +1024,7 @@ fun Debug(
                             )
                         }
                     )
-                    DebugDivider()
+                    DebugRowDivider()
                     var password by remember { mutableStateOf(Prefs(context).httpDebugApiPassword()) }
                     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -1121,7 +1130,7 @@ fun Debug(
                         }
                     }
                 }
-                DebugDivider()
+                DebugRowDivider()
             }
 
             item {
