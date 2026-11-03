@@ -516,9 +516,10 @@ fun Settings(
                             )
                         },
                 )
-                SettingsRowDivider()
+                SettingsDivider()
             }
 
+            // 单独成组：自动读取历史记录（按用户要求不新增组标题，靠上下组间线区分）
             item {
                 var autoFetchHistoryLogs by remember { mutableStateOf(Prefs(context).autoFetchHistoryLogs()) }
                 ListItem(
