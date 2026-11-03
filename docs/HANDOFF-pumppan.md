@@ -26,6 +26,7 @@
 - **星期选择器**：`ControlIQSettingsActions :: SleepDaysSelector` 已落地（不依赖 `MultiDay`）。
 - **历史缓存清空**：已修复（清空后不再显示旧数据）。
 - **首页显示三项开关**（CGM 图表 / 传感器信息 / 历史同步条）：**用户本人要求新增的本地定制**，不是上游功能（设置页 UI 由 `438aa3f` 引入、`637012e` 图标化；枚举与 state 经 zh 表带入，调试页 `FeatureFlags.kt` 原本靠 `FeatureFlag.values()` 自动列出）。`8309cee` 用 `settingsOnlyFlags` 在调试页遍历里排除这三项，UI 只留设置页；枚举、`xxxState`、`initState`、`Dashboard` 消费点**一律未动**。**回退点：`FeatureFlags.kt :: settingsOnlyFlags`** —— 上游若反对/要求收敛，去掉或清空该集合即可让功能开关页重新出现三行，再移除或降级设置页那三项；回退只是 UI 位置切换，不涉及数据与逻辑。若日后纳入上游，应把设置页 UI 迁到 `FeatureFlags` 页并统一 key。
+- **历史库策略 = 全量自动拉取（C 方案）定稿（规格决策，2026-11-04）**：不采用内存环形缓冲（A：重启即空、无回填、后台断档）与有界裁剪（B：按 3h/6h 裁会让 TIR 与 24h 图表失真）。**TIR 硬约束**：`TherapyMetricsCard.kt :: TherapyMetricsCardFromDataStore` 取 `latestItemsForTypes(CgmReadingHistoryLogs, 288)` ≈ 24h（当前实现是 **24h、非多天**，仓库内无 TBR/TAR/GMI 多天统计）；**任何未来裁剪历史库的提议，必须先保证窗口 ≥ 24h + 余量（≥288 条 CGM）**，若将来引入多天统计，则按多天窗口重算。容量事实：`InitialHistoryLogCount=5000` 只是首次追赶的 seqId 跨度（不是上限）；内存只有 `recentSeqIds = LruCache(256)`（按 seqId 去重）与 `itemLruCache = LruCache(500)`（解析缓存）；Room 表 `pumpdata_historylog` 以 `["seqId","pumpSid"]` 为主键、`insert` 用 `IGNORE` 去重，**除调试 `deleteAll()` 外无任何清理，长期无界增长**（下限约 288 行/天）。
 
 ### 未完成的下一步
 
