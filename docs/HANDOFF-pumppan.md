@@ -18,7 +18,7 @@
 ### 已拍板（不再重复讨论）
 
 - **X2 全只读**：真机实测控制页全部只读、**仅大剂量可执行**；`canControlPump` 保持 `model == MOBI`，**非缺陷、勿擅自放开**；能力收窄**搁置**，等 pumpx2 按固件收敛后再评。
-- **多语 key 白名单**：`values-zh-rCN` 为唯一正式目录；mobile 1089/1083（差 6）、wear 348/347（差 1）属刻意例外，**差额扩大即报警**。
+- **多语 key 白名单**：`values-zh-rCN` 为唯一正式目录；mobile 1090/1084（差 6）、wear 348/347（差 1）属刻意例外，**差额扩大即报警**。
 - **pumpx2 版本**：维持 `1.9.0`，**暂不升级**；1.9.3 试升曾因改动过大回滚；重评条件=主线发布 ≥ `v1.9.4` 且含能力相关变更。
 - **充电图标**：改为挖空矢量并本地采用（`ce4db28`），原「禁带」已解除。
 - **`SettingsGroup`**：已删除（零调用 + 实现被否决的折叠方案）；`StatusRow` 保留并标注 0 调用。
@@ -27,6 +27,7 @@
 - **历史缓存清空**：已修复（清空后不再显示旧数据）。
 - **首页显示三项开关**（CGM 图表 / 传感器信息 / 历史同步条）：**用户本人要求新增的本地定制**，不是上游功能（设置页 UI 由 `438aa3f` 引入、`637012e` 图标化；枚举与 state 经 zh 表带入，调试页 `FeatureFlags.kt` 原本靠 `FeatureFlag.values()` 自动列出）。`8309cee` 用 `settingsOnlyFlags` 在调试页遍历里排除这三项，UI 只留设置页；枚举、`xxxState`、`initState`、`Dashboard` 消费点**一律未动**。**回退点：`FeatureFlags.kt :: settingsOnlyFlags`** —— 上游若反对/要求收敛，去掉或清空该集合即可让功能开关页重新出现三行，再移除或降级设置页那三项；回退只是 UI 位置切换，不涉及数据与逻辑。若日后纳入上游，应把设置页 UI 迁到 `FeatureFlags` 页并统一 key。
 - **历史库策略 = 全量自动拉取（C 方案）定稿（规格决策，2026-11-04）**：不采用内存环形缓冲（A：重启即空、无回填、后台断档）与有界裁剪（B：按 3h/6h 裁会让 TIR 与 24h 图表失真）。**TIR 硬约束**：`TherapyMetricsCard.kt :: TherapyMetricsCardFromDataStore` 取 `latestItemsForTypes(CgmReadingHistoryLogs, 288)` ≈ 24h（当前实现是 **24h、非多天**，仓库内无 TBR/TAR/GMI 多天统计）；**任何未来裁剪历史库的提议，必须先保证窗口 ≥ 24h + 余量（≥288 条 CGM）**，若将来引入多天统计，则按多天窗口重算。容量事实：`InitialHistoryLogCount=5000` 只是首次追赶的 seqId 跨度（不是上限）；内存只有 `recentSeqIds = LruCache(256)`（按 seqId 去重）与 `itemLruCache = LruCache(500)`（解析缓存）；Room 表 `pumpdata_historylog` 以 `["seqId","pumpSid"]` 为主键、`insert` 用 `IGNORE` 去重，**除调试 `deleteAll()` 外无任何清理，长期无界增长**（下限约 288 行/天）。
+- **术语表：历史记录 / 消息缓存 / 本地数据库 / 调试日志文件（2026-11-04）**：**历史记录** = 泵侧下载的历史流水（Room `pumpdata_historylog`，图表与 TIR 的数据源）；**消息缓存** = 调试窗口临时保存的已收消息（`DataStore.historyLogCache`，「查看消息缓存」那块）；**本地数据库** = Room/SQLite 持久层本体（清空数据库相关操作）；**调试日志文件** = Timber 文件日志。禁止再用「历史日志 / 日志缓存 / 运行日志 / 调试记录」互借。落地方式：**只改取值、不改 key**，en/zh 两侧与两处 TM CSV 同步（lab WORKLOG §75）。上游 TIR 未完成（仅 24h/288 点/70–180 占比）只记 `docs/upstream-pr-candidates.md` §8，不进界面文案。
 
 ### 未完成的下一步
 

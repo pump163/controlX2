@@ -134,3 +134,14 @@
 - **是否需纯英文 PR**：否（短 label 的 en 文案可随 PR 给默认值）。
 - **与 i18n 分支冲突**：会；本分支 `4d5fa7c`（改星期选择器 + label 缩为「生效星期」/“Active days”）、`b31e6d4`（弹窗内容改为可滚动）。
 
+---
+
+## 8. TIR 统计未完成（仅 24h）—— 已知上游缺口·不建议自建
+
+- **状态**：仅记录未修。**不建议我们在 pumppan 自建**，除非用户明确要求。
+- **问题**：首页「时间在范围内」只统计**最近 288 条** CGM 记录（每 5 分钟一点，约 24h），且只算 70–180 mg/dL 的**条数占比**（无时间加权）；**没有 TBR/TAR/GMI，也没有多天报表**。
+- **证据**：`mobile/.../cards/TherapyMetricsCard.kt :: TherapyMetricsCardFromDataStore` 第 143–146 行 `latestItemsForTypes(CgmReadingHistoryLogs, 288)`（注释 `~24h at one reading per 5 minutes`）；第 148–153 行计数逻辑；图表侧独立实现 `components/VicoCgmChart.kt :: calculateTimeInRange` 第 899–911 行；DAO `HistoryLogDao.kt :: getLatestItemsForTypes` 第 74–81 行按 `seqId DESC LIMIT` 取条数而非时间窗。
+- **影响**：关闭「自动读取历史记录」后，首页 CGM 图表与 TIR 会停在旧值，容易被误读为「血糖变稳了」；因此开关副标题已明确写出「CGM 图表与 TIR 停止更新」（`settings_auto_fetch_history_logs_sub`，不写「24 小时」，避免暗示完整 TIR 报告）。
+- **是否需纯英文 PR**：是（若上游要做完整 TIR/AGP，属功能实现而非汉化）。
+- **与 i18n 分支冲突**：低（当前仅文案）。
+
