@@ -34,7 +34,7 @@
 1. **大剂量 v2 落地**：先真机取证（`docs/feature/HTTP取证与真机点检.md`：§9 只读两项 + Debug 页 11 参约 30 行），再定发送路径 A/B（#46 阻塞项）；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §10。
 2. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板。
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 → 档 2 覆盖率 / AGP / CV / LBGI → 档 3 可视化 + 导出）；依赖 C 方案全量历史。
-4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。**另有一处同文案冲突待拍板**：`debug_get_history_logs`（拉取动作）与 `debug_view_history_log_mess`（缓存查看器）现在都显示「查看历史记录」。
+4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、声音页 X2 只读表现。
 6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（`docs/feature/泵能力收敛与自建挡板方案.md`）；是否每周巡检 pumpx2 主线 + tag。
 
@@ -145,11 +145,11 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 ### 3.3 Debug 页
 
-- **六组重排**：G1 禁用服务 / G2 支持包·发送泵消息·查看消息缓存·同步进度·查看历史记录（拉取）·查看历史记录（缓存查看器） / G3 清除调试日志文件·清空本地数据库 / G4 弹窗开关·HTTP API / G5 泵状态·泵型号覆盖 / G6 功能开关 / 页尾返回。
+- **六组重排**：G1 禁用服务 / G2 支持包·发送泵消息·查看消息缓存·同步进度·查看历史记录（拉取）·缓存查看器 / G3 清除调试日志文件·清空本地数据库 / G4 弹窗开关·HTTP API / G5 泵状态·泵型号覆盖 / G6 功能开关 / 页尾返回。
 - **支持包搬入**：`Debug.kt` 的 `showSupportBundleDialog` 所在块，弹窗正文改用既有 `settings_send_debug_files_with_logs_query`（后统一为 `debug_*` 引用），未新增 key。
 - **蓝牙监听整段注释**：`Debug.kt` 中 `FeatureFlags.ConnectionSharing` 判断整段（2026-11-03 复核：`if (FeatureFlags.ConnectionSharing ...)` 整块被注释）。原因：t:connect 共享连接已被上游关闭，`FeatureFlags.ConnectionSharing` 为 `const false`，开关已无实际用途；代码原样保留备查。
 - **三个全屏查看器暗色修复**：新增 `DebugPopupSurface`（`Debug.kt` 的 `DebugPopupSurface` 组合函数，`Surface(surface/onSurface)` + `fillMaxSize`），替换 `Color.Black/DarkGray` 半透明遮罩与 `Color.White` 白底；应用于消息缓存 / 历史记录 / 泵状态三个查看器（`DebugPopupSurface` 的三个调用点）。
-- **「查看历史记录（缓存查看器）」空数据护栏**：`Debug.kt` 中该查看器的空数据护栏（缓存为空时 Toast 提示 `debug_history_log_messages_not_loaded`，不打开弹窗），避免空白全屏遮罩 / 响应解析链上的 null 崩溃。
+- **「缓存查看器」空数据护栏**：`Debug.kt` 中该查看器的空数据护栏（缓存为空时 Toast 提示 `debug_history_log_messages_not_loaded`，不打开弹窗），避免空白全屏遮罩 / 响应解析链上的 null 崩溃。
 - **顺带修掉搬移引入的三处编译错误**：`Debug.kt` 的 `SupportBundleSummary` import 路径 `presentation.util.SupportBundleSummary`；`Debug.kt` 补 `AlertDialog` / `TextButton` import；`PumppanSettingsRows.kt` 的 key 名 `pumppan_pump_model_refresh_hint`。
 
 ### 3.4 资源与 TM

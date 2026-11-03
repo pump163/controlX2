@@ -291,7 +291,7 @@
     <string name="debug_ctrl_x2_debug_data">ControlX2 %1$s 调试数据</string>
     <string name="debug_get_history_logs">查看历史记录</string>
     <string name="debug_fetches_history_logs_within_given_range">获取指定范围内的历史记录。</string>
-    <string name="debug_view_history_log_mess">查看历史记录</string>
+    <string name="debug_view_history_log_mess">缓存查看器</string>
     <string name="debug_history_log_messages_not_loaded">尚未加载历史记录，请先「查看历史记录」拉取。</string>
     <string name="debug_qualifying_event_toasts_enabled">合格事件小弹窗已开启</string>
     <string name="debug_qualifying_event_toasts_disabled">合格事件小弹窗已关闭</string>

@@ -297,7 +297,7 @@
     <string name="debug_ctrl_x2_debug_data">ControlX2 %1$s debug data</string>
     <string name="debug_get_history_logs">Get History Records</string>
     <string name="debug_fetches_history_logs_within_given_range">Fetches history records within the given range.</string>
-    <string name="debug_view_history_log_mess">View History Records</string>
+    <string name="debug_view_history_log_mess">Cache Viewer</string>
     <string name="debug_history_log_messages_not_loaded">No history records loaded yet. Get history records first.</string>
     <string name="debug_qualifying_event_toasts_enabled">Qualifying event toasts enabled</string>
     <string name="debug_qualifying_event_toasts_disabled">Qualifying event toasts disabled</string>
