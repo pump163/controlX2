@@ -812,6 +812,16 @@
     <string name="sound_scope_alarm">警报</string>
     <string name="sound_scope_cgm">CGM 警报</string>
     <string name="sound_raw_mask">原始值</string>
+    <string name="sound_option_high">高音量</string>
+    <string name="sound_option_medium">中音量</string>
+    <string name="sound_option_low">低音量</string>
+    <string name="sound_option_vibrate">振动</string>
+    <string name="sound_option_unknown">未知</string>
+    <string name="sound_cgm_option_beep">蜂鸣</string>
+    <string name="sound_cgm_option_hypo_repeat">低血糖重复</string>
+    <string name="sound_cgm_a_fixed_value">固定为 0（泵接口约定）</string>
+    <string name="sound_apply_sent">已发送，正在回读…</string>
+    <string name="sound_invalid_value">提示音取值无效，未发送</string>
     <string name="sound_apply_sound_settings">应用声音设置</string>
     <string name="sound_send_set_pump_sounds_request_withse">使用这些值发送 SetPumpSoundsRequest</string>
     <string name="sound_alert_snooze">警报暂停提醒</string>

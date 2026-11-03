@@ -11,22 +11,27 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -47,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -158,7 +164,6 @@ fun SoundSettingsActions(
     var reminderText by remember { mutableStateOf("") }
     var alertText by remember { mutableStateOf("") }
     var alarmText by remember { mutableStateOf("") }
-    var cgmAText by remember { mutableStateOf("") }
     var cgmBText by remember { mutableStateOf("") }
     // CGM 警报 B 的当前值不在 PumpGlobals 中上报，故以「上次发送值」为基线判断是否改动。
     // 位定义与「改 CGM 需置位 64」均为逆向推断，待真机验证。
@@ -193,6 +198,11 @@ fun SoundSettingsActions(
     }
     val changeBitmask = SetPumpSoundsRequest.ChangeBitmask.toBitmask(*changeScopes.toTypedArray())
 
+    // 发送前校验：提示音取值为 0..3，CGM 警报 B 仅允许 0（振动）/2（蜂鸣）/3（低血糖重复）
+    val soundValuesValid = listOf(quickBolusText, generalText, reminderText, alertText, alarmText)
+        .all { it.toIntOrNull()?.let { value -> value in 0..3 } == true } &&
+        cgmBText.toIntOrNull()?.let { it == 0 || it == 2 || it == 3 } == true
+
     LaunchedEffect(pumpGlobals.value) {
         pumpGlobals.value?.let { globals ->
             quickBolusText = globals.quickBolusAnnun.id().toString()
@@ -200,9 +210,6 @@ fun SoundSettingsActions(
             reminderText = globals.reminderAnnun.id().toString()
             alertText = globals.alertAnnun.id().toString()
             alarmText = globals.alarmAnnun.id().toString()
-            if (cgmAText.isBlank()) {
-                cgmAText = "0"
-            }
             if (cgmBText.isBlank()) {
                 cgmBText = "0"
             }
@@ -240,65 +247,61 @@ fun SoundSettingsActions(
                 }
                 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_quick_bolus_annunciation),
                         value = quickBolusText,
-                        onValueChange = { quickBolusText = it },
-                        enumValue = annunciationLabel(quickBolusText)
+                        onSelect = { quickBolusText = it }
                     )
                 }
 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_general_annunciation),
                         value = generalText,
-                        onValueChange = { generalText = it },
-                        enumValue = annunciationLabel(generalText)
+                        onSelect = { generalText = it }
                     )
                 }
 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_remind_annunciation),
                         value = reminderText,
-                        onValueChange = { reminderText = it },
-                        enumValue = annunciationLabel(reminderText)
+                        onSelect = { reminderText = it }
                     )
                 }
 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_alert_annunciation),
                         value = alertText,
-                        onValueChange = { alertText = it },
-                        enumValue = annunciationLabel(alertText)
+                        onSelect = { alertText = it }
                     )
                 }
 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_alarm_annunciation),
                         value = alarmText,
-                        onValueChange = { alarmText = it },
-                        enumValue = annunciationLabel(alarmText)
+                        onSelect = { alarmText = it }
                     )
                 }
 
                 item {
-                    SoundSettingField(
-                        label = stringResource(R.string.sound_cgm_alert_annunciation),
-                        value = cgmAText,
-                        onValueChange = { cgmAText = it },
-                        enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
+                    // CGM 警报 A 在泵接口中恒为 0，不提供编辑
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.sound_cgm_alert_annunciation)) },
+                        supportingContent = { Text(stringResource(R.string.sound_cgm_a_fixed_value)) },
+                        trailingContent = { Text("0") }
                     )
                 }
 
                 item {
-                    SoundSettingField(
+                    SoundLevelField(
                         label = stringResource(R.string.sound_cgm_alert_annunciation_b),
                         value = cgmBText,
-                        onValueChange = { cgmBText = it },
-                        enumValue = cgmAnnunciationLabel(cgmAText, cgmBText)
+                        options = listOf(0, 2, 3),
+                        optionLabel = { cgmAnnunciationOptionLabel(it) },
+                        onSelect = { cgmBText = it }
                     )
                 }
 
@@ -340,20 +343,38 @@ fun SoundSettingsActions(
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.sound_apply_sound_settings)) },
                         supportingContent = { Text(context.getString(R.string.sound_send_set_pump_sounds_request_withse)) },
-                        leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Settings,
+                                contentDescription = stringResource(R.string.sound_apply_sound_settings)
+                            )
+                        },
                         modifier = Modifier.clickable {
+                            if (!soundValuesValid) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.sound_invalid_value),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@clickable
+                            }
                             val message = SetPumpSoundsRequest(
-                                quickBolusText.toIntOrNull() ?: 0,
-                                generalText.toIntOrNull() ?: 0,
-                                reminderText.toIntOrNull() ?: 0,
-                                alertText.toIntOrNull() ?: 0,
-                                alarmText.toIntOrNull() ?: 0,
-                                cgmAText.toIntOrNull() ?: 0,
-                                cgmBText.toIntOrNull() ?: 0,
+                                quickBolusText.toInt(),
+                                generalText.toInt(),
+                                reminderText.toInt(),
+                                alertText.toInt(),
+                                alarmText.toInt(),
+                                0, // CGM 警报 A 固定为 0（泵接口约定，逆向推断）
+                                cgmBText.toInt(),
                                 changeBitmask,
                             )
                             sendPumpCommands(SendType.STANDARD, listOf(message))
                             cgmBBaseline = cgmBText
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.sound_apply_sent),
+                                Toast.LENGTH_SHORT
+                            ).show()
 
                             refreshScope.launch {
                                 delay(500)
@@ -379,7 +400,12 @@ fun SoundSettingsActions(
                             supportingContent = {
                                 Text(context.getString(R.string.sound_config_triple_press_snooze))
                             },
-                            leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Filled.Settings,
+                                    contentDescription = context.getString(R.string.sound_button_snooze)
+                                )
+                            },
                             modifier = Modifier.clickable {
                                 showAlertSnoozeDialog = true
                             }
@@ -391,7 +417,12 @@ fun SoundSettingsActions(
                 item {
                     ListItem(
                         headlineContent = { Text(context.getString(R.string.sound_back)) },
-                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.ArrowBack,
+                                contentDescription = context.getString(R.string.sound_back)
+                            )
+                        },
                         modifier = Modifier.clickable(onClick = navigateBack),
                     )
                 }
@@ -425,10 +456,15 @@ fun SoundSettingsActions(
                             listOf(10, 20).forEach { mins ->
                                 TextButton(
                                     onClick = { alertSnoozeDuration = mins },
+                                    modifier = Modifier.heightIn(min = 48.dp),
                                 ) {
                                     Text(
                                         stringResource(R.string.sound_min, mins),
-                                        color = if (alertSnoozeDuration == mins) Color.Blue else Color.Gray
+                                        color = if (alertSnoozeDuration == mins) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                 }
                             }
@@ -460,38 +496,69 @@ fun SoundSettingsActions(
 }
 
 @Composable
-private fun SoundSettingField(
+private fun SoundLevelField(
     label: String,
     value: String,
-    onValueChange: (String) -> Unit,
-    enumValue: String,
+    options: List<Int> = listOf(0, 1, 2, 3),
+    optionLabel: @Composable (Int?) -> String = { annunciationOptionLabel(it) },
+    onSelect: (String) -> Unit,
 ) {
+    var expanded by remember { mutableStateOf(false) }
     ListItem(
         headlineContent = { Text(label) },
         supportingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    label = { Text(stringResource(R.string.sound_value)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-                if (enumValue.isNotBlank()) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { expanded = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                ) {
                     Text(
-                        text = enumValue,
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .weight(1f)
+                        text = optionLabel(value.toIntOrNull()),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Start
                     )
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(optionLabel(option)) },
+                            onClick = {
+                                onSelect(option.toString())
+                                expanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
     )
+}
+
+@Composable
+private fun annunciationOptionLabel(value: Int?): String {
+    return when (value) {
+        0 -> stringResource(R.string.sound_option_high)
+        1 -> stringResource(R.string.sound_option_medium)
+        2 -> stringResource(R.string.sound_option_low)
+        3 -> stringResource(R.string.sound_option_vibrate)
+        else -> stringResource(R.string.sound_option_unknown)
+    }
+}
+
+@Composable
+private fun cgmAnnunciationOptionLabel(value: Int?): String {
+    return when (value) {
+        0 -> stringResource(R.string.sound_option_vibrate)
+        2 -> stringResource(R.string.sound_cgm_option_beep)
+        3 -> stringResource(R.string.sound_cgm_option_hypo_repeat)
+        else -> stringResource(R.string.sound_option_unknown)
+    }
 }
 
 @Composable
@@ -506,20 +573,7 @@ private fun scopeLabel(scope: SetPumpSoundsRequest.ChangeBitmask): String {
     }
 }
 
-private fun annunciationLabel(value: String): String {
-    val parsed = value.toIntOrNull()
-    return if (parsed != null) PumpGlobalsResponse.AnnunciationEnum.fromId(parsed)?.name ?: "Unknown" else "Unknown"
-}
 
-private fun cgmAnnunciationLabel(valueA: String, valueB: String): String {
-    val a = valueA.toIntOrNull()
-    val b = valueB.toIntOrNull()
-    return if (a != null && b != null) {
-        SetPumpSoundsRequest.CgmAlertAnnunciationEnum.fromIds(a, b)?.name ?: "Unknown"
-    } else {
-        "Unknown"
-    }
-}
 
 val soundSettingsActionsCommands = listOf(
     PumpGlobalsRequest(),

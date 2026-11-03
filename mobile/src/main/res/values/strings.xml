@@ -818,6 +818,16 @@
     <string name="sound_scope_alarm">Alarm</string>
     <string name="sound_scope_cgm">CGM alert</string>
     <string name="sound_raw_mask">Raw value</string>
+    <string name="sound_option_high">High volume</string>
+    <string name="sound_option_medium">Medium volume</string>
+    <string name="sound_option_low">Low volume</string>
+    <string name="sound_option_vibrate">Vibrate</string>
+    <string name="sound_option_unknown">Unknown</string>
+    <string name="sound_cgm_option_beep">Beep</string>
+    <string name="sound_cgm_option_hypo_repeat">Low glucose repeat</string>
+    <string name="sound_cgm_a_fixed_value">Fixed to 0 by the pump interface</string>
+    <string name="sound_apply_sent">Sent, reading back…</string>
+    <string name="sound_invalid_value">Invalid sound value, nothing sent</string>
     <string name="sound_apply_sound_settings">Apply sound settings</string>
     <string name="sound_send_set_pump_sounds_request_withse">Send SetPumpSoundsRequest with these values</string>
     <string name="sound_alert_snooze">Alert Snooze</string>
