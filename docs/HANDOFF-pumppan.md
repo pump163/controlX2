@@ -2,7 +2,7 @@
 
 > 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：`df55e2d`（2026-11-03 收尾；本快照为紧随其后的 docs-only 提交，接手时以 `git log -1` 为准）
+> 当前 HEAD：以 `git log -1` 为准（本文件更新前为 `ec97202`，2026-11-04 工作清单归档）
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
@@ -11,9 +11,9 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `df55e2d` | 硬约束补记 X2 全只读口径（`0e4da8b` 之前还有 `316b35a` 文档符号锚、`dd623ea` 删 `SettingsGroup`、`9228c76` 标注 `StatusRow`） |
+| pumppan | `pumppan` | `ec97202` | 2026-11-04：术语收敛 `9c392f0`、TIR 远期目标 `aa07d41`、工作清单 `ec97202`（11-03 收尾为 `df55e2d`） |
 | i18n main | `main` | `7be32df` | 新增《泵能力收敛与自建挡板方案》并登记状态索引 |
-| lab | `assets` | `568fa40` | WORKLOG §68 登记两条拍板决定与 pumpx2 长期观察项 |
+| lab | `assets` | `e38ff8f` | WORKLOG §75–§77（术语收敛 / TIR 多日远期目标 / 工作清单归档） |
 
 ### 已拍板（不再重复讨论）
 
@@ -31,11 +31,14 @@
 
 ### 未完成的下一步
 
-1. **大剂量功能设计**：已落盘为 v2 讨论稿，**未动代码，待推进** —— `docs/feature/大剂量功能设计-v2.md`（2026-11-03，讨论稿；旧稿 `docs/feature/大剂量功能设计.md` 为 2026-09 历史版本）。续接点见该文 §10：先做真机取证（§9 只读两项 + Debug 页 11 参约 30 行），再定发送路径 A/B（#46 阻塞项）。
-2. 能力表是否动工：先做 `shared` 侧 `CapabilityRegistry` **只读骨架**（见 `docs/feature/泵能力收敛与自建挡板方案.md`）。
-3. 是否设周期性巡检（建议每周看 pumpx2 主线 + tag）。
-4. `docs/feature` 复核后续：冲突区已全部裁决，剩余为实施跟踪。
-5. 真机待验：清空缓存后重拉、充电图标暗色可读性、声音页 X2 只读表现。
+1. **大剂量 v2 落地**：先真机取证（`docs/feature/HTTP取证与真机点检.md`：§9 只读两项 + Debug 页 11 参约 30 行），再定发送路径 A/B（#46 阻塞项）；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §10。
+2. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板。
+3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 → 档 2 覆盖率 / AGP / CV / LBGI → 档 3 可视化 + 导出）；依赖 C 方案全量历史。
+4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。**另有一处同文案冲突待拍板**：`debug_get_history_logs`（拉取动作）与 `debug_view_history_log_mess`（缓存查看器）现在都显示「查看历史记录」。
+5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、声音页 X2 只读表现。
+6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（`docs/feature/泵能力收敛与自建挡板方案.md`）；是否每周巡检 pumpx2 主线 + tag。
+
+> 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/工作清单-2026-11-02至04.md`，HANDOFF 不再重复维护。
 
 ### 已知基线失败
 
@@ -45,7 +48,7 @@
 
 ## 一句话现状
 
-pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造」，`:mobile:compileDebugKotlin` 通过。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装），**2026-11-03 之后的改动尚未重新出包**（用户要求暂不出版本包）。待真机复核暗色表现。
+pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 历史库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装），**2026-11-03 之后（含 11-04）的改动尚未重新出包**（用户要求暂不出版本包）。
 
 ---
 
@@ -134,19 +137,19 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 ### 3.2 设置页
 
-- **重排与分隔线**：`Settings.kt` 的 `SettingsDivider()`（2026-11-03 复核：只有分隔线做视觉分组 + 1 处组标题，没有多组标题结构）（`1.dp` + `outlineVariant.copy(alpha = 0.38f)`，无额外留白），全页 17 处分隔线一致。
-- **顺序**（最终渲染）：语言 → 启用服务 → 强制重载 → 重新配置泵 → 重新配置应用 → 泵主机设备 → 重置 → 大剂量按钮 → 临时基础率按钮 → 首页显示（3 开关）→ Nightscout → xDrip → 调试选项。
+- **重排与分隔线**：`Settings.kt` 两档，组间 `SettingsDivider()`（1.5dp + `colorScheme.outline`，与控制页 `GroupBoundary` 同规格）、组内 `SettingsRowDivider()`（0.5dp + `colorScheme.outlineVariant`，与 `GroupDivider` 同规格），均无额外留白；全页 8 处组间线、12 处组内线。无组标题（「首页显示」标题按用户要求注释保留、不渲染）。
+- **顺序**（最终渲染）：语言 → 启用服务 → 强制重载 → 重新配置泵 → 重新配置应用 → 泵主机设备 → 重置 → 大剂量按钮 → 临时基础率按钮 → 首页显示（3 开关）→ 自动读取历史记录（单独成组）→ Nightscout → xDrip → 调试选项。
 - **支持包搬家**：菜单与弹窗移到 Debug 页（`Debug.kt` 的 `showSupportBundleDialog` 所在块），资源 key **不改名**，仍用 `settings_*`；设置页整块以注释保留（`Settings.kt` 中标记 `// 已搬去 Debug 页` 的两处注释块）。
 - **常驻通知两行开关**：搬至 Nightscout 之前，原位置注释保留（`Settings.kt` 中标记 `// 已移至 Nightscout 前` 的注释块）。
 - **首页显示三开关**：`Settings.kt` 的「首页显示」开关区；后端 `FeatureFlag.kt` 的枚举 + `defaultValue` + 全局 `mutableStateOf` + `set()` 同步写 Prefs（`cgmChartVisibleState` / `sensorInfoCardVisibleState` / `historyLogSyncBarVisibleState`）；消费点 `Dashboard.kt` 的 CGM 图表 / 传感器卡 / 历史同步条三处；启动初始化 `PumppanApplication` 的 `FeatureFlag.initState(this)`。
 
 ### 3.3 Debug 页
 
-- **六组重排**：G1 禁用服务 / G2 支持包·发送泵消息·接收缓存·同步进度·查看历史日志·显示泵运行日志 / G3 清除日志·清空数据库 / G4 弹窗开关·HTTP API / G5 泵状态·泵型号覆盖 / G6 功能开关 / 页尾返回。
+- **六组重排**：G1 禁用服务 / G2 支持包·发送泵消息·查看消息缓存·同步进度·查看历史记录（拉取）·查看历史记录（缓存查看器） / G3 清除调试日志文件·清空本地数据库 / G4 弹窗开关·HTTP API / G5 泵状态·泵型号覆盖 / G6 功能开关 / 页尾返回。
 - **支持包搬入**：`Debug.kt` 的 `showSupportBundleDialog` 所在块，弹窗正文改用既有 `settings_send_debug_files_with_logs_query`（后统一为 `debug_*` 引用），未新增 key。
 - **蓝牙监听整段注释**：`Debug.kt` 中 `FeatureFlags.ConnectionSharing` 判断整段（2026-11-03 复核：`if (FeatureFlags.ConnectionSharing ...)` 整块被注释）。原因：t:connect 共享连接已被上游关闭，`FeatureFlags.ConnectionSharing` 为 `const false`，开关已无实际用途；代码原样保留备查。
-- **三个全屏查看器暗色修复**：新增 `DebugPopupSurface`（`Debug.kt` 的 `DebugPopupSurface` 组合函数，`Surface(surface/onSurface)` + `fillMaxSize`），替换 `Color.Black/DarkGray` 半透明遮罩与 `Color.White` 白底；应用于接收缓存 / 历史日志 / 泵状态三个查看器（`DebugPopupSurface` 的三个调用点）。
-- **「显示泵运行日志」空数据护栏**：`Debug.kt` 中「显示泵运行日志」的空数据护栏（缓存为空时 Toast 提示 `debug_history_log_messages_not_loaded`，不打开弹窗），避免空白全屏遮罩 / 响应解析链上的 null 崩溃。
+- **三个全屏查看器暗色修复**：新增 `DebugPopupSurface`（`Debug.kt` 的 `DebugPopupSurface` 组合函数，`Surface(surface/onSurface)` + `fillMaxSize`），替换 `Color.Black/DarkGray` 半透明遮罩与 `Color.White` 白底；应用于消息缓存 / 历史记录 / 泵状态三个查看器（`DebugPopupSurface` 的三个调用点）。
+- **「查看历史记录（缓存查看器）」空数据护栏**：`Debug.kt` 中该查看器的空数据护栏（缓存为空时 Toast 提示 `debug_history_log_messages_not_loaded`，不打开弹窗），避免空白全屏遮罩 / 响应解析链上的 null 崩溃。
 - **顺带修掉搬移引入的三处编译错误**：`Debug.kt` 的 `SupportBundleSummary` import 路径 `presentation.util.SupportBundleSummary`；`Debug.kt` 补 `AlertDialog` / `TextButton` import；`PumppanSettingsRows.kt` 的 key 名 `pumppan_pump_model_refresh_hint`。
 
 ### 3.4 资源与 TM
@@ -166,11 +169,13 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 ## 4. 未完成 / 待办
 
+> 2026-11-04 起的统一待办见 `docs/工作清单-2026-11-02至04.md`；本节保留 2026-11-03 快照细节。
+
 | 项 | 说明 |
 |----|------|
 | 真机暗色复核 | `DebugPopupSurface` 只换了主题 token，浅色/暗色两套都要实机看：三查看器的 ✕/导出按钮、筛选框标签、条目计数条 |
 | 测试 | `:mobile:compileDebugKotlin` 通过，但**未跑单测 / roborazzi 截图测试** |
-| Debug 页遗留缺陷 | 硬编码英文 Toast（HTTP Debug API 启停、资格事件）；清除调试日志成功后无反馈；同步泵时间失败走 5 秒静默降级；过滤框把输入直接当过滤值（非崩溃诱因，仅交互瑕疵）〔2026-11-03 复核：同步进度条 50dp 空白已修，`HistoryLogSyncProgressBar.kt` 完成态提前 `return`〕 |
+| Debug 页遗留缺陷 | 同步泵时间失败走 5 秒静默降级；过滤框把输入直接当过滤值（非崩溃诱因，仅交互瑕疵）〔2026-11-04 复核：HTTP API 启停 / 资格事件 / 清除调试日志均已改用资源并带反馈（`be6a92e`）；同步进度条 50dp 空白已修，`HistoryLogSyncProgressBar.kt` 完成态提前 `return`〕 |
 | TIR 适配 | 迁移清单 **B5 已完成**（`TherapyMetricsCard :: TherapyMetricsCardFromDataStore`，最近 288 条 CGM 读数实算） |
 | TM 边界 | pumppan 定制 key 只进 `i18n-pumppan` TM，主 TM 保持干净 |
 | wip 三件套 | 按设计重做，不继承旧分支实现 |
