@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -61,6 +62,7 @@ import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.SetMaxBasalLimitRequest
@@ -255,19 +257,24 @@ fun SafetyLimitsActions(
             onDismissRequest = { showMaxBolusDialog = false },
             title = { Text(stringResource(R.string.safety_limits_set_maximum_bolus)) },
             text = {
-                if (!canControl) {
-                    val reasonModel = determinePumpModel(deviceName.value ?: "")
-                    if (reasonModel != null) {
-                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                Column {
+                    if (!canControl) {
+                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                        if (reasonModel != null) {
+                            Text(
+                                stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(reasonModel)),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
                     }
+                    OutlinedTextField(
+                        value = maxBolusText,
+                        onValueChange = { maxBolusText = it },
+                        label = { Text(stringResource(R.string.safety_limits_max_bolus_units_1_25)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-                OutlinedTextField(
-                    value = maxBolusText,
-                    onValueChange = { maxBolusText = it },
-                    label = { Text(stringResource(R.string.safety_limits_max_bolus_units_1_25)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
             },
             confirmButton = {
                 TextButton(
@@ -310,19 +317,24 @@ fun SafetyLimitsActions(
             onDismissRequest = { showMaxBasalDialog = false },
             title = { Text(stringResource(R.string.safety_limits_set_maximum_basal_rate)) },
             text = {
-                if (!canControl) {
-                    val reasonModel = determinePumpModel(deviceName.value ?: "")
-                    if (reasonModel != null) {
-                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                Column {
+                    if (!canControl) {
+                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                        if (reasonModel != null) {
+                            Text(
+                                stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(reasonModel)),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
                     }
+                    OutlinedTextField(
+                        value = maxBasalText,
+                        onValueChange = { maxBasalText = it },
+                        label = { Text(stringResource(R.string.safety_limits_max_basal_rate_u_hr_1_15)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
-                OutlinedTextField(
-                    value = maxBasalText,
-                    onValueChange = { maxBasalText = it },
-                    label = { Text(stringResource(R.string.safety_limits_max_basal_rate_u_hr_1_15)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
             },
             confirmButton = {
                 TextButton(

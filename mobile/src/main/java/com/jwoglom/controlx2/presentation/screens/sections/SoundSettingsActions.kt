@@ -67,6 +67,7 @@ import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetPumpAlertSnoozeRequest
@@ -314,8 +315,8 @@ fun SoundSettingsActions(
                             if (!canControl && reasonModel != null) {
                                 Text(
                                     stringResource(
-                                        R.string.sound_control_unsupported_view_only,
-                                        reasonModel
+                                        R.string.pumppan_model_unsupported_setting,
+                                        pumpModelDisplayName(reasonModel)
                                     )
                                 )
                             } else {

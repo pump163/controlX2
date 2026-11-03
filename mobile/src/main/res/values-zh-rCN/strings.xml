@@ -161,7 +161,6 @@
     <string name="bolus_cgm_unit_abbrev">CGM (%1$s)</string>
     <string name="bolus_bolus">大剂量</string>
     <string name="cgm_actions">CGM 设置</string>
-    <string name="cgm_control_is_not_supported_on_device_model">此型号的设备（%1$s）不支持 CGM 设置。</string>
     <string name="cgm_dexcom_g6_stop_cgm_sensor">Dexcom G6：停止 CGM 传感器</string>
     <string name="cgm_dexcom_g6_start_cgm_sensor">Dexcom G6：启动 CGM 传感器</string>
     <string name="cgm_dexcom_g6_cgm_sensor_state">Dexcom G6 CGM 传感器状态：%1$s</string>
@@ -183,7 +182,6 @@
     <string name="cgm_to_start_cgm_session_enter_sensor_code">启动 CGM 会话前，请输入传感器代码：</string>
     <string name="cgm_back">返回</string>
     <string name="cartridge_actions">储药器设置</string>
-    <string name="cartridge_insulin_control_unsupported_model">此型号的设备（%1$s）不支持泵控制。</string>
     <string name="cartridge_change_cartridge">更换储药器</string>
     <string name="cartridge_fill_tubing">充盈导管</string>
     <string name="cartridge_fill_cannula">充盈插管</string>
@@ -586,7 +584,6 @@
     <string name="setup_saved_pin_was_invalid_been_sanitized">已保存的 PIN 无效，已被清除。</string>
     <string name="setup_clear_saved_pin">清除已保存的 PIN</string>
     <string name="profile_actions">配置文件设置</string>
-    <string name="profile_control_unsupported_view_only">此型号的设备（%1$s）不支持配置文件设置，仅可查看配置文件。</string>
     <string name="profile_no_profiles_present">无配置文件</string>
     <string name="profile_configure_at_least_one_first">请至少配置一个配置文件以继续</string>
     <string name="profile_idp_id_in_slot">IDP ID %1$s，插槽 %2$s</string>
@@ -825,7 +822,6 @@
     <string name="sound_invalid_value">提示音取值无效，未发送</string>
     <string name="sound_apply_sound_settings">应用声音设置</string>
     <string name="sound_send_set_pump_sounds_request_withse">使用这些值发送 SetPumpSoundsRequest</string>
-    <string name="sound_control_unsupported_view_only">此设备型号（%1$s）不支持修改声音设置，当前值只读。</string>
     <string name="sound_alert_snooze">警报暂停提醒</string>
     <string name="sound_button_snooze">按键暂停提醒</string>
     <string name="sound_config_triple_press_snooze">配置三击按键以暂停警报</string>
@@ -1081,5 +1077,8 @@
     <string name="pumppan_pump_model_auto">自动（按实际）</string>
     <string name="pumppan_pump_model_mobi">Mobi</string>
     <string name="pumppan_pump_model_slimx2">t:slim X2</string>
+    <string name="pumppan_model_unsupported_setting">型号(%1$s)不支持本设置</string>
+    <string name="pumppan_toggle_on">已开启</string>
+    <string name="pumppan_toggle_off">已关闭</string>
     <string name="pumppan_model_mismatch_warning">%1$s（显示的泵型号）与您的实际泵型号（%2$s）不符，后果自负！泵请勿连接人体！如果泵出现故障（MALFUNCTION）屏幕，说明泵检测到系统错误并已停止所有输注：请记下屏幕上的故障代码，点击警报静音，然后联系客户技术支持。若泵无响应，可尝试将其置于储存模式以恢复：连接电源，按住屏幕打开/快速大剂量按钮 30 秒，泵会发出 3 次蜂鸣声后进入储存模式，再从电源上断开；要使泵退出储存模式，只需重新连接电源。这不保证能排除泵的系统错误，请做好永久失去您的泵的准备！</string>
 </resources>

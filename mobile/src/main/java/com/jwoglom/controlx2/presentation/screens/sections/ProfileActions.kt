@@ -78,6 +78,7 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.controlx2.shared.util.canControlPump
 
 import com.pumppan.controlx2.ui.rowTitleColor
@@ -119,7 +120,7 @@ fun ProfileActions(
     val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
     val readonlyReason = if (!canControl) {
         determinePumpModel(deviceName.value ?: "")?.let {
-            stringResource(R.string.cartridge_insulin_control_unsupported_model, it)
+            stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(it))
         }
     } else null
 
@@ -228,7 +229,7 @@ fun ProfileActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line(stringResource(R.string.profile_control_unsupported_view_only, model))
+                        Line(stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(model)))
                         Line("")
                     }
                 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -62,6 +63,7 @@ import com.jwoglom.controlx2.shared.enums.CGMSessionState
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
@@ -186,7 +188,7 @@ fun CGMActions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line(context.getString(R.string.cgm_control_is_not_supported_on_device_model, model))
+                        Line(context.getString(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(context, model)))
                         Line("")
                     }
                 }
@@ -238,13 +240,6 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_start_g6_cgm_session))
                                 },
                                 text = {
-                                    if (!canControl) {
-                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
-                                        if (reasonModel != null) {
-                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
-                                            Text("\n")
-                                        }
-                                    }
                                     LazyColumn(
                                         contentPadding = innerPadding,
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -252,6 +247,17 @@ fun CGMActions(
                                             .fillMaxWidth()
                                             .padding(horizontal = 0.dp),
                                         content = {
+                                            if (!canControl) {
+                                                val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                                if (reasonModel != null) {
+                                                    item {
+                                                        Text(
+                                                            context.getString(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(context, reasonModel)),
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             if (startG6CgmSessionInProgressTxId == null) {
                                                 item {
                                                     Text(context.getString(R.string.cgm_to_start_cgm_session_confirm))
@@ -356,14 +362,18 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_stop_g6_cgm_session))
                                 },
                                 text = {
-                                    if (!canControl) {
-                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
-                                        if (reasonModel != null) {
-                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
-                                            Text("\n")
+                                    Column {
+                                        if (!canControl) {
+                                            val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                            if (reasonModel != null) {
+                                                Text(
+                                                    context.getString(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(context, reasonModel)),
+                                                    modifier = Modifier.padding(bottom = 8.dp)
+                                                )
+                                            }
                                         }
+                                        Text(context.getString(R.string.cgm_dexcom_g6_sensor_will_be_stopped))
                                     }
-                                    Text(context.getString(R.string.cgm_dexcom_g6_sensor_will_be_stopped))
                                 },
                                 dismissButton = {
                                     TextButton(
@@ -456,13 +466,6 @@ fun CGMActions(
                                     Text(context.getString(R.string.cgm_start_g7_cgm_session))
                                 },
                                 text = {
-                                    if (!canControl) {
-                                        val reasonModel = determinePumpModel(deviceName.value ?: "")
-                                        if (reasonModel != null) {
-                                            Text(context.getString(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
-                                            Text("\n")
-                                        }
-                                    }
                                     LazyColumn(
                                         contentPadding = innerPadding,
                                         verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -470,6 +473,17 @@ fun CGMActions(
                                             .fillMaxWidth()
                                             .padding(horizontal = 0.dp),
                                         content = {
+                                            if (!canControl) {
+                                                val reasonModel = determinePumpModel(deviceName.value ?: "")
+                                                if (reasonModel != null) {
+                                                    item {
+                                                        Text(
+                                                            context.getString(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(context, reasonModel)),
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             item {
                                                 Text(context.getString(R.string.cgm_to_start_cgm_session_enter_sensor_code))
                                                 Text("\n")

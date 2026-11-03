@@ -71,6 +71,7 @@ import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
@@ -326,13 +327,18 @@ fun ControlIQSettingsActions(
             onDismissRequest = { showChangeControlIQDialog = false },
             title = { Text(stringResource(R.string.ciq_change_ciq_settings)) },
             text = {
-                if (!canControl) {
-                    val reasonModel = determinePumpModel(deviceName.value ?: "")
-                    if (reasonModel != null) {
-                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
-                    }
-                }
+                // AlertDialog 的 text 槽内部是 Box：多个根节点会层叠（原因文案会压住下面的开关行），
+                // 统一收进单个 Column，高度随内容自适应
                 Column {
+                    if (!canControl) {
+                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                        if (reasonModel != null) {
+                            Text(
+                                stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(reasonModel)),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
@@ -402,7 +408,10 @@ fun ControlIQSettingsActions(
                     if (!canControl) {
                         val reasonModel = determinePumpModel(deviceName.value ?: "")
                         if (reasonModel != null) {
-                            Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                            Text(
+                                stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(reasonModel)),
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
                         }
                     }
                     Row(

@@ -24,6 +24,7 @@ import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.presentation.components.Line
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import androidx.compose.ui.res.stringResource
 import com.jwoglom.controlx2.R
@@ -54,7 +55,7 @@ fun CartridgeActionsMenuScreen(
 
             val model = determinePumpModel(deviceName)
             if (model == KnownDeviceModel.TSLIM_X2) {
-                Line(stringResource(R.string.cartridge_insulin_control_unsupported_model, model))
+                Line(stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(model)))
                 Line("")
             }
         }

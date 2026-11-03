@@ -56,6 +56,7 @@ import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
@@ -497,7 +498,7 @@ private fun resolveCartridgeMenuAvailability(
 ): CartridgeMenuAvailability {
     // 药筒/填充在 X2 上无法远程操作（FillCannulaRequest 在 pumpx2 里是 MOBI_ONLY）
     if (!canControlPump(model)) {
-        val reason = model?.let { context.getString(R.string.cartridge_insulin_control_unsupported_model, it) }
+        val reason = model?.let { context.getString(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(context, it)) }
         return CartridgeMenuAvailability(false, false, false, reason, reason, reason)
     }
     if (requiredSubScreen == null) {

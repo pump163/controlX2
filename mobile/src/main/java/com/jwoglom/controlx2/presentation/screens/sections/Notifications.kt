@@ -56,6 +56,7 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.controlx2.shared.util.canControlPump
 
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -178,7 +179,7 @@ fun Notifications(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line(stringResource(R.string.notifications_cannot_dismiss_on_model, model))
+                        Line(stringResource(R.string.notifications_cannot_dismiss_on_model, pumpModelDisplayName(model)))
                         Line("")
                     }
                 }
