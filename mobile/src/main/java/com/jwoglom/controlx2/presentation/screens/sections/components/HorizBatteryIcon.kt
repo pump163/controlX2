@@ -13,12 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.jwoglom.controlx2.R
 import androidx.compose.ui.res.stringResource
 
@@ -41,30 +39,11 @@ fun HorizBatteryIcon(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    getPainterForBatteryPercent(it),
+                    getPainterForBatteryPercent(it, batteryCharging == true),
                     stringResource(R.string.common_battery_icon),
                     tint = color,
                     modifier = modifier.height(height)
                 )
-                if (batteryCharging == true) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(height)
-                    ) {
-                        Text(
-                            when (batteryCharging) {
-                                true -> " ⚡"
-                                else -> ""
-                            },
-                            color = color,
-                            textAlign = TextAlign.Center,
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 24.sp
-                        )
-                    }
-                }
             }
             // HACK: text should be aligned with the icon as-is...
             Box(
@@ -82,15 +61,26 @@ fun HorizBatteryIcon(
 }
 
 @Composable
-fun getPainterForBatteryPercent(batteryPercent: Int): Painter {
+fun getPainterForBatteryPercent(batteryPercent: Int, charging: Boolean = false): Painter {
     return painterResource(
-        when {
-            batteryPercent >= 80 -> R.drawable.battery_horiz_100
-            batteryPercent >= 60 -> R.drawable.battery_horiz_075
-            batteryPercent >= 40 -> R.drawable.battery_horiz_050
-            batteryPercent >= 25 -> R.drawable.battery_horiz_025
-            batteryPercent >= 10 -> R.drawable.battery_horiz_010
-            else -> R.drawable.battery_horiz_000
+        if (charging) {
+            when {
+                batteryPercent >= 80 -> R.drawable.battery_horiz_100_charging
+                batteryPercent >= 60 -> R.drawable.battery_horiz_075_charging
+                batteryPercent >= 40 -> R.drawable.battery_horiz_050_charging
+                batteryPercent >= 25 -> R.drawable.battery_horiz_025_charging
+                batteryPercent >= 10 -> R.drawable.battery_horiz_010_charging
+                else -> R.drawable.battery_horiz_000_charging
+            }
+        } else {
+            when {
+                batteryPercent >= 80 -> R.drawable.battery_horiz_100
+                batteryPercent >= 60 -> R.drawable.battery_horiz_075
+                batteryPercent >= 40 -> R.drawable.battery_horiz_050
+                batteryPercent >= 25 -> R.drawable.battery_horiz_025
+                batteryPercent >= 10 -> R.drawable.battery_horiz_010
+                else -> R.drawable.battery_horiz_000
+            }
         }
     )
 }
