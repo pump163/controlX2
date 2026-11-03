@@ -259,7 +259,18 @@
     <string name="ciq_start_min">开始 分钟</string>
     <string name="ciq_end_hour">结束 小时</string>
     <string name="ciq_end_min">结束 分钟</string>
-    <string name="ciq_active_days_bitmask">生效星期位掩码（周一=1，周二=2，……，周日=64，全选=127）</string>
+    <string name="ciq_active_days_bitmask">生效星期</string>
+    <string name="ciq_day_sun">周日</string>
+    <string name="ciq_day_mon">周一</string>
+    <string name="ciq_day_tue">周二</string>
+    <string name="ciq_day_wed">周三</string>
+    <string name="ciq_day_thu">周四</string>
+    <string name="ciq_day_fri">周五</string>
+    <string name="ciq_day_sat">周六</string>
+    <string name="ciq_days_all">全选</string>
+    <string name="ciq_days_clear">清空</string>
+    <string name="ciq_days_raw">原始值</string>
+    <string name="ciq_days_invalid">星期取值超出范围（0-127），已钳制</string>
     <string name="debug_saved_to_clipboard">复制到剪贴板</string>
     <string name="debug_are_sure_want_to_clear_saved_query">确定要清除保存的调试日志吗？</string>
     <string name="debug_cancel">取消</string>

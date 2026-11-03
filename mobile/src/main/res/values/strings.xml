@@ -265,7 +265,18 @@
     <string name="ciq_start_min">Start Min</string>
     <string name="ciq_end_hour">End Hour</string>
     <string name="ciq_end_min">End Min</string>
-    <string name="ciq_active_days_bitmask">Active days bitmask (Mon=1,Tue=2,...Sun=64, all=127)</string>
+    <string name="ciq_active_days_bitmask">Active days</string>
+    <string name="ciq_day_sun">Sun</string>
+    <string name="ciq_day_mon">Mon</string>
+    <string name="ciq_day_tue">Tue</string>
+    <string name="ciq_day_wed">Wed</string>
+    <string name="ciq_day_thu">Thu</string>
+    <string name="ciq_day_fri">Fri</string>
+    <string name="ciq_day_sat">Sat</string>
+    <string name="ciq_days_all">All days</string>
+    <string name="ciq_days_clear">Clear</string>
+    <string name="ciq_days_raw">Raw value</string>
+    <string name="ciq_days_invalid">Days value out of range (0-127), clamped</string>
     <string name="debug_saved_to_clipboard">Saved to clipboard</string>
     <string name="debug_are_sure_want_to_clear_saved_query">Are you sure you want to clear the saved debug logs?</string>
     <string name="debug_cancel">Cancel</string>

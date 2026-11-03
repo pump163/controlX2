@@ -6,6 +6,9 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +27,9 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ListItem
 
 import androidx.compose.material3.OutlinedTextField
@@ -67,6 +72,7 @@ import com.jwoglom.controlx2.shared.util.determinePumpModel
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
+import com.jwoglom.pumpx2.pump.messages.models.MultiDay
 import com.jwoglom.pumpx2.pump.messages.request.control.ChangeControlIQSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SetSleepScheduleRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQSleepScheduleRequest
@@ -443,12 +449,9 @@ fun ControlIQSettingsActions(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    OutlinedTextField(
-                        value = sleepDays,
-                        onValueChange = { sleepDays = it },
-                        label = { Text(stringResource(R.string.ciq_active_days_bitmask)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                    SleepDaysSelector(
+                        maskText = sleepDays,
+                        onMaskChange = { sleepDays = it }
                     )
                 }
             },
@@ -460,7 +463,8 @@ fun ControlIQSettingsActions(
                     val startM = sleepStartMin.toIntOrNull() ?: 0
                     val endH = sleepEndHour.toIntOrNull() ?: 0
                     val endM = sleepEndMin.toIntOrNull() ?: 0
-                    val daysBitmask = sleepDays.toIntOrNull() ?: 0
+                    // 星期掩码语义（Mon=1…Sun=64，全选 127）来自泵端逆向推断，待真机验证
+                    val daysBitmask = sleepDays.toIntOrNull()?.coerceIn(0, 127) ?: 0
 
                     val startTime = startH * 60 + startM
                     val endTime = endH * 60 + endM
@@ -490,6 +494,90 @@ fun ControlIQSettingsActions(
                 }
             }
         )
+    }
+}
+
+/**
+ * 星期选择器：显示顺序固定 Sun→Sat，但写回的位序严格按 MultiDay（Mon=1 … Sun=64）。
+ * 注意不要使用 MultiDay.fromBitmask：它用 `bitmask % day.id() == 0` 判位，非 2 的幂组合会误判。
+ * 语义为逆向推断，0 值与保留位的真实含义待真机验证。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SleepDaysSelector(
+    maskText: String,
+    onMaskChange: (String) -> Unit,
+) {
+    val parsedMask = maskText.toIntOrNull()
+    val safeMask = parsedMask?.coerceIn(0, 127) ?: 0
+    val outOfRange = parsedMask != null && (parsedMask < 0 || parsedMask > 127)
+    val displayDays = listOf(
+        MultiDay.SUNDAY, MultiDay.MONDAY, MultiDay.TUESDAY, MultiDay.WEDNESDAY,
+        MultiDay.THURSDAY, MultiDay.FRIDAY, MultiDay.SATURDAY,
+    )
+
+    Column {
+        Text(stringResource(R.string.ciq_active_days_bitmask))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(top = 4.dp)
+        ) {
+            displayDays.forEach { day ->
+                val selected = safeMask and day.id() != 0
+                FilterChip(
+                    selected = selected,
+                    onClick = {
+                        val newMask = if (selected) {
+                            safeMask and day.id().inv()
+                        } else {
+                            safeMask or day.id()
+                        }
+                        onMaskChange(newMask.toString())
+                    },
+                    label = { Text(dayLabel(day)) }
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(
+                onClick = { onMaskChange("127") },
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text(stringResource(R.string.ciq_days_all))
+            }
+            TextButton(
+                onClick = { onMaskChange("0") },
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text(stringResource(R.string.ciq_days_clear))
+            }
+        }
+        Text(
+            "${stringResource(R.string.ciq_days_raw)}: ${parsedMask ?: safeMask}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (outOfRange) {
+            Text(
+                stringResource(R.string.ciq_days_invalid),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun dayLabel(day: MultiDay): String {
+    return when (day) {
+        MultiDay.SUNDAY -> stringResource(R.string.ciq_day_sun)
+        MultiDay.MONDAY -> stringResource(R.string.ciq_day_mon)
+        MultiDay.TUESDAY -> stringResource(R.string.ciq_day_tue)
+        MultiDay.WEDNESDAY -> stringResource(R.string.ciq_day_wed)
+        MultiDay.THURSDAY -> stringResource(R.string.ciq_day_thu)
+        MultiDay.FRIDAY -> stringResource(R.string.ciq_day_fri)
+        MultiDay.SATURDAY -> stringResource(R.string.ciq_day_sat)
+        else -> day.name
     }
 }
 
