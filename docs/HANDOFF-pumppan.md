@@ -25,6 +25,7 @@
 - **声音页「更改位图」输入框**：已删除（属我们误引入），并补型号门控（非 Mobi 禁用「应用」+ 原因文案）。
 - **星期选择器**：`ControlIQSettingsActions :: SleepDaysSelector` 已落地（不依赖 `MultiDay`）。
 - **历史缓存清空**：已修复（清空后不再显示旧数据）。
+- **首页显示三项开关**（CGM 图表 / 传感器信息 / 历史同步条）：**用户本人要求新增的本地定制**，不是上游功能（设置页 UI 由 `438aa3f` 引入、`637012e` 图标化；枚举与 state 经 zh 表带入，调试页 `FeatureFlags.kt` 原本靠 `FeatureFlag.values()` 自动列出）。`8309cee` 用 `settingsOnlyFlags` 在调试页遍历里排除这三项，UI 只留设置页；枚举、`xxxState`、`initState`、`Dashboard` 消费点**一律未动**。**回退点：`FeatureFlags.kt :: settingsOnlyFlags`** —— 上游若反对/要求收敛，去掉或清空该集合即可让功能开关页重新出现三行，再移除或降级设置页那三项；回退只是 UI 位置切换，不涉及数据与逻辑。若日后纳入上游，应把设置页 UI 迁到 `FeatureFlags` 页并统一 key。
 
 ### 未完成的下一步
 
