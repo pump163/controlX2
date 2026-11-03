@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -28,8 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
@@ -50,7 +49,9 @@ fun PumppanLanguageRow() {
             PumppanLocale.ZH to stringResource(R.string.pumppan_language_zh),
             PumppanLocale.EN to stringResource(R.string.pumppan_language_en),
         ),
-        leadingIcon = Icons.Filled.Language,
+        leadingIcon = {
+            Icon(painterResource(R.drawable.ic_pumppan_globe_language), contentDescription = null)
+        },
     ) { mode ->
         current = mode
         PumppanPrefs.setLocale(context, mode)
@@ -76,7 +77,7 @@ fun PumppanPumpModelRow() {
             PumppanPumpModel.MOBI to stringResource(R.string.pumppan_pump_model_mobi),
             PumppanPumpModel.SLIM_X2 to stringResource(R.string.pumppan_pump_model_slimx2),
         ),
-        leadingIcon = Icons.Filled.Build,
+        leadingIcon = { Icon(Icons.Filled.Build, contentDescription = null) },
     ) { mode ->
         current = mode
         PumppanPumpModel.set(context, mode)
@@ -126,16 +127,14 @@ private fun <T> PumppanChoiceRow(
     label: String,
     current: T,
     options: List<Pair<T, String>>,
-    leadingIcon: ImageVector? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
     onSelect: (T) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
     ListItem(
         headlineContent = { Text(label) },
         supportingContent = { Text(options.firstOrNull { it.first == current }?.second ?: "") },
-        leadingContent = leadingIcon?.let { icon ->
-            { Icon(icon, contentDescription = null) }
-        },
+        leadingContent = leadingIcon,
         modifier = Modifier.clickable { open = true },
     )
     if (open) {

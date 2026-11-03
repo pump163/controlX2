@@ -1,0 +1,64 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+
+    <!-- 外圈 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M2,12 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+
+    <!-- 两条经纬椭圆 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M4.4,12 a7.6,10 0 1,0 15.2,0 a7.6,10 0 1,0 -15.2,0"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M7.8,12 a4.2,10 0 1,0 8.4,0 a4.2,10 0 1,0 -8.4,0"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+
+    <!-- 中央竖线 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M12,2 L12,22"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+
+    <!-- 三条横线（赤道 + 上下两条弦） -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M2,12 L22,12"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M3.65,6.5 L20.35,6.5"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M3.65,17.5 L20.35,17.5"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="1.5" />
+</vector>
