@@ -12,4 +12,11 @@ interface PumpHistoryLogFetcher {
     suspend fun onStatusResponse(message: HistoryLogStatusResponse, scope: CoroutineScope)
     suspend fun onStreamResponse(log: HistoryLog)
     fun cancel()
+
+    /**
+     * Drops fetch bookkeeping (dedupe cache / high-water sequence id) so entries
+     * can be re-persisted after the history log database is emptied.
+     * No-op by default; implementations that track state override it.
+     */
+    fun reset() {}
 }

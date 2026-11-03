@@ -37,6 +37,14 @@ class PumpCommState {
     }
 
     /**
+     * Clears the in-memory history log cache. Called when the user empties the
+     * history log database so stale entries don't linger until the next restart.
+     */
+    fun clearHistoryLogCache() {
+        historyLogCache.clear()
+    }
+
+    /**
      * Clears transient state on pump disconnect.
      */
     fun clearOnDisconnect() {

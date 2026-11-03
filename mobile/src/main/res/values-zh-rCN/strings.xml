@@ -265,6 +265,7 @@
     <string name="debug_cancel">取消</string>
     <string name="debug_delete">删除</string>
     <string name="debug_are_sure_want_to_empty_database_query">确定要清空数据库吗？</string>
+    <string name="debug_database_and_cache_cleared">已清空数据库与历史日志缓存</string>
     <string name="debug_debug">调试</string>
     <string name="debug_disable_ctrl_x2_service">禁用ControlX2服务</string>
     <string name="debug_stop_background_service">停止后台服务，并禁止在应用打开时自动启动。</string>

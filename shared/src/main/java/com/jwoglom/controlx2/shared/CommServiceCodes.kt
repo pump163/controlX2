@@ -18,4 +18,8 @@ enum class CommServiceCodes {
     INIT_PUMP_FINDER_COMM,
     STOP_PUMP_FINDER_COMM,
     CHECK_PUMP_FINDER_FOUND_PUMPS,
+
+    // Appended at the end: phone/watch builds exchange these by ordinal,
+    // so new entries must not be inserted above existing ones.
+    DEBUG_CLEAR_HISTORYLOG_CACHE,
 }

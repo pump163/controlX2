@@ -263,6 +263,14 @@ fun Debug(
                     val historyLogDb = HistoryLogDatabase.getDatabase(context)
                     val historyLogDao = historyLogDb.historyLogDao()
                     historyLogDao.deleteAll()
+                    // 同步清理内存缓存（CommService 侧 + 界面侧），否则清空后仍显示旧条目
+                    sendMessage(MessagePaths.TO_PUMP_DEBUG_CLEAR_HISTORYLOG_CACHE, "".toByteArray())
+                    ds.historyLogCache.postValue(mutableMapOf<Long, HistoryLog>())
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.debug_database_and_cache_cleared),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .show()

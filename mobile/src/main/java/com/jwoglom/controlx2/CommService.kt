@@ -462,6 +462,9 @@ class CommService : Service(), CommServiceCallbacks {
             MessagePaths.TO_PUMP_DEBUG_HISTORYLOG_CACHE -> {
                 handleDebugGetHistoryLogCache()
             }
+            MessagePaths.TO_PUMP_DEBUG_CLEAR_HISTORYLOG_CACHE -> {
+                handleDebugClearHistoryLogCache()
+            }
             MessagePaths.TO_PUMP_DEBUG_WRITE_BT_CHARACTERISTIC -> {
                 sendDebugWriteBtCharacteristic(data)
             }
@@ -794,6 +797,13 @@ class CommService : Service(), CommServiceCallbacks {
     private fun handleDebugGetHistoryLogCache() {
         pumpCommHandler?.obtainMessage()?.also { msg ->
             msg.what = CommServiceCodes.DEBUG_GET_HISTORYLOG_CACHE.ordinal
+            pumpCommHandler?.sendMessage(msg)
+        }
+    }
+
+    private fun handleDebugClearHistoryLogCache() {
+        pumpCommHandler?.obtainMessage()?.also { msg ->
+            msg.what = CommServiceCodes.DEBUG_CLEAR_HISTORYLOG_CACHE.ordinal
             pumpCommHandler?.sendMessage(msg)
         }
     }

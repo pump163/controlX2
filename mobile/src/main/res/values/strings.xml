@@ -271,6 +271,7 @@
     <string name="debug_cancel">Cancel</string>
     <string name="debug_delete">Delete</string>
     <string name="debug_are_sure_want_to_empty_database_query">Are you sure you want to empty the database?</string>
+    <string name="debug_database_and_cache_cleared">Database and history log cache cleared</string>
     <string name="debug_debug">Debug</string>
     <string name="debug_disable_ctrl_x2_service">Disable ControlX2 service</string>
     <string name="debug_stop_background_service">Stops the background service and disables it from starting automatically when the app is opened.</string>

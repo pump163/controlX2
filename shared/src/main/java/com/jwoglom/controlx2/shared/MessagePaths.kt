@@ -80,6 +80,7 @@ object MessagePaths {
     const val TO_PUMP_COMMANDS_BUST_CACHE = "/to-pump/commands-bust-cache"
     const val TO_PUMP_DEBUG_COMMANDS = "/to-pump/debug-commands"
     const val TO_PUMP_DEBUG_HISTORYLOG_CACHE = "/to-pump/debug-historylog-cache"
+    const val TO_PUMP_DEBUG_CLEAR_HISTORYLOG_CACHE = "/to-pump/debug-clear-historylog-cache"
     const val TO_PUMP_DEBUG_MESSAGE_CACHE = "/to-pump/debug-message-cache"
     const val TO_PUMP_DEBUG_WRITE_BT_CHARACTERISTIC = "/to-pump/debug-write-bt-characteristic"
     const val TO_PUMP_PAIR = "/to-pump/pair"

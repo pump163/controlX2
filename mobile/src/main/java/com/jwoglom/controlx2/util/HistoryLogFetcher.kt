@@ -64,6 +64,12 @@ class HistoryLogFetcher(
         cancelled = true
     }
 
+    /** Drops dedupe bookkeeping so history logs can be re-persisted into an emptied DB. */
+    override fun reset() {
+        recentSeqIds = LruCache(256)
+        latestSeqId = 0
+    }
+
     private fun shouldContinue(): Boolean {
         return !cancelled && autoFetchEnabled() && canRequest()
     }

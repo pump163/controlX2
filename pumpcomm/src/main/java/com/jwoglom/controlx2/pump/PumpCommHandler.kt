@@ -877,6 +877,11 @@ class PumpCommHandler(
                     }
                 }
             }
+            CommServiceCodes.DEBUG_CLEAR_HISTORYLOG_CACHE.ordinal -> {
+                Timber.i("pumpCommHandler debug clear historylog cache")
+                callbacks.pumpCommState.clearHistoryLogCache()
+                historyLogFetcher?.reset()
+            }
         }
     }
 }
