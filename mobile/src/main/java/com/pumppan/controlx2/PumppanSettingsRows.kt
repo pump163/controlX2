@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -28,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
@@ -50,7 +50,7 @@ fun PumppanLanguageRow() {
             PumppanLocale.EN to stringResource(R.string.pumppan_language_en),
         ),
         leadingIcon = {
-            Icon(painterResource(R.drawable.ic_pumppan_globe_language), contentDescription = null)
+            Icon(Icons.Filled.Language, contentDescription = null)
         },
     ) { mode ->
         current = mode
