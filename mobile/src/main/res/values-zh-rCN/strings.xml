@@ -800,6 +800,8 @@
     <string name="settings_home_show_sensor_info_sub">切换首页的传感器到期时间和发射器状态卡片。</string>
     <string name="settings_home_show_history_sync">显示历史同步进度条</string>
     <string name="settings_home_show_history_sync_sub">切换首页下方的历史记录同步进度条。</string>
+    <string name="settings_auto_fetch_history_logs">自动读取历史记录</string>
+    <string name="settings_auto_fetch_history_logs_sub">关闭后首页 CGM 图表停止更新，泵历史记录不再自动累积；手动查看历史日志仍可用。</string>
     <string name="sound_back">返回</string>
     <string name="sound_settings">声音设置</string>
     <string name="sound_loading_sound_settings">正在加载声音设置...</string>

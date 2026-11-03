@@ -516,6 +516,31 @@ fun Settings(
                             )
                         },
                 )
+                SettingsRowDivider()
+            }
+
+            item {
+                var autoFetchHistoryLogs by remember { mutableStateOf(Prefs(context).autoFetchHistoryLogs()) }
+                ListItem(
+                    headlineContent = { Text(context.getString(R.string.settings_auto_fetch_history_logs)) },
+                    supportingContent = { Text(context.getString(R.string.settings_auto_fetch_history_logs_sub)) },
+                    leadingContent = {
+                        Icon(
+                            if (autoFetchHistoryLogs) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    modifier = Modifier
+                        .clickable {
+                            autoFetchHistoryLogs = !autoFetchHistoryLogs
+                            Prefs(context).setAutoFetchHistoryLogs(autoFetchHistoryLogs)
+                        }
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (autoFetchHistoryLogs) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        },
+                )
                 SettingsDivider()
             }
 
