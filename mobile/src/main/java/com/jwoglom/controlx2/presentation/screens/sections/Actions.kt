@@ -88,6 +88,7 @@ import com.jwoglom.controlx2.shared.enums.UserMode
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
+import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
@@ -249,7 +250,7 @@ fun Actions(
 
                     val model = determinePumpModel(deviceName.value ?: "")
                     if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line(stringResource(R.string.actions_not_supported_remote_bolus_only, model))
+                        Line(stringResource(R.string.actions_not_supported_remote_bolus_only, pumpModelDisplayName(model)))
                         Line("")
                     }
                 }
@@ -288,6 +289,7 @@ fun Actions(
                             },
                             emphasized = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
                             readOnly = !canPumpControl,
+                            danger = true,
                             modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (basalStatus.value) {
@@ -588,6 +590,7 @@ fun Actions(
                             },
                             emphasized = tempRateActive.value == true,
                             readOnly = !canTempRate,
+                            danger = true,
                             modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (tempRateActive.value) {
