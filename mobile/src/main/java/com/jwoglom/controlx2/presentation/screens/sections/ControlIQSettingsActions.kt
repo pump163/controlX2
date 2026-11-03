@@ -581,7 +581,6 @@ private fun dayLabel(day: MultiDay): String {
         MultiDay.THURSDAY -> stringResource(R.string.ciq_day_thu)
         MultiDay.FRIDAY -> stringResource(R.string.ciq_day_fri)
         MultiDay.SATURDAY -> stringResource(R.string.ciq_day_sat)
-        else -> day.name
     }
 }
 
