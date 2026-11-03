@@ -37,6 +37,13 @@ fun FeatureFlags(
     navigateBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    // 首页显示三项已在设置页「首页显示」区提供图标化开关（标题+副标题），
+    // 这里跳过，避免同一个开关在调试页和设置页各出现一次。
+    val settingsOnlyFlags = setOf(
+        FeatureFlag.CgmChartVisible,
+        FeatureFlag.SensorInfoCardVisible,
+        FeatureFlag.HistoryLogSyncBarVisible,
+    )
 
     LazyColumn(
         contentPadding = innerPadding,
@@ -50,7 +57,7 @@ fun FeatureFlags(
                 Divider()
             }
 
-            FeatureFlag.values().forEach { flag ->
+            FeatureFlag.values().filterNot { it in settingsOnlyFlags }.forEach { flag ->
                 item {
                     var enabled by remember { mutableStateOf(FeatureFlag.enabled(context, flag)) }
                     ListItem(
