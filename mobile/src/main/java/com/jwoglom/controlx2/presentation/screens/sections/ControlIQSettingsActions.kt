@@ -4,6 +4,8 @@ package com.jwoglom.controlx2.presentation.screens.sections
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -394,13 +396,15 @@ fun ControlIQSettingsActions(
             onDismissRequest = { showEditSleepScheduleDialog = false },
             title = { Text(stringResource(R.string.ciq_sleep_schedule_next, editingSlot + 1)) },
             text = {
-                if (!canControl) {
-                    val reasonModel = determinePumpModel(deviceName.value ?: "")
-                    if (reasonModel != null) {
-                        Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                // 内容可滚动：长文案（原因说明/原始值）与星期选择器在窄屏上会超出弹窗，
+                // AlertDialog 的 text 槽本身不滚动，不处理会把标题与按钮挤出可视区。
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    if (!canControl) {
+                        val reasonModel = determinePumpModel(deviceName.value ?: "")
+                        if (reasonModel != null) {
+                            Text(stringResource(R.string.cartridge_insulin_control_unsupported_model, reasonModel))
+                        }
                     }
-                }
-                Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
