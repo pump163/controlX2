@@ -67,6 +67,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -165,12 +167,12 @@ import kotlin.math.min
 import com.jwoglom.controlx2.R
 
 
-/** 分隔线：与 Settings 页一致的灰色细线规格（1dp，无额外留白）。 */
+/** 分隔线：与控制页分组横线同规格（1.5dp、colorScheme.outline、无额外留白）。 */
 @Composable
 private fun DebugDivider() {
     HorizontalDivider(
-        thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+        thickness = 1.5.dp,
+        color = MaterialTheme.colorScheme.outline,
     )
 }
 
@@ -928,21 +930,27 @@ fun Debug(
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        qualifyingEventToastsEnabled = !qualifyingEventToastsEnabled
-                        Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
-                        Toast.makeText(
-                            context,
-                            context.getString(
-                                if (qualifyingEventToastsEnabled) {
-                                    R.string.debug_qualifying_event_toasts_enabled
-                                } else {
-                                    R.string.debug_qualifying_event_toasts_disabled
-                                }
-                            ),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    modifier = Modifier
+                        .clickable {
+                            qualifyingEventToastsEnabled = !qualifyingEventToastsEnabled
+                            Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
+                            Toast.makeText(
+                                context,
+                                context.getString(
+                                    if (qualifyingEventToastsEnabled) {
+                                        R.string.debug_qualifying_event_toasts_enabled
+                                    } else {
+                                        R.string.debug_qualifying_event_toasts_disabled
+                                    }
+                                ),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (qualifyingEventToastsEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        }
                 )
                 DebugDivider()
             }
@@ -958,8 +966,14 @@ fun Debug(
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        httpDebugApiEnabled = !httpDebugApiEnabled
+                    modifier = Modifier
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (httpDebugApiEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        }
+                        .clickable {
+                            httpDebugApiEnabled = !httpDebugApiEnabled
                         Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
                         Toast.makeText(
                             context,

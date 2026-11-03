@@ -79,13 +79,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 // import java.time.Instant // 已移至控制页底部
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 
-/** 分隔线：灰色细线，组间与组内规格一致，行间不加额外留白。 */
+/** 分隔线：与控制页分组横线同规格（1.5dp、colorScheme.outline、无左右内边距、行间无额外留白）。 */
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        thickness = 1.dp,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
+        thickness = 1.5.dp,
+        color = MaterialTheme.colorScheme.outline,
     )
 }
 
@@ -437,19 +439,22 @@ fun Settings(
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.settings_home_show_cgm_chart)) },
                     supportingContent = { Text(context.getString(R.string.settings_home_show_cgm_chart_sub)) },
-                    trailingContent = {
-                        Switch(
-                            checked = cgmEnabled,
-                            onCheckedChange = {
-                                cgmEnabled = it
-                                FeatureFlag.set(context, FeatureFlag.CgmChartVisible, it)
-                            },
+                    leadingContent = {
+                        Icon(
+                            if (cgmEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        cgmEnabled = !cgmEnabled
-                        FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
-                    },
+                    modifier = Modifier
+                        .clickable {
+                            cgmEnabled = !cgmEnabled
+                            FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
+                        }
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (cgmEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        },
                 )
                 SettingsDivider()
             }
@@ -459,19 +464,22 @@ fun Settings(
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.settings_home_show_sensor_info)) },
                     supportingContent = { Text(context.getString(R.string.settings_home_show_sensor_info_sub)) },
-                    trailingContent = {
-                        Switch(
-                            checked = sensorEnabled,
-                            onCheckedChange = {
-                                sensorEnabled = it
-                                FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, it)
-                            },
+                    leadingContent = {
+                        Icon(
+                            if (sensorEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        sensorEnabled = !sensorEnabled
-                        FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
-                    },
+                    modifier = Modifier
+                        .clickable {
+                            sensorEnabled = !sensorEnabled
+                            FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
+                        }
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (sensorEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        },
                 )
                 SettingsDivider()
             }
@@ -481,19 +489,22 @@ fun Settings(
                 ListItem(
                     headlineContent = { Text(context.getString(R.string.settings_home_show_history_sync)) },
                     supportingContent = { Text(context.getString(R.string.settings_home_show_history_sync_sub)) },
-                    trailingContent = {
-                        Switch(
-                            checked = historyEnabled,
-                            onCheckedChange = {
-                                historyEnabled = it
-                                FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, it)
-                            },
+                    leadingContent = {
+                        Icon(
+                            if (historyEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        historyEnabled = !historyEnabled
-                        FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
-                    },
+                    modifier = Modifier
+                        .clickable {
+                            historyEnabled = !historyEnabled
+                            FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
+                        }
+                        .semantics {
+                            stateDescription = context.getString(
+                                if (historyEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                            )
+                        },
                 )
                 SettingsDivider()
             }
