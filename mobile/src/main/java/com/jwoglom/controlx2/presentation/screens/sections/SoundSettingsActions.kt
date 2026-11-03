@@ -24,7 +24,9 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -158,42 +160,41 @@ fun SoundSettingsActions(
     var alarmText by remember { mutableStateOf("") }
     var cgmAText by remember { mutableStateOf("") }
     var cgmBText by remember { mutableStateOf("") }
-    var changeBitmaskText by remember { mutableStateOf("") }
-    var globalsText by remember { mutableStateOf("") }
+    // CGM 警报 B 的当前值不在 PumpGlobals 中上报，故以「上次发送值」为基线判断是否改动。
+    // 位定义与「改 CGM 需置位 64」均为逆向推断，待真机验证。
+    var cgmBBaseline by remember { mutableStateOf("0") }
 
-    LaunchedEffect(quickBolusText, generalText, reminderText, alertText, alarmText, cgmAText, cgmBText) {
-        if (pumpGlobals.value == null) return@LaunchedEffect
-        var changed = mutableListOf<SetPumpSoundsRequest.ChangeBitmask>()
-        if (quickBolusText != pumpGlobals.value?.quickBolusAnnun?.id().toString()) {
-            changed.add(SetPumpSoundsRequest.ChangeBitmask.QUICK_BOLUS)
+    // 「本次修改范围」由界面状态推导后只读展示，不提供手工输入，避免双写源。
+    // 位定义（逆向推断，待真机验证）：2=快捷大剂量 4=常规 8=提醒 16=警告 32=警报 64=CGM 警报；
+    // 0 表示没有任何改动；1 与 >=128 为保留/未定义位。
+    val changeScopes = run {
+        val scopes = mutableListOf<SetPumpSoundsRequest.ChangeBitmask>()
+        pumpGlobals.value?.let { globals ->
+            if (quickBolusText != globals.quickBolusAnnun.id().toString()) {
+                scopes.add(SetPumpSoundsRequest.ChangeBitmask.QUICK_BOLUS)
+            }
+            if (generalText != globals.fillTubingAnnun.id().toString()) {
+                scopes.add(SetPumpSoundsRequest.ChangeBitmask.GENERAL)
+            }
+            if (reminderText != globals.reminderAnnun.id().toString()) {
+                scopes.add(SetPumpSoundsRequest.ChangeBitmask.REMINDER)
+            }
+            if (alertText != globals.alertAnnun.id().toString()) {
+                scopes.add(SetPumpSoundsRequest.ChangeBitmask.ALERT)
+            }
+            if (alarmText != globals.alarmAnnun.id().toString()) {
+                scopes.add(SetPumpSoundsRequest.ChangeBitmask.ALARM)
+            }
         }
-        if (generalText != pumpGlobals.value?.fillTubingAnnun?.id().toString()) {
-            changed.add(SetPumpSoundsRequest.ChangeBitmask.GENERAL)
+        if (cgmBText != cgmBBaseline) {
+            scopes.add(SetPumpSoundsRequest.ChangeBitmask.CGM_ALERT)
         }
-        if (reminderText != pumpGlobals.value?.reminderAnnun?.id().toString()) {
-            changed.add(SetPumpSoundsRequest.ChangeBitmask.REMINDER)
-        }
-        if (alertText != pumpGlobals.value?.alertAnnun?.id().toString()) {
-            changed.add(SetPumpSoundsRequest.ChangeBitmask.ALERT)
-        }
-        if (alarmText != pumpGlobals.value?.alarmAnnun?.id().toString()) {
-            changed.add(SetPumpSoundsRequest.ChangeBitmask.ALARM)
-        }
-
-        changeBitmaskText = SetPumpSoundsRequest.ChangeBitmask.toBitmask(*changed.toTypedArray()).toString();
+        scopes
     }
+    val changeBitmask = SetPumpSoundsRequest.ChangeBitmask.toBitmask(*changeScopes.toTypedArray())
 
     LaunchedEffect(pumpGlobals.value) {
         pumpGlobals.value?.let { globals ->
-            globalsText = listOf(
-                    "buttonAnnun = ${globals.cargo[7]}",
-                    "quickBolusAnnun = ${globals.cargo[8]}",
-                    "bolusAnnun = ${globals.cargo[9]}",
-                    "reminderAnnun = ${globals.cargo[10]}",
-                    "alertAnnun = ${globals.cargo[11]}",
-                    "alarmAnnun = ${globals.cargo[12]}",
-                    "fillTubingAnnun = ${globals.cargo[13]}",
-                ).joinToString(" \n");
             quickBolusText = globals.quickBolusAnnun.id().toString()
             generalText = globals.fillTubingAnnun.id().toString()
             reminderText = globals.reminderAnnun.id().toString()
@@ -204,9 +205,6 @@ fun SoundSettingsActions(
             }
             if (cgmBText.isBlank()) {
                 cgmBText = "0"
-            }
-            if (changeBitmaskText.isBlank()) {
-                changeBitmaskText = "0"
             }
         }
     }
@@ -241,10 +239,6 @@ fun SoundSettingsActions(
                     }
                 }
                 
-                item {
-                    Text("Globals:\n${globalsText}")
-                }
-
                 item {
                     SoundSettingField(
                         label = stringResource(R.string.sound_quick_bolus_annunciation),
@@ -309,12 +303,37 @@ fun SoundSettingsActions(
                 }
 
                 item {
-                    SoundSettingField(
-                        label = stringResource(R.string.sound_change_bitmask),
-                        value = changeBitmaskText,
-                        onValueChange = { changeBitmaskText = it },
-                        enumValue = ""
-                    )
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(stringResource(R.string.sound_change_scope))
+                        if (changeScopes.isEmpty()) {
+                            Text(
+                                stringResource(R.string.sound_scope_none),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            changeScopes.chunked(3).forEach { rowScopes ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    rowScopes.forEach { scope ->
+                                        FilterChip(
+                                            selected = true,
+                                            onClick = {},
+                                            label = { Text(scopeLabel(scope)) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Text(
+                            "${stringResource(R.string.sound_raw_mask)}: $changeBitmask",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
 
                 item {
@@ -331,9 +350,10 @@ fun SoundSettingsActions(
                                 alarmText.toIntOrNull() ?: 0,
                                 cgmAText.toIntOrNull() ?: 0,
                                 cgmBText.toIntOrNull() ?: 0,
-                                changeBitmaskText.toIntOrNull() ?: 0,
+                                changeBitmask,
                             )
                             sendPumpCommands(SendType.STANDARD, listOf(message))
+                            cgmBBaseline = cgmBText
 
                             refreshScope.launch {
                                 delay(500)
@@ -472,6 +492,18 @@ private fun SoundSettingField(
             }
         }
     )
+}
+
+@Composable
+private fun scopeLabel(scope: SetPumpSoundsRequest.ChangeBitmask): String {
+    return when (scope) {
+        SetPumpSoundsRequest.ChangeBitmask.QUICK_BOLUS -> stringResource(R.string.sound_scope_quick_bolus)
+        SetPumpSoundsRequest.ChangeBitmask.GENERAL -> stringResource(R.string.sound_scope_general)
+        SetPumpSoundsRequest.ChangeBitmask.REMINDER -> stringResource(R.string.sound_scope_reminder)
+        SetPumpSoundsRequest.ChangeBitmask.ALERT -> stringResource(R.string.sound_scope_alert)
+        SetPumpSoundsRequest.ChangeBitmask.ALARM -> stringResource(R.string.sound_scope_alarm)
+        SetPumpSoundsRequest.ChangeBitmask.CGM_ALERT -> stringResource(R.string.sound_scope_cgm)
+    }
 }
 
 private fun annunciationLabel(value: String): String {

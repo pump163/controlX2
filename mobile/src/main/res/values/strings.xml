@@ -809,6 +809,15 @@
     <string name="sound_cgm_alert_annunciation">CGM alert annunciation A</string>
     <string name="sound_cgm_alert_annunciation_b">CGM alert annunciation B</string>
     <string name="sound_change_bitmask">Change bitmask</string>
+    <string name="sound_change_scope">Changes to apply (automatic)</string>
+    <string name="sound_scope_none">Nothing to change</string>
+    <string name="sound_scope_quick_bolus">Quick bolus</string>
+    <string name="sound_scope_general">General</string>
+    <string name="sound_scope_reminder">Reminder</string>
+    <string name="sound_scope_alert">Alert</string>
+    <string name="sound_scope_alarm">Alarm</string>
+    <string name="sound_scope_cgm">CGM alert</string>
+    <string name="sound_raw_mask">Raw value</string>
     <string name="sound_apply_sound_settings">Apply sound settings</string>
     <string name="sound_send_set_pump_sounds_request_withse">Send SetPumpSoundsRequest with these values</string>
     <string name="sound_alert_snooze">Alert Snooze</string>
