@@ -1,8 +1,8 @@
 # HANDOFF · pumppan 分支交接记录
 
-> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）
+> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-04（目录约定 / HEAD / APK 复核）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：以 `git log -1` 为准（本文件更新前为 `ec97202`，2026-11-04 工作清单归档）
+> 当前 HEAD：以 `git log -1` 为准（本文件同步时为 `82710ea`）
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
@@ -11,9 +11,9 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `ec97202` | 2026-11-04：术语收敛 `9c392f0`、TIR 远期目标 `aa07d41`、工作清单 `ec97202`（11-03 收尾为 `df55e2d`） |
-| i18n main | `main` | `7be32df` | 新增《泵能力收敛与自建挡板方案》并登记状态索引 |
-| lab | `assets` | `e38ff8f` | WORKLOG §75–§77（术语收敛 / TIR 多日远期目标 / 工作清单归档） |
+| pumppan | `pumppan` | `82710ea` | 2026-11-04 复核：术语收敛 `9c392f0`、TIR 远期目标 `aa07d41`、工作清单 `ec97202`，其后 `82710ea`（11-03 收尾为 `df55e2d`） |
+| i18n main | `main` | `7be32df` | 新增《泵能力收敛与自建挡板方案》并登记状态索引（2026-11-04 本地另有未提交改动：§2.1 补 1.9.3 回滚冲突面） |
+| lab | `assets` | `9e74d96` | WORKLOG §75–§77（术语收敛 / TIR 多日远期目标 / 工作清单归档），2026-11-04 复核 |
 
 ### 已拍板（不再重复讨论）
 
@@ -35,8 +35,8 @@
 2. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板。
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 → 档 2 覆盖率 / AGP / CV / LBGI → 档 3 可视化 + 导出）；依赖 C 方案全量历史。
 4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
-5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、声音页 X2 只读表现。
-6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（`docs/feature/泵能力收敛与自建挡板方案.md`）；是否每周巡检 pumpx2 主线 + tag。
+5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
+6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档在 **i18n main 树**：`D:\Programming\controlX2-i18n\docs\feature\泵能力收敛与自建挡板方案.md`，不在本树 `docs/feature/`）；是否每周巡检 pumpx2 主线 + tag。
 
 > 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/工作清单-2026-11-02至04.md`，HANDOFF 不再重复维护。
 
@@ -54,12 +54,16 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 ## 1. 约定（基线）
 
+> **目录分工的唯一权威是 `D:\Programming\controlX2-i18n-lab\i18n\HANDOFF.md` §二（2026-11-04 用户定稿）**。本表只列代码树，不复制全量约定，避免两处漂移。
+
 | 树 | 路径 | 分支 | 定位 |
 |----|------|------|------|
-| i18n main | `D:\Programming\controlX2-i18n` | main | **汉化主线**：继承上游代码，只做汉化与补缺；超出汉化的改动必须先报备获准 |
-| i18n dev | `D:\Programming\controlX2-i18n-dev` | dev | **紧跟上游 dev**，仅做同步汉化；上游 bug 只记录、不在这条线提 PR |
-| pumppan | `D:\Programming\controlX2-i18n_pumppan` | pumppan | **主战场**：查 bug、改 UI、定制功能；需要向上游递进（改 dev/main、向 GitHub 提 PR）的事项一律报用户决定 |
-| lab assets | `D:\Programming\controlX2-i18n-lab` | assets | 翻译记忆（TM）、工作记录、工具脚本，不含产品代码 |
+| i18n main | `D:\Programming\controlX2-i18n` | main | **i18n main 分支**：紧跟英文 `main`，基本不做改动（发行版）。超出汉化的改动必须先报备获准 |
+| i18n dev | `D:\Programming\controlX2-i18n-dev` | dev | **i18n dev 分支**：紧跟上游 `dev` 做汉化版，**基本不提新功能**；上游 bug 只记录、不在这条线提 PR |
+| pumppan | `D:\Programming\controlX2-i18n_pumppan` | pumppan | **个人订制版**：在 i18n-dev 基础上做优化，**主战场**（查 bug、改 UI、定制功能）；不合入上游，只推 `i18n-origin/pumppan` |
+| lab assets | `D:\Programming\controlX2-i18n-lab` | assets | **汉化工具与产物**：TM、rules、tools、WORKLOG、HANDOFF，不含产品代码 |
+
+其余目录（只读/产物，全量见 lab HANDOFF §二）：`controlX2-main_dev` = 英文上游 main+dev 镜像；`controlX2-main-zh` = 硬替换老版本，已冻结；`pumpx2-main-dev` = 底层库镜像（main+dev）；`apk` = 唯一产物目录（`_dev` / `_pumppan` 后缀）。
 
 **远端**：`i18n-origin` → `https://gitee.com/pumppan/controlX2-i18n.git`
 **硬约束**：
@@ -86,7 +90,7 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 4. **覆盖签名途径**：只能通过 JVM 系统属性 `-DRELEASE_STORE_FILE=… -DRELEASE_STORE_PASSWORD=… -DRELEASE_KEY_ALIAS=… -DRELEASE_KEY_PASSWORD=…`（`build.gradle` 读的是 `System.properties`）；写进 `gradle.properties` 无效。
 5. **注意**：debug 与 release 证书不同（`6d5cd025…` vs `1289b7a3…`），同一 `applicationId` 不能互相覆盖安装，切换前先卸载。
 
-**当前产物状态**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,621,279 bytes，2026-11-03 构建，签名 `1289b7a3…`。
+**当前产物状态**（2026-11-04 复核）：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 bytes，2026-11-04 01:26 构建，签名 `1289b7a3…`。**不含 2026-11-03 之后的改动**（用户要求暂不出版本包）。
 
 ### 1.2 环境与单测
 
@@ -107,7 +111,7 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 4. **`local.properties` 被 `.gitignore` 的 `local.properties` 规则忽略**：三棵树各自已有 `sdk.dir=D:/winapps/android-sdk`，但新 worktree **不会自动生成**；因 `ANDROID_HOME` 已在机器级，AGP 可回退环境变量，不阻塞构建。
 
-5. **测试现状**（2026-11-03）：`:shared` 15/15 通过，`:mobile` 98/99 通过；唯一失败是基线 DST 用例 `VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection`，三棵树实现与测试完全一致，见 [bug-基线单测DST失败.md](bug-基线单测DST失败.md)。
+5. **测试现状**（2026-11-03）：`:shared` 15/15 通过，`:mobile` 98/99 通过；唯一失败是基线 DST 用例 `VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection`，三棵树实现与测试完全一致，见 [bug-基线单测DST失败.md](bug/bug-基线单测DST失败.md)。
 
 6. **Robolectric jar 缺失时**：从阿里云 `https://maven.aliyun.com/repository/central/org/robolectric/android-all-instrumented/<ver>/` 取（`<ver>` 形如 `13-robolectric-9030017-i7`），jar **平铺**放入 `D:\winapps\robolectric`（文件名即 `android-all-instrumented-<ver>.jar`），Robolectric 从此目录直接读取，不再写 C 盘 `~/.m2` 或 `~/.robolectric`。
 
