@@ -11,9 +11,9 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `82710ea` | 2026-11-04 复核：术语收敛 `9c392f0`、TIR 远期目标 `aa07d41`、工作清单 `ec97202`，其后 `82710ea`（11-03 收尾为 `df55e2d`） |
+| pumppan | `pumppan` | `5e24620` | 本次 docs 提交前的真实 HEAD（本提交后会再前进一格）；TIR 细化 `5e24620`、缓存查看器改名 `82710ea`、术语收敛 `9c392f0`（11-03 收尾 `df55e2d`） |
 | i18n main | `main` | `7be32df` | 新增《泵能力收敛与自建挡板方案》并登记状态索引（2026-11-04 本地另有未提交改动：§2.1 补 1.9.3 回滚冲突面） |
-| lab | `assets` | `9e74d96` | WORKLOG §75–§77（术语收敛 / TIR 多日远期目标 / 工作清单归档），2026-11-04 复核 |
+| lab | `assets` | `93bacfa` | WORKLOG §75–§79（术语收敛 / TIR 多日远期目标 / 工作清单归档 / §78 并入 / 声音门控更正），2026-11-04 复核 |
 
 ### 已拍板（不再重复讨论）
 
@@ -36,9 +36,9 @@
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
 4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
-6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档在 **i18n main 树**：`D:\Programming\controlX2-i18n\docs\feature\泵能力收敛与自建挡板方案.md`，不在本树 `docs/feature/`）；是否每周巡检 pumpx2 主线 + tag。
+6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
 
-> 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/工作清单-2026-11-02至04.md`，HANDOFF 不再重复维护。
+> 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/old/工作清单-2026-11-02至04.md`（内容已并入 lab `i18n/WORKLOG.md` §78），HANDOFF 不再重复维护。
 
 ### 已知基线失败
 
@@ -48,7 +48,7 @@
 
 ## 一句话现状
 
-pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 历史库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装），**2026-11-03 之后（含 11-04）的改动尚未重新出包**（用户要求暂不出版本包）。
+pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。
 
 ---
 
@@ -173,7 +173,7 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 ## 4. 未完成 / 待办
 
-> 2026-11-04 起的统一待办见 `docs/工作清单-2026-11-02至04.md`；本节保留 2026-11-03 快照细节。
+> 2026-11-04 起的统一待办见 `docs/old/工作清单-2026-11-02至04.md` 与 lab `i18n/WORKLOG.md` §78；本节保留 2026-11-03 快照细节。
 
 | 项 | 说明 |
 |----|------|

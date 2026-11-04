@@ -30,7 +30,7 @@
 | 三层 `ControlElement` DSL | 仅设计未实施 | 无 | |
 | 通知 tab 开关化 + 三个联动点 | 仅设计未实施 | `Landing.kt` 的 `showInNav` 静态；`NotificationBundle.allRequests()` | |
 | CapabilityRegistry / L0-L2 / 固件维度 / 实测黑名单 | 仅设计未实施 | `SupportedDevicesUtil.kt` 仅型号级判定 | |
-| 泵能力收敛与自建挡板方案 | **建议 / 未实施** | `docs/feature/泵能力收敛与自建挡板方案.md`；现状锚点 `SupportedDevicesUtil.kt :: canControlPump` | 2026-11-03 新增；含上游事实、升级决策、观察清单、待决事项 |
+| 泵能力收敛与自建挡板方案 | **建议 / 未实施** | `docs/feature/泵能力收敛与自建挡板方案_main.md`；现状锚点 `SupportedDevicesUtil.kt :: canControlPump` | 2026-11-03 新增；含上游事实、升级决策、观察清单、待决事项 |
 | 可拖动 FAB / `pump_secondary.xml` / 泵消息 Toast 开关 / tab 状态保存 | 仅设计未实施 | `Landing.kt`、`Prefs.kt` | |
 | 大剂量全屏流程 | 仅设计未实施 | 无 | 另见「大剂量功能设计」 |
 | App 内语言切换 | 已完成（**超出原定范围**） | `PumppanLocale.kt`；`PumppanApplication.kt :: attachBaseContext`；`PumppanSettingsRows.kt` 语言行 | D1 原写「不做」，需补登记 |
