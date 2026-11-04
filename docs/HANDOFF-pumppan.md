@@ -33,7 +33,7 @@
 
 1. **大剂量 v2 落地**：先真机取证（`docs/feature/HTTP取证与真机点检.md`：§9 只读两项 + Debug 页 11 参约 30 行），再定发送路径 A/B（#46 阻塞项）；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §10。
 2. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板。
-3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 → 档 2 覆盖率 / AGP / CV / LBGI → 档 3 可视化 + 导出）；依赖 C 方案全量历史。
+3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
 4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
 6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档在 **i18n main 树**：`D:\Programming\controlX2-i18n\docs\feature\泵能力收敛与自建挡板方案.md`，不在本树 `docs/feature/`）；是否每周巡检 pumpx2 主线 + tag。
