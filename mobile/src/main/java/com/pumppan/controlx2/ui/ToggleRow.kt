@@ -1,13 +1,10 @@
 package com.pumppan.controlx2.ui
 
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * 开关行：标题 + 可选副标题 + Switch。
@@ -31,31 +28,26 @@ fun ToggleRow(
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    ListItem(
-        headlineContent = {
-            Text(
-                text = title,
-                color = rowTitleColor(readOnly),
-                style = rowTitleStyle(emphasized),
-            )
-        },
-        supportingContent = subtitle?.let { text ->
+    val titleColor = rowTitleColor(readOnly)
+    BaseRow(
+        title = title,
+        titleStyle = rowTitleStyle(emphasized),
+        titleColor = titleColor,
+        subtitle = subtitle,
+        subtitleColor = rowSubtitleColor(readOnly),
+        leadingIcon = leadingIcon?.let { icon ->
             {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = rowSubtitleColor(readOnly),
-                )
+                CompositionLocalProvider(LocalContentColor provides titleColor) { icon() }
             }
         },
-        leadingContent = leadingIcon,
-        trailingContent = {
+        trailing = {
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 enabled = !readOnly,
             )
         },
-        modifier = modifier.heightIn(min = 56.dp),
+        onClick = null,
+        modifier = modifier,
     )
 }

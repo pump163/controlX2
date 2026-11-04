@@ -197,7 +197,6 @@ fun CGMActions(
                     val cgmSessionState = ds.cgmSessionState.observeAsState()
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
                         ListItem(
@@ -208,8 +207,6 @@ fun CGMActions(
                                     else -> context.getString(R.string.cgm_dexcom_g6_cgm_sensor_state, cgmSessionState.value?.str ?: "")
                                 }
                             )},
-                            supportingContent = {
-                            },
                             leadingContent = {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> Icon(Icons.Filled.Close, contentDescription = null)
@@ -416,15 +413,9 @@ fun CGMActions(
                 }
 
                 item {
-                    Line("\n")
-                }
-
-
-                item {
                     val cgmSessionState = ds.cgmSessionState.observeAsState()
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
                         ListItem(
@@ -435,8 +426,6 @@ fun CGMActions(
                                     else -> context.getString(R.string.cgm_dexcom_g7_cgm_sensor_state, cgmSessionState.value?.str ?: "")
                                 }
                             )},
-                            supportingContent = {
-                            },
                             leadingContent = {
                                 when (cgmSessionState.value) {
                                     CGMSessionState.ACTIVE -> Icon(Icons.Filled.Close, contentDescription = null)
@@ -552,10 +541,11 @@ fun CGMActions(
                 }
 
 
+                item { Divider() }
+
                 item {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
                             .wrapContentSize(Alignment.TopStart)
                     ) {
                         ListItem(
@@ -563,8 +553,6 @@ fun CGMActions(
                                 Text(
                                     context.getString(R.string.cgm_back)
                                 )
-                            },
-                            supportingContent = {
                             },
                             leadingContent = {
                                 Icon(Icons.Filled.ArrowBack, contentDescription = null)

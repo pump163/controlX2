@@ -503,6 +503,8 @@ fun ProfileActions(
                     }
                 }
 
+                item { Divider() }
+
                 item {
                     Box(
                         modifier = Modifier

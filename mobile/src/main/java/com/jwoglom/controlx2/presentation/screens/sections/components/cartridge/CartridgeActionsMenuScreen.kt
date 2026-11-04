@@ -88,6 +88,7 @@ fun CartridgeActionsMenuScreen(
         }
 
         item {
+            Divider()
             ListItem(
                 headlineContent = { Text(stringResource(R.string.cartridge_back)) },
                 leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },

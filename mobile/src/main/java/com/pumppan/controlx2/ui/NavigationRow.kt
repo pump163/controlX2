@@ -1,15 +1,12 @@
 package com.pumppan.controlx2.ui
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 
 /**
  * 导航行：标题 + 可选副标题 + 尾部图标，点击进入子页面。
@@ -19,7 +16,7 @@ import androidx.compose.ui.unit.dp
  * @param subtitle 可选副标题（显示当前值摘要）
  * @param leadingIcon 可选前置图标
  * @param trailingIcon 尾部图标，null 时不显示
- * @param readOnly 只读：不可点击、文字降透明度
+ * @param readOnly 只读：不可点击、文字与图标降透明度
  */
 @Composable
 fun NavigationRow(
@@ -31,29 +28,22 @@ fun NavigationRow(
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    ListItem(
-        headlineContent = {
-            Text(
-                text = title,
-                color = rowTitleColor(readOnly),
-                style = MaterialTheme.typography.bodyLarge,
-            )
+    val titleColor = rowTitleColor(readOnly)
+
+    BaseRow(
+        title = title,
+        titleStyle = MaterialTheme.typography.bodyLarge,
+        titleColor = titleColor,
+        subtitle = subtitle,
+        // 副标题是「显示值」，只读时也保持正常色，方便 X2 上查看状态
+            subtitleColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        leadingIcon = leadingIcon?.let { icon ->
+            { CompositionLocalProvider(LocalContentColor provides titleColor) { icon() } }
         },
-        supportingContent = subtitle?.let { text ->
-            {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = rowSubtitleColor(readOnly),
-                )
-            }
+        trailing = trailingIcon?.let { icon ->
+            { Icon(imageVector = icon, contentDescription = null, tint = titleColor) }
         },
-        leadingContent = leadingIcon,
-        trailingContent = trailingIcon?.let { icon ->
-            { Icon(imageVector = icon, contentDescription = null) }
-        },
-        modifier = modifier
-            .heightIn(min = 56.dp)
-            .clickable(enabled = !readOnly, onClick = onClick),
+        onClick = if (readOnly) null else onClick,
+        modifier = modifier,
     )
 }

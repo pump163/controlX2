@@ -149,6 +149,7 @@ import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
+import com.pumppan.controlx2.ui.*
 import com.jwoglom.pumpx2.pump.PumpState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -296,42 +297,42 @@ fun Debug(
         content = {
             item {
                 HeaderLine(context.getString(R.string.debug_debug))
-                DebugRowDivider()
+                DebugDivider()
             }
             if (Prefs(context).serviceEnabled()) {
                 item {
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.debug_disable_ctrl_x2_service)) },
-                        supportingContent = { Text(context.getString(R.string.debug_stop_background_service)) },
-                        leadingContent = {
+                    ActionRow(
+                        title = context.getString(R.string.debug_disable_ctrl_x2_service),
+                        subtitle = context.getString(R.string.debug_stop_background_service),
+                        leadingIcon = {
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = context.getString(R.string.debug_stop_icon),
                             )
                         },
-                        modifier = Modifier.clickable {
+                        onClick = {
                             Prefs(context).setServiceEnabled(false)
                             coroutineScope.launch {
                                 delay(250)
                                 sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
                             }
-                        }
+                        },
                     )
                     DebugDivider()
                 }
             }
             // G2
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_send_support_bundle)) },
-                    supportingContent = { Text(context.getString(R.string.settings_generate_debug_logs_zip)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_send_support_bundle),
+                    subtitle = context.getString(R.string.settings_generate_debug_logs_zip),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Help,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         val summary = getSupportBundleSummary(context)
                         if (summary == null) {
                             Toast.makeText(context, context.getString(R.string.settings_no_debug_logs_are_available_to_share), Toast.LENGTH_SHORT).show()
@@ -339,7 +340,7 @@ fun Debug(
                             supportBundleSummary = summary
                             showSupportBundleDialog = true
                         }
-                    }
+                    },
                 )
                 DebugRowDivider()
             }
@@ -350,18 +351,18 @@ fun Debug(
                         .fillMaxSize()
                         .wrapContentSize(Alignment.TopStart)
                 ) {
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.debug_send_pump_message)) },
-                        supportingContent = { Text(context.getString(R.string.debug_displays_resp_mess_for_given_request)) },
-                        leadingContent = {
+                    ActionRow(
+                        title = context.getString(R.string.debug_send_pump_message),
+                        subtitle = context.getString(R.string.debug_displays_resp_mess_for_given_request),
+                        leadingIcon = {
                             Icon(
                                 Icons.Filled.Build,
                                 contentDescription = null,
                             )
                         },
-                        modifier = Modifier.clickable {
+                        onClick = {
                             showSendPumpMessageMenu = true
-                        }
+                        },
                     )
                     DropdownMenu(
                         expanded = showSendPumpMessageMenu,
@@ -524,18 +525,18 @@ fun Debug(
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_view_recv_mess_cache)) },
-                    supportingContent = { Text(context.getString(R.string.debug_displays_recently_recv_pump_mess)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_view_recv_mess_cache),
+                    subtitle = context.getString(R.string.debug_displays_recently_recv_pump_mess),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Build,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         showMessageCache = true
-                    }
+                    },
                 )
 
                 if (showMessageCache) {
@@ -626,16 +627,16 @@ fun Debug(
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_get_history_logs)) },
-                    supportingContent = { Text(context.getString(R.string.debug_fetches_history_logs_within_given_range)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_get_history_logs),
+                    subtitle = context.getString(R.string.debug_fetches_history_logs_within_given_range),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Build,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         Timber.d("pressed Get History Logs")
                         coroutineScope.launch {
                             dataStore.historyLogStatus.value = null
@@ -655,33 +656,29 @@ fun Debug(
                                 dataStore.historyLogStatus.value
                             )
                         }
-                    }
+                    },
                 )
                 DebugRowDivider()
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_view_history_log_mess)) },
-                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_history_log_mess)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_view_history_log_mess),
+                    subtitle = context.getString(R.string.debug_displays_pump_history_log_mess),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Build,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
-                        // 未拉取过历史日志时缓存为空，直接开弹窗会渲染出空白页面（点请求也无法立即得到数据），
-                        // 因此先判断缓存是否有可显示的消息，无数据时只做轻量提示。
-                        if (ds.historyLogCache.value?.isNotEmpty() != true) {
-                            Toast.makeText(context, context.getString(R.string.debug_history_log_messages_not_loaded), Toast.LENGTH_SHORT).show()
-                        } else {
-                            sendMessage(MessagePaths.TO_PUMP_DEBUG_HISTORYLOG_CACHE, "".toByteArray())
-                            Handler(Looper.getMainLooper()).postDelayed({
-                                showHistoryLogs = true
-                            }, 500)
-                        }
-                    }
+                    onClick = {
+                        // 缓存只能在收到响应后才有数据，所以必须先发请求再开弹窗；
+                        // 弹窗内的列表观察 historyLogCache，数据到达后自动填充。
+                        sendMessage(MessagePaths.TO_PUMP_DEBUG_HISTORYLOG_CACHE, "".toByteArray())
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            showHistoryLogs = true
+                        }, 500)
+                    },
                 )
 
                 if (showHistoryLogs) {
@@ -894,35 +891,35 @@ fun Debug(
 
             // G3
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_clear_debug_logs)) },
-                    supportingContent = { Text(context.getString(R.string.debug_clears_saved_debug_logs)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_clear_debug_logs),
+                    subtitle = context.getString(R.string.debug_clears_saved_debug_logs),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         clearDebugLog(context)
-                    }
+                    },
                 )
                 DebugRowDivider()
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_empty_database)) },
-                    supportingContent = { Text(context.getString(R.string.debug_remove_all_saved_history_logs_sqlite)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_empty_database),
+                    subtitle = context.getString(R.string.debug_remove_all_saved_history_logs_sqlite),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         emptyDatabase(context)
-                    }
+                    },
                 )
                 DebugDivider()
             }
@@ -930,59 +927,56 @@ fun Debug(
             // G4
             item {
                 var qualifyingEventToastsEnabled by remember { mutableStateOf(Prefs(context).qualifyingEventToastsEnabled()) }
-                ListItem(
-                    headlineContent = { Text(if (qualifyingEventToastsEnabled) context.getString(R.string.debug_disable_qualifying_event_toasts) else context.getString(R.string.debug_enable_qualifying_event_toasts)) },
-                    supportingContent = { Text(context.getString(R.string.debug_toast_on_qualifying_events)) },
-                    leadingContent = {
+                ActionRow(
+                    title =
+                        if (qualifyingEventToastsEnabled) context.getString(R.string.debug_disable_qualifying_event_toasts)
+                        else context.getString(R.string.debug_enable_qualifying_event_toasts),
+                    subtitle = context.getString(R.string.debug_toast_on_qualifying_events),
+                    leadingIcon = {
                         Icon(
                             if (qualifyingEventToastsEnabled) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .clickable {
-                            qualifyingEventToastsEnabled = !qualifyingEventToastsEnabled
-                            Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
-                            Toast.makeText(
-                                context,
-                                context.getString(
-                                    if (qualifyingEventToastsEnabled) {
-                                        R.string.debug_qualifying_event_toasts_enabled
-                                    } else {
-                                        R.string.debug_qualifying_event_toasts_disabled
-                                    }
-                                ),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (qualifyingEventToastsEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        }
+                    onClick = {
+                        qualifyingEventToastsEnabled = !qualifyingEventToastsEnabled
+                        Prefs(context).setQualifyingEventToastsEnabled(qualifyingEventToastsEnabled)
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                if (qualifyingEventToastsEnabled) {
+                                    R.string.debug_qualifying_event_toasts_enabled
+                                } else {
+                                    R.string.debug_qualifying_event_toasts_disabled
+                                }
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (qualifyingEventToastsEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
                 DebugRowDivider()
             }
 
             item {
                 var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
-                ListItem(
-                    headlineContent = { Text(if (httpDebugApiEnabled) context.getString(R.string.debug_disable_http_debug_api) else context.getString(R.string.debug_enable_http_debug_api)) },
-                    supportingContent = { Text(context.getString(R.string.debug_toggle_http_debug_api_on_port)) },
-                    leadingContent = {
+                ActionRow(
+                    title =
+                        if (httpDebugApiEnabled) context.getString(R.string.debug_disable_http_debug_api)
+                        else context.getString(R.string.debug_enable_http_debug_api),
+                    subtitle = context.getString(R.string.debug_toggle_http_debug_api_on_port),
+                    leadingIcon = {
                         Icon(
                             if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (httpDebugApiEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        }
-                        .clickable {
-                            httpDebugApiEnabled = !httpDebugApiEnabled
+                    onClick = {
+                        httpDebugApiEnabled = !httpDebugApiEnabled
                         Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
                         Toast.makeText(
                             context,
@@ -995,7 +989,12 @@ fun Debug(
                             ),
                             Toast.LENGTH_SHORT
                         ).show()
-                    }
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (httpDebugApiEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
 
                 if (httpDebugApiEnabled) {
@@ -1071,18 +1070,18 @@ fun Debug(
 
             // G5
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_view_pump_state)) },
-                    supportingContent = { Text(context.getString(R.string.debug_displays_pump_mac_pairing_key_and)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_view_pump_state),
+                    subtitle = context.getString(R.string.debug_displays_pump_mac_pairing_key_and),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Info,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         showPumpState = true
-                    }
+                    },
                 )
 
                 if (showPumpState) {
@@ -1140,26 +1139,26 @@ fun Debug(
 
             // G6
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.debug_feature_flags)) },
-                    supportingContent = { Text(context.getString(R.string.debug_toggle_experimental_features)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.debug_feature_flags),
+                    subtitle = context.getString(R.string.debug_toggle_experimental_features),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Settings,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier.clickable { navigateToFeatureFlags() },
+                    onClick = { navigateToFeatureFlags() },
                 )
                 DebugDivider()
             }
 
             // 页尾：返回（不属于任何分组）
             item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.app_back)) },
-                    leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                    modifier = Modifier.clickable(onClick = navigateBack),
+                ActionRow(
+                    title = stringResource(R.string.app_back),
+                    leadingIcon = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                    onClick = navigateBack,
                 )
             }
         }

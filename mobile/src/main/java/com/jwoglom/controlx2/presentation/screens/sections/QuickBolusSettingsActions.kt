@@ -148,6 +148,16 @@ fun QuickBolusSettingsActions(
     var quickBolusEnabled by remember { mutableStateOf(false) }
     var quickBolusIncrement by remember { mutableStateOf(SetQuickBolusSettingsRequest.QuickBolusIncrement.DISABLED) }
 
+    // 泵上的当前值从 PumpGlobalsResponse 回填（本页已经通过 soundSettingsActionsCommands 拉了这条消息）。
+    // 弹窗打开时不回填，避免覆盖用户正在改的值。
+    val pumpGlobals = ds.pumpGlobalsResponse.observeAsState()
+    LaunchedEffect(pumpGlobals.value) {
+        val globals = pumpGlobals.value ?: return@LaunchedEffect
+        if (showQuickBolusDialog) return@LaunchedEffect
+        quickBolusEnabled = globals.isQuickBolusEnabled
+        quickBolusIncrement = globals.quickBolusIncrement
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

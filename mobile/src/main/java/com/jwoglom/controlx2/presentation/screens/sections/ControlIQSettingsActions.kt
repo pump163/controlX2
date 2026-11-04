@@ -70,6 +70,7 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
+import com.pumppan.controlx2.ui.NavigationRow
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
 
@@ -234,22 +235,18 @@ fun ControlIQSettingsActions(
 
                 // Control-IQ enabled status display
                 item {
-                    ListItem(
-                        headlineContent = { Text("Control-IQ") },
-                        supportingContent = {
-                            Text(controlIQSummaryText)
-                        },
-                        leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            showChangeControlIQDialog = true
-                        }
+                    NavigationRow(
+                        title = "Control-IQ",
+                        subtitle = controlIQSummaryText,
+                        leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        readOnly = !canControl,
+                        onClick = { showChangeControlIQDialog = true },
                     )
                     Divider()
                 }
 
                 // Sleep Schedule section header
                 item {
-                    Line("\n")
                     HeaderLine(stringResource(R.string.ciq_sleep_schedule))
                     Divider()
                 }
@@ -266,23 +263,20 @@ fun ControlIQSettingsActions(
                     schedules.forEachIndexed { index, slot ->
                         item {
                             val enabled = slot.enabled != 0
-                            ListItem(
-                                headlineContent = { Text(context.getString(R.string.ciq_schedule, index + 1)) },
-                                supportingContent = {
-                                    if (enabled) {
-                                        val days = slot.activeDays().joinToString(", ") { it.name.take(3) }
-                                        Text(
-                                            "Enabled\n" +
-                                            "${String.format("%02d:%02d", slot.startTime().hour(), slot.startTime().min())} - " +
-                                            "${String.format("%02d:%02d", slot.endTime().hour(), slot.endTime().min())}\n" +
-                                            context.getString(R.string.ciq_days_days, days)
-                                        )
-                                    } else {
-                                        Text(context.getString(R.string.ciq_disabled))
-                                    }
+                            NavigationRow(
+                                title = context.getString(R.string.ciq_schedule, index + 1),
+                                subtitle = if (enabled) {
+                                    val days = slot.activeDays().joinToString(", ") { it.name.take(3) }
+                                    "Enabled\n" +
+                                        "${String.format("%02d:%02d", slot.startTime().hour(), slot.startTime().min())} - " +
+                                        "${String.format("%02d:%02d", slot.endTime().hour(), slot.endTime().min())}\n" +
+                                        context.getString(R.string.ciq_days_days, days)
+                                } else {
+                                    context.getString(R.string.ciq_disabled)
                                 },
-                                leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                                modifier = Modifier.clickable {
+                                leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                                readOnly = !canControl,
+                                onClick = {
                                     editingSlot = index
                                     sleepEnabled = enabled
                                     if (enabled) {
@@ -299,7 +293,7 @@ fun ControlIQSettingsActions(
                                         sleepDays = "127"
                                     }
                                     showEditSleepScheduleDialog = true
-                                }
+                                },
                             )
                             Divider()
                         }
@@ -311,10 +305,10 @@ fun ControlIQSettingsActions(
                 }
 
                 item {
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.ciq_back)) },
-                        leadingContent = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
-                        modifier = Modifier.clickable(onClick = navigateBack),
+                    NavigationRow(
+                        title = context.getString(R.string.ciq_back),
+                        leadingIcon = { Icon(Icons.Filled.ArrowBack, contentDescription = null) },
+                        onClick = navigateBack,
                     )
                 }
             }

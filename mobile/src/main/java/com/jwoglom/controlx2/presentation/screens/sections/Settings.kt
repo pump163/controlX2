@@ -3,7 +3,6 @@
 package com.jwoglom.controlx2.presentation.screens.sections
 
 import android.widget.Toast
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,10 +21,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,6 +66,7 @@ import com.jwoglom.controlx2.util.AppVersionCheck
 import com.jwoglom.controlx2.util.AppVersionInfo
 import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
+import com.pumppan.controlx2.ui.*
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
 // import com.jwoglom.pumpx2.pump.messages.request.control.ChangeTimeDateRequest // 已移至控制页底部
@@ -135,7 +133,7 @@ fun Settings(
 
             item {
                 VersionInfo(context)
-                SettingsRowDivider()
+                SettingsDivider()
             }
 
             item {
@@ -169,16 +167,16 @@ fun Settings(
 
             item {
                 if (!Prefs(context).serviceEnabled()) {
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.settings_enable_ctrl_x2_service)) },
-                        supportingContent = { Text(context.getString(R.string.settings_start_background_service)) },
-                        leadingContent = {
+                    ActionRow(
+                        title = context.getString(R.string.settings_enable_ctrl_x2_service),
+                        subtitle = context.getString(R.string.settings_start_background_service),
+                        leadingIcon = {
                             Icon(
                                 Icons.Filled.Check,
                                 contentDescription = context.getString(R.string.settings_start_icon),
                             )
                         },
-                        modifier = Modifier.clickable {
+                        onClick = {
                             Prefs(context).setServiceEnabled(true)
                             coroutineScope.launch {
                                 delay(250)
@@ -188,7 +186,7 @@ fun Settings(
                                 // reload main activity as fallback
                                 sendMessage(MessagePaths.TO_SERVER_APP_RELOAD, "".toByteArray())
                             }
-                        }
+                        },
                     )
                     SettingsRowDivider()
                 }
@@ -239,18 +237,18 @@ fun Settings(
 //            }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_force_service_reload)) },
-                    supportingContent = { Text(context.getString(R.string.settings_restarts_background_service)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_force_service_reload),
+                    subtitle = context.getString(R.string.settings_restarts_background_service),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Refresh,
                             contentDescription = context.getString(R.string.settings_reload_icon),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         sendMessage(MessagePaths.TO_SERVER_FORCE_RELOAD, "".toByteArray())
-                    }
+                    },
                 )
                 SettingsRowDivider()
             }
@@ -307,10 +305,10 @@ fun Settings(
 //            }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reconfigure_pump)) },
-                    supportingContent = { Text(context.getString(R.string.settings_disconnect_and_re_pair_with_pump)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_reconfigure_pump),
+                    subtitle = context.getString(R.string.settings_disconnect_and_re_pair_with_pump),
+                    leadingIcon = {
                         Icon(
                             painterResource(R.drawable.pump),
                             tint = Color.Unspecified,
@@ -318,27 +316,27 @@ fun Settings(
                             modifier = Modifier.size(24.dp),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         showPumpSetupConfirmDialog = true
-                    }
+                    },
                 )
                 SettingsRowDivider()
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reconfigure_app)) },
-                    supportingContent = { Text(context.getString(R.string.settings_toggle_insulin_delivery_actions)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_reconfigure_app),
+                    subtitle = context.getString(R.string.settings_toggle_insulin_delivery_actions),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Settings,
                             contentDescription = context.getString(R.string.settings_icon),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         Prefs(context).setAppSetupComplete(false)
                         navController?.navigate(Screen.AppSetup.route)
-                    }
+                    },
                 )
             }
 
@@ -353,32 +351,32 @@ fun Settings(
                         DeviceRole.PUMP_HOST -> context.getString(R.string.settings_phone_pump_host)
                         DeviceRole.CLIENT -> context.getString(R.string.settings_watch_pump_host)
                     }
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.settings_pump_host_device)) },
-                        supportingContent = { Text(context.getString(R.string.settings_currently_role_label, roleLabel)) },
-                        leadingContent = {
+                    ActionRow(
+                        title = context.getString(R.string.settings_pump_host_device),
+                        subtitle = context.getString(R.string.settings_currently_role_label, roleLabel),
+                        leadingIcon = {
                             Icon(
                                 Icons.Filled.Devices,
                                 contentDescription = context.getString(R.string.settings_device_role_icon),
                             )
                         },
-                        modifier = Modifier.clickable {
+                        onClick = {
                             showDeviceRoleDialog = true
-                        }
+                        },
                     )
                     SettingsRowDivider()
-                    ListItem(
-                        headlineContent = { Text(context.getString(R.string.settings_reset_start_over_on_device)) },
-                        supportingContent = { Text(context.getString(R.string.settings_force_pump_host_clear_bond)) },
-                        leadingContent = {
+                    ActionRow(
+                        title = context.getString(R.string.settings_reset_start_over_on_device),
+                        subtitle = context.getString(R.string.settings_force_pump_host_clear_bond),
+                        leadingIcon = {
                             Icon(
                                 Icons.Filled.Devices,
                                 contentDescription = context.getString(R.string.settings_reset_icon),
                             )
                         },
-                        modifier = Modifier.clickable {
+                        onClick = {
                             showRescueDialog = true
-                        }
+                        },
                     )
                 }
             }
@@ -389,50 +387,44 @@ fun Settings(
 
             item {
                 var bolusButton by remember { mutableStateOf(Prefs(context).showBolusNotificationButton()) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_2)) },
-                    supportingContent = {
-                        Text(
-                            if (bolusButton) context.getString(R.string.settings_reload_icon_3)
-                            else context.getString(R.string.settings_reload_icon_4)
-                        )
-                    },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_reload_icon_2),
+                    subtitle =
+                        if (bolusButton) context.getString(R.string.settings_reload_icon_3)
+                        else context.getString(R.string.settings_reload_icon_4),
+                    leadingIcon = {
                         Icon(
                             if (bolusButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
                             contentDescription = stringResource(R.string.settings_reload_icon_5),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         bolusButton = !bolusButton
                         Prefs(context).setShowBolusNotificationButton(bolusButton)
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
-                    }
+                    },
                 )
                 SettingsRowDivider()
             }
 
             item {
                 var tempRateButton by remember { mutableStateOf(Prefs(context).showTempRateNotificationButton()) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_reload_icon_6)) },
-                    supportingContent = {
-                        Text(
-                            if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
-                            else context.getString(R.string.settings_reload_icon_8)
-                        )
-                    },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_reload_icon_6),
+                    subtitle =
+                        if (tempRateButton) context.getString(R.string.settings_reload_icon_7)
+                        else context.getString(R.string.settings_reload_icon_8),
+                    leadingIcon = {
                         Icon(
                             if (tempRateButton) Icons.Filled.NotificationsActive else Icons.Filled.Notifications,
                             contentDescription = stringResource(R.string.settings_reload_icon_9),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         tempRateButton = !tempRateButton
                         Prefs(context).setShowTempRateNotificationButton(tempRateButton)
                         sendMessage(MessagePaths.TO_SERVER_APPLY_RUNTIME_PREFS, "".toByteArray())
-                    }
+                    },
                 )
                 SettingsDivider()
             }
@@ -446,75 +438,72 @@ fun Settings(
 
             item {
                 var cgmEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.CgmChartVisible)) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_home_show_cgm_chart)) },
-                    supportingContent = { Text(context.getString(R.string.settings_home_show_cgm_chart_sub)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_home_show_cgm_chart),
+                    subtitle = context.getString(R.string.settings_home_show_cgm_chart_sub),
+                    leadingIcon = {
                         Icon(
                             if (cgmEnabled) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .clickable {
-                            cgmEnabled = !cgmEnabled
-                            FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
-                        }
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (cgmEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        },
+                    onClick = {
+                        cgmEnabled = !cgmEnabled
+                        FeatureFlag.set(context, FeatureFlag.CgmChartVisible, cgmEnabled)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (cgmEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
                 SettingsRowDivider()
             }
 
             item {
                 var sensorEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.SensorInfoCardVisible)) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_home_show_sensor_info)) },
-                    supportingContent = { Text(context.getString(R.string.settings_home_show_sensor_info_sub)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_home_show_sensor_info),
+                    subtitle = context.getString(R.string.settings_home_show_sensor_info_sub),
+                    leadingIcon = {
                         Icon(
                             if (sensorEnabled) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .clickable {
-                            sensorEnabled = !sensorEnabled
-                            FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
-                        }
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (sensorEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        },
+                    onClick = {
+                        sensorEnabled = !sensorEnabled
+                        FeatureFlag.set(context, FeatureFlag.SensorInfoCardVisible, sensorEnabled)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (sensorEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
                 SettingsRowDivider()
             }
 
             item {
                 var historyEnabled by remember { mutableStateOf(FeatureFlag.enabled(context, FeatureFlag.HistoryLogSyncBarVisible)) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_home_show_history_sync)) },
-                    supportingContent = { Text(context.getString(R.string.settings_home_show_history_sync_sub)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_home_show_history_sync),
+                    subtitle = context.getString(R.string.settings_home_show_history_sync_sub),
+                    leadingIcon = {
                         Icon(
                             if (historyEnabled) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .clickable {
-                            historyEnabled = !historyEnabled
-                            FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
-                        }
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (historyEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        },
+                    onClick = {
+                        historyEnabled = !historyEnabled
+                        FeatureFlag.set(context, FeatureFlag.HistoryLogSyncBarVisible, historyEnabled)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (historyEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
                 SettingsDivider()
             }
@@ -522,59 +511,58 @@ fun Settings(
             // 单独成组：自动读取历史记录（按用户要求不新增组标题，靠上下组间线区分）
             item {
                 var autoFetchHistoryLogs by remember { mutableStateOf(Prefs(context).autoFetchHistoryLogs()) }
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_auto_fetch_history_logs)) },
-                    supportingContent = { Text(context.getString(R.string.settings_auto_fetch_history_logs_sub)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_auto_fetch_history_logs),
+                    subtitle = context.getString(R.string.settings_auto_fetch_history_logs_sub),
+                    leadingIcon = {
                         Icon(
                             if (autoFetchHistoryLogs) Icons.Filled.Check else Icons.Filled.Close,
                             contentDescription = null,
                         )
                     },
-                    modifier = Modifier
-                        .clickable {
-                            autoFetchHistoryLogs = !autoFetchHistoryLogs
-                            Prefs(context).setAutoFetchHistoryLogs(autoFetchHistoryLogs)
-                        }
-                        .semantics {
-                            stateDescription = context.getString(
-                                if (autoFetchHistoryLogs) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
-                            )
-                        },
+                    onClick = {
+                        autoFetchHistoryLogs = !autoFetchHistoryLogs
+                        Prefs(context).setAutoFetchHistoryLogs(autoFetchHistoryLogs)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (autoFetchHistoryLogs) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
                 )
                 SettingsDivider()
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_nightscout)) },
-                    supportingContent = { Text(context.getString(R.string.settings_config_nightscout_sync)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_nightscout),
+                    subtitle = context.getString(R.string.settings_config_nightscout_sync),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.CloudSync,
                             contentDescription = context.getString(R.string.settings_nightscout_icon),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         navigateToNightscoutSettings()
-                    }
+                    },
                 )
                 SettingsRowDivider()
             }
 
             item {
-                ListItem(
-                    headlineContent = { Text("xDrip") },
-                    supportingContent = { Text(context.getString(R.string.settings_config_xdrip_broadcasts)) },
-                    leadingContent = {
+                ActionRow(
+                    title = "xDrip",
+                    subtitle = context.getString(R.string.settings_config_xdrip_broadcasts),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.Sync,
                             contentDescription = context.getString(R.string.settings_x_drip_icon),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         navigateToXdripSettings()
-                    }
+                    },
                 )
                 SettingsDivider()
             }
@@ -615,18 +603,18 @@ fun Settings(
 //            }
 
             item {
-                ListItem(
-                    headlineContent = { Text(context.getString(R.string.settings_debug_options)) },
-                    supportingContent = { Text(context.getString(R.string.settings_perform_debug_opts)) },
-                    leadingContent = {
+                ActionRow(
+                    title = context.getString(R.string.settings_debug_options),
+                    subtitle = context.getString(R.string.settings_perform_debug_opts),
+                    leadingIcon = {
                         Icon(
                             Icons.Filled.DeveloperMode,
                             contentDescription = context.getString(R.string.settings_icon),
                         )
                     },
-                    modifier = Modifier.clickable {
+                    onClick = {
                         navigateToDebugOptions()
-                    }
+                    },
                 )
                 SettingsDivider()
             }

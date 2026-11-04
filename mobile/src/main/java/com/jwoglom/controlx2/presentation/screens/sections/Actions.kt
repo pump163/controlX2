@@ -289,8 +289,7 @@ fun Actions(
                             },
                             emphasized = basalStatus.value == BasalStatus.PUMP_SUSPENDED,
                             readOnly = !canPumpControl,
-                            danger = true,
-                            modifier = Modifier.heightIn(min = DangerousRowMinHeight),
+                                modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (basalStatus.value) {
                                     BasalStatus.UNKNOWN, null -> {}
@@ -590,8 +589,7 @@ fun Actions(
                             },
                             emphasized = tempRateActive.value == true,
                             readOnly = !canTempRate,
-                            danger = true,
-                            modifier = Modifier.heightIn(min = DangerousRowMinHeight),
+                                modifier = Modifier.heightIn(min = DangerousRowMinHeight),
                             onClick = {
                                 when (tempRateActive.value) {
                                     true -> { showStopTempRateMenu = true }

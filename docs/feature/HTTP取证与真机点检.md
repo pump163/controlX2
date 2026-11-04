@@ -2,7 +2,7 @@
 
 > **⚠️ 本方案会真实输注胰岛素。执行前须逐条符合 §5 的条件（血糖、人员、糖、中止手段），否则不要开始。**
 >
-> 日期：2026-11-03　状态：**待执行 · 需真机**
+> 日期：2026-11-03　状态：**进行中 · 2026-11-05 完成只读实测，写路径（-98）因 BULK 拦截暂停**
 > 目标：用 App 自带的 HTTP 调试 API 一次性验证「延展大剂量（11 参 `InitiateBolusRequest`）」相关的 8 个假设；同时给出最新编译版的真机点检顺序。
 > 关联：`docs/feature/大剂量功能设计-v2.md`（§9 取证清单即本方案的来源）
 
@@ -193,3 +193,87 @@ def cargo(total, bolus_id, bitmask, ext_vol, ext_secs,
 | V2 | `ExtendedBolusStatus`(47) / V2(-73) 在 X2 上是否可用 | 全仓 `ExtendedBolusStatusRequest` **0 引用**，从未发送过 | 前置 0.5 + A3 |
 | V3 | 时长超限时泵的真实表现 | `BolusResponseStatus` 无「超时长」语义，库层面读不出 | B5（7201s 一档，预期被拒） |
 | V4 | `-16` `BolusPermissionReleaseRequest` 的真实语义 | 全仓 0 引用；名字像「释放权限」，是否同时取消输注未知 | A6（若放权后延展消失即兼取消） |
+
+---
+
+## §8 真机实测记录（2026-11-05）
+
+> 状态：**只读实测全部完成 · 写路径实测中断（根因已定位）**
+
+### 8.1 连接与基线
+
+- 设备：`192.168.8.52:18282`，Basic Auth `admin:123456`，调试开关开 + 服务重启后生效。
+- `GET /` → **200**，`buildVersion = 82710ea`（buildTime `2026-11-04T01:20:11+08:00`，即 **11-04 旧包**，不含 11-05 未编译的 UI 改动），`pumpx2 1.9.0`。
+- `GET /api/pump/connected` → `{"connected":true}`。
+- `GET /api/pump/current` → `statusText=comm_connected_to_pump`, `connectionTime=2026-11-04T15:23:29Z`, `lastMessageTime=2026-11-04T15:38:24Z`, `batteryPercent=50`, `iobUnits=4.807`, `cartridgeRemainingUnits=240`。
+
+### 8.2 只读命令实测（全部 ✅）
+
+| opCode | 名称 | 实测结果 |
+|---|---|---|
+| 52 | CurrentBatteryV1 | ✅ `currentBatteryAbc=59`, `currentBatteryIbc=50`（`/api/pump/current` 报的 50 是 IBC 口径） |
+| 86 | PumpGlobals | ✅ `quickBolusEnabledRaw=1`, `quickBolusIncrementUnits=1000`, `quickBolusIncrementCarbs=15000`, `quickBolusEntryType=0(UNITS)`, `quickBolusStatus=15` |
+| 44 | CurrentBolusStatus | ✅ Idle（全 0） |
+| 46 | ExtendedBolusStatus | ✅ **有响应**（Idle，全 0）→ **V2 可用已证实** |
+| -74 | ExtendedBolusStatusV2 | ✅ **有响应**（Idle；`secondsSincePumpReset=4294967295` 为无效哨兵值）→ **V2 可用已证实** |
+| 48 | LastBolusStatus | ✅ `bolusId=6803, deliveredVolume=5000, bolusStatusId=3, timestamp=594684556` |
+| -92 | LastBolusStatusV2 | ✅ 同上 + `requestedVolume=5000` |
+| 50 | LastBG | ✅ `bgSource=MANUAL, bgValue=0` |
+| 84 | PumpVersion | ✅ `modelNum=1000354, partNum=1011979, armSwVer=1547050764, serialNum=90964627` |
+| 114 | BolusCalcDataSnapshot | ✅ `maxBolusAmount=20000, isf=18, carbRatio=10000, targetBg=100, iob=5148, cartridgeRemainingInsulin=240, correctionFactor=0, carbEntryEnabled=false, isAutopopAllowed=false` |
+| -114 | CommonSoftwareInfo | ⚠️ cargo 必须 1 字节（MCU 类型，ARM=0 → `"00"`）；空 cargo → HTTP 400；填 `"00"` 后返回 appSoftwarePartNumber=1011979, bootloaderPartNumber=65, bootloaderVersion="2" |
+| -94 | BolusPermissionRequest | ✅ `bolusId=6804, nackReasonId=0, status=0(SUCCESS)`，`signed=true` |
+
+### 8.3 历史库实测（今天 21:51→23:20）
+
+- `GET /api/historylog/status` → pumpSid=627, totalCount=21432, oldestSeqId=2054629(2026-10-23), newestSeqId=2076508(2026-11-04T23:20:11Z)
+- `GET /api/historylog/stats` → 21432 条；type 分布：219→3469, 71(IdpList)→3458, 227→3456, 279(BasalDelivery)→3450, 81(DailyBasal)→1344
+- Malfunction(type 6): **仅 4 条**，全在今天之前
+- Alarm(type 5): **仅 2 条**，均在 11-01
+- 今天尾部 209 条（seqIdMin=2076300 & seqIdMax=2076600）：type6=**0**, type5=**0**, type4 Alert=1（21:54:28 alertId=13 触发，22:02:10 清除）
+- 结论：**泵侧今天零异常记录**；用户感知的「断联」是手机端 BLE 掉线，泵本身未记异常。
+
+### 8.4 写命令实测（2026-11-05，用户授权后执行）
+
+| 步 | 命令 | 结果 |
+|---|---|---|
+| A1 | `-94` BolusPermission | ✅ `status=0(SUCCESS)`，`bolusId=6804` |
+| A2 | `-98` InitiateBolus（dual wave: total=500mU / ext=250mU / secs=1800 / bitmask=3） | ❌ **500** `{"exceptions":["java.util.concurrent.TimeoutException"],"response":[]}` → **未送达、未输注** |
+| A2retry | 同 A2 | ❌ 同样 500 |
+| A4 | `-96` CancelBolus（cargo=`941a0000`） | ✅ 200，`reasonId=2, statusId=1` |
+
+### 8.5 根因：大剂量写被 HTTP BULK 调试通道拦截
+
+- `PumpCommHandler.kt :: isBolusCommand`：
+  ```kotlin
+  (message is InitiateBolusRequest) ||
+      (message.opCode() == InitiateBolusRequest().opCode() && message.characteristic == Characteristic.CONTROL)
+  ```
+- `SEND_PUMP_COMMANDS_BULK` handler：
+  ```kotlin
+  if (isBolusCommand(it)) { Timber.e("SEND_PUMP_COMMAND blocked bolus command") }
+  else if (pumpConnectedPrecondition()) { pump.command(it) }
+  ```
+- 结论：**HTTP debug 的 raw BULK 写通道不承载 InitiateBolus（大剂量）**；大剂量真正交付走 `SEND_PUMP_COMMAND_BOLUS`（签名校验链路）。因此 `-98` 一直超时、未发生任何输注。
+
+### 8.6 对 §7 待验证清单的影响
+
+| 项 | 结论 |
+|---|---|
+| V1 | 待验证（HTTP HMAC 1:1）— A 受 BULK 拦截阻塞，需改走 `SEND_PUMP_COMMAND_BOLUS` 或新增 debug 路径后再试 |
+| V2 | ✅ **已证实可用**（46/-74 有响应） |
+| V3 | 待验证（时长超限）— B5 未执行 |
+| V4 | 待验证（-16 Release 语义）— A6 未执行 |
+| **新增** | **-98 大剂量不可经 HTTP BULK 通道发出（设计拦截，非泵侧缺陷）** |
+
+### 8.7 debug-write-bt-characteristic 探针（2026-11-05）
+
+- 用户请求：再测一次，看看 debug 这条路能不能走通。
+- 实测：`POST /api/pump/debug-write-bt-characteristic`（characteristicUuid=`7b83fffc-9f77-4e5c-8064-aae2c24838b9`, valuesHex=`["941a0000"]`）→ **HTTP 200，body 为空字符串**。
+- 源码定位：`HttpDebugApiService.kt` `handlePumpDebugWriteBtCharacteristic`（L990）内含 `// todo`，直接返回空响应（L1002-1005），**未实现任何写入逻辑**。
+- 结论：该路由**不能**走通、不能承载大剂量；探针即无效。HTTP debug 当前只有两条可写：`/api/pump/messages`（BULK，bolus 被 `isBolusCommand` 拦截）、`/api/pump/debug-write-bt-characteristic`（stub，空响应）。
+- `/api/pump/current` 实测正常返回（IOB 4.807→3.591 为自然衰减）。
+
+### 结论（§8 收尾）
+**V2 已证实；V1/V3/V4 待后续；-98 大剂量经 HTTP BULK 调试通道不可发出（设计拦截 / stub 探针无效），需另行设计 debug 路径或走 `SEND_PUMP_COMMAND_BOLUS` 签名链路后复测。** 轮 A/B 因该拦截暂停，B 轮方波测试待恢复。
+
