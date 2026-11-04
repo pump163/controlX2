@@ -233,6 +233,66 @@
 | 指南参考中点 | `100` | `5.6` | 仅参考，不作为分区边界 |
 | LBGI 零点 | `≈112` | `≈6.2` | 公式 `Trans(BG)=0` 的位置（§9.2） |
 
+### 4.7 人工录入血糖（指尖）的单位换算
+
+> 本节只讨论**人工录入的血糖值**（指尖血、血糖仪读数），与 CGM 自动读数分开。先给代码现状，再给规则。现状是**没有独立的指尖录入功能**，所以规则分两种用法：将来新增该功能时按此实现；修当前大剂量窗口的换算问题时也按此为准。
+
+#### 4.7.1 代码现状（2026-11-04 核实）
+
+| 环节 | 事实 | 锚点 |
+|---|---|---|
+| 录入入口 | 只有大剂量窗口的血糖输入框，副标题在 `BG` / `Entered` / `CGM` 三种之间切换；**没有独立的「记录指尖血糖」页面或按钮** | `BolusWindow.kt :: BolusWindow`；`BolusEntryFormRegion.kt :: BolusEntryFormRegion` |
+| 输入框类型 | 该框为**整数输入**（只保留 0–9，`KeyboardType.Number`），小数点会被过滤 | `IntegerOutlinedText.kt :: IntegerOutlinedText` |
+| 输入缓存 | 输入串存在 `dataStore.bolusGlucoseRawValue`（String LiveData）；另用 `glucoseHumanEntered: Int?` 标记是否人工输入 | `DataStore.kt :: bolusGlucoseRawValue`；`BolusWindow.kt :: glucoseHumanEntered` |
+| 显示单位 | 全局 `glucoseUnitPreference`，启动时从设置加载，缺省 `MGDL` | `DataStore.kt :: glucoseUnitPreference`；`MainActivity.kt`（加载设置处） |
+| 现有换算 | mmol 分支 `GlucoseConverter.convert(x, MMOL, MGDL).toInt()`；mg/dL 分支直接取整数；CGM 回填用 `GlucoseConverter.format(autofilledBg, unit)` | `BolusWindow.kt :: recalculate()`；`GlucoseConverter.kt`（`MGDL_TO_MMOL_FACTOR = 0.0555`） |
+| 去向 | 只进大剂量计算（`bolusCalculatorBuilder` → `BolusParameters.glucoseMgdl`），随大剂量请求发给泵；**不写本地数据库，也不进 TIR 数据源** | `BolusWindow.kt :: recalculate()`；`MainActivity.kt :: sendServiceBolusRequest` |
+| 本地存储 | `pumpdata_historylog` 只有 `typeId + cargo`，不展开血糖字段；泵侧 `BGHistoryLog` 的 `bg / cgmCalibration / bgSourceId / bgSourceType` 都封在 `cargo` 里，主代码**从未解析或展示**（`CgmReadingHistoryLogs` 只列 Dexcom / FSL / Gx） | `HistoryLogItem.kt`；`DashboardCgmChart.kt :: CgmReadingHistoryLogs`；`HistoryLogFetcherIntegrationTest.kt`（唯一出现 `BGHistoryLog` 的地方） |
+| 文案 | 只有 `bolus_bg_unit_abbrev` / `bolus_entered_unit_abbrev` / `bolus_cgm_unit_abbrev`，无「指尖血糖」独立文案 | `strings.xml` |
+
+结论：**当前没有「人工录入指尖血糖」的独立入口与存储**。能录入血糖的只有大剂量窗口，且该值不落库；泵侧历史记录里的 `BGHistoryLog` 是只读数据、当前不展示。本节规则用于将来新增指尖记录，也用于修当前大剂量窗口的换算问题。
+
+#### 4.7.2 录入链路（新增功能时按此实现）
+
+1. **输入单位跟随设置**：`glucoseUnitPreference` 为 MGDL 时输入整数 mg/dL；为 MMOL 时输入 1 位小数 mmol。
+2. **落库一律整数 mg/dL**，这是唯一真值；字段语义为「mg/dL 整数」，不存 mmol、不存输入字符串。
+3. **mmol → mg/dL**：`Math.round(v / GlucoseConverter.MGDL_TO_MMOL_FACTOR)`，四舍五入到整数（3.9 → 70、5.6 → 101、13.9 → 250）。不得用 `.toInt()` 截断，也不得自造 18 / 18.016。
+4. **回显**：`GlucoseConverter.format(mgdl, unit)`。mmol 只显示 1 位小数，因此 **100 ↔ 5.6 不是无损往返**（100 → 显示 5.6 → 再折算 101）。UI 必须说明「显示值可能与输入值差 0.1 mmol/L」，且**禁止为消除回差修改已存值**（例如看到 5.6 就把 101 改成 100）。
+5. **单位切换只影响显示**：切换 `glucoseUnitPreference` 不回写、不迁移已有记录；同一条记录在两种单位下对应同一个 mg/dL 值。
+6. **编辑已有记录**：
+   - 按当前设置单位回显（`GlucoseConverter.format`）；
+   - 保存时按当前单位重新折算成 mg/dL；
+   - 若用户**没有改动输入文本**、且折算值与库中原值仅差 ±1 mg/dL（回差），**保留原值不覆盖**；
+   - 判定方式：保存时同时比较「输入文本是否与回显文本一致」与「新折算值 vs 原库值」；两者都满足且差值 ≤ 1 才保留原值，否则以新折算值为准（用户确实改了数值）。
+7. **不做往返链**：存储层不存 mmol，显示前不做「mg/dL → mmol → mg/dL」；一次换算只发生在「输入」与「显示」两个边界。
+
+#### 4.7.3 校验与边界
+
+| 项 | 规则 |
+|---|---|
+| 合理值域 | 20–600 mg/dL（1.1–33.3 mmol）；该范围是**提示线**，不是硬拦截（低于 20、高于 600 应允许记录但强提示） |
+| 硬拒绝 | 空（= 未填，不等于 0）、0、负数、非数字 → 即时标红、禁用保存 |
+| mmol 小数 | 允许 1 位小数；超过 1 位按四舍五入到 1 位再折算（或在输入层限制，二选一但须统一）；输入框不能用整数键盘 |
+| 极端值 | < 20 mg/dL 或 > 600 mg/dL：二次确认 + 提示「可能填错单位」（典型误输：把 5.6 mmol 当 56 输入） |
+| 上游校验 | 大剂量发送前的既有校验（`BolusCalcCondition.FailedSanityCheck` 等，来自 pumpx2 库）继续复用，本地不另立医疗上限；其血糖上下限**待核实** |
+| 非法输入与存量 | 校验失败不影响已存记录；也不因校验失败清空输入 |
+
+#### 4.7.4 现状里的单位换算缺陷（先记录，不改代码）
+
+1. **mmol 小数被整数键盘吞掉**：`IntegerOutlinedText` 只保留数字，输入「5.6」实际变成「56」，再按 mmol 折算 ≈1009 mg/dL；mmol 用户当前无法正常录入。
+2. **截断而非四舍五入**：`GlucoseConverter.convert(...).toInt()` 对 5.6 得 100（100.9 被截断），与「四舍五入 101」不一致，正是 ±1 回差来源之一。
+3. **小数 mmol 进不了换算分支**：`recalculate()` 先判 `rawToInt(输入) == null` 就返回 null，而 `rawToInt` 只认整数，导致「5.6」永远被当作未输入，`toDoubleOrNull` 那条换算分支成了死代码。
+4. **空值被当成 0**：`rawToInt("")` 返回 0，mg/dL 模式下清空输入会以 0 参与大剂量计算，而不是「未填」。
+5. **副标题归因错误**：`glucoseHumanEntered = it.toIntOrNull()`，小数 mmol 输入时该值为 null，副标题显示 `BG` / `CGM` 而非 `Entered`。
+
+以上 5 条作为独立修复项排期；本节只记录，避免后续复用该输入控件时再踩。
+
+#### 4.7.5 与 TIR 的关系
+
+- 指尖血糖**不进 TIR 分母**：TIR / TBR / TAR / 覆盖率只统计 CGM 有效点（§3），人工录入值不参与时间加权。
+- 指尖血糖的用途：CGM 校准参考、低血糖事件核对（与 CGM 曲线对照）、人工补录展示；多日视图可作**独立标记点**叠加，但不改变任何百分比。
+- 若将来要把指尖值纳入统计（如「指尖达标率」或与 CGM 的偏差统计），**单列 D22**，不在本方案默认范围内。
+
 ---
 
 ## 5. 时间维度与日历
@@ -461,6 +521,11 @@ LBGI = Σ Risk / n
 | 11 | 事件 14 min vs 15 min | 14 不成立、15 成立（按有效时长判定） |
 | 12 | 二次事件 119 vs 120 min | 119 一次、120 两次 |
 | 13 | mmol 模式改阈值 3.9 / 13.9 | 落库 70 / 250；切回 mg/dL 显示 70 / 250，无 3.89 / 250.45 脏值 |
+| 14 | mg/dL 下录入指尖血 100 → 切 mmol → 切回 | 显示 5.6 → 100；库值始终 100；切换过程无回写 |
+| 15 | mmol 下录入指尖血 5.6 | 落库 101；回显 5.6 并提示「显示值可能与输入值差 0.1」；不改数值再保存仍为 101 |
+| 16 | 切换单位后查看同一条历史记录 | mg/dL 数值不变；mmol 显示由同一 mg/dL 派生；不迁移、不回写 |
+| 17 | 边界值 20 / 600 mg/dL（1.1 / 33.3 mmol） | 可保存；1 / 999 mg/dL 或 0.1 / 99 mmol 二次确认或拒绝，且不影响存量 |
+| 18 | 非法输入：空、0、负数、字母、多位小数 | 即时标红、保存禁用；已存记录不变；空值不按 0 落库 |
 
 ---
 
@@ -497,7 +562,7 @@ LBGI = Σ Risk / n
 
 ---
 
-## 13. 决策清单（D1–D20）
+## 13. 决策清单（D1–D22）
 
 > D1/D2/D4/D6/D7/D8/D10/D16 为「待定（边做边修）」：不阻塞其它工作；实现时先按建议值落地，发现不对就地调整。
 
@@ -523,6 +588,8 @@ LBGI = Σ Risk / n
 | D18 | xDrip 资源 | 禁止复用（已定） |
 | D19 | 单位策略：内部 mg/dL、显示层换算、阈值以 mg/dL 为唯一真值 | 已定（2026-11-04 用户定调，§4.6） |
 | D20 | 换算常数复用 `GlucoseConverter.MGDL_TO_MMOL_FACTOR`（0.0555，≈1/18.018；不另立 18/18.016） | 已定（2026-11-04 用户认可） |
+| D21 | 指尖血糖录入的落库与回显策略：落库整数 mg/dL、mmol 反算四舍五入、回显 ±1 回差提示、单位切换不迁移、编辑不改值不覆盖 | 已定（2026-11-04 用户定调「内部按美标」，§4.7） |
+| D22 | 指尖血糖是否纳入 TIR / 统计 | 待定（默认不进 TIR 分母；不进分期，§4.7.5） |
 
 ---
 
