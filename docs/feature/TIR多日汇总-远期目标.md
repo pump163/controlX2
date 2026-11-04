@@ -235,13 +235,14 @@
 
 ### 4.7 人工录入血糖（指尖）的单位换算
 
-> 本节只讨论**人工录入的血糖值**（指尖血、血糖仪读数），与 CGM 自动读数分开。先给代码现状，再给规则。现状是**没有独立的指尖录入功能**，所以规则分两种用法：将来新增该功能时按此实现；修当前大剂量窗口的换算问题时也按此为准。
+> 本节讨论**人工录入的血糖值**（指尖血、血糖仪读数）以及**用指尖值校准 CGM 传感器**。前提先纠正：当前唯一的血糖输入框是**大剂量向导（bolus wizard）的矫正血糖输入**，不是指尖血糖录入入口；上游向导本身未完成、只搭了架子，不能当作既有能力（§4.7.1）。因此本节分两块：先核查 pumpx2 有没有校准指令（§4.7.2），再给「将来新增指尖录入/校准界面」必须遵守的换算规则（§4.7.3 起）。
 
 #### 4.7.1 代码现状（2026-11-04 核实）
 
 | 环节 | 事实 | 锚点 |
 |---|---|---|
-| 录入入口 | 只有大剂量窗口的血糖输入框，副标题在 `BG` / `Entered` / `CGM` 三种之间切换；**没有独立的「记录指尖血糖」页面或按钮** | `BolusWindow.kt :: BolusWindow`；`BolusEntryFormRegion.kt :: BolusEntryFormRegion` |
+| 录入入口 | 只有大剂量向导的**矫正血糖框**（副标题 `BG` / `Entered` / `CGM`）；它服务本次剂量计算，**不是「记录指尖血糖」入口**，也没有独立的指尖录入页面/按钮 | `BolusWindow.kt :: BolusWindow`；`BolusEntryFormRegion.kt :: BolusEntryFormRegion` |
+| 向导完成度 | 输入确实进 `BolusCalculatorBuilder`，并随 `InitiateBolusRequest`（units / carbs / bg / iob / food / corr）发给泵；但 UI 仍有 `TODO: invalid logic for attributing override vs pre-filled units`，计算与归因未收尾，**不能当可信计算来源** | `BolusWindow.kt :: recalculate()`、`:: buildBolusCalculator()`；`MainActivity.kt :: sendServiceBolusRequest` |
 | 输入框类型 | 该框为**整数输入**（只保留 0–9，`KeyboardType.Number`），小数点会被过滤 | `IntegerOutlinedText.kt :: IntegerOutlinedText` |
 | 输入缓存 | 输入串存在 `dataStore.bolusGlucoseRawValue`（String LiveData）；另用 `glucoseHumanEntered: Int?` 标记是否人工输入 | `DataStore.kt :: bolusGlucoseRawValue`；`BolusWindow.kt :: glucoseHumanEntered` |
 | 显示单位 | 全局 `glucoseUnitPreference`，启动时从设置加载，缺省 `MGDL` | `DataStore.kt :: glucoseUnitPreference`；`MainActivity.kt`（加载设置处） |
@@ -250,9 +251,39 @@
 | 本地存储 | `pumpdata_historylog` 只有 `typeId + cargo`，不展开血糖字段；泵侧 `BGHistoryLog` 的 `bg / cgmCalibration / bgSourceId / bgSourceType` 都封在 `cargo` 里，主代码**从未解析或展示**（`CgmReadingHistoryLogs` 只列 Dexcom / FSL / Gx） | `HistoryLogItem.kt`；`DashboardCgmChart.kt :: CgmReadingHistoryLogs`；`HistoryLogFetcherIntegrationTest.kt`（唯一出现 `BGHistoryLog` 的地方） |
 | 文案 | 只有 `bolus_bg_unit_abbrev` / `bolus_entered_unit_abbrev` / `bolus_cgm_unit_abbrev`，无「指尖血糖」独立文案 | `strings.xml` |
 
-结论：**当前没有「人工录入指尖血糖」的独立入口与存储**。能录入血糖的只有大剂量窗口，且该值不落库；泵侧历史记录里的 `BGHistoryLog` 是只读数据、当前不展示。本节规则用于将来新增指尖记录，也用于修当前大剂量窗口的换算问题。
+结论：**当前没有「人工录入指尖血糖」的独立入口与存储**。唯一能填血糖的地方是大剂量向导的矫正血糖框，它只服务本次剂量计算、不落库，且向导本身未完成；泵侧 `BGHistoryLog` 是只读数据、当前不展示。下面的换算规则适用于**将来新增的指尖录入/校准界面**；§4.7.5 那 5 条缺陷属于大剂量向导血糖框的独立修复线，不阻塞本目标。
 
-#### 4.7.2 录入链路（新增功能时按此实现）
+#### 4.7.2 pumpx2 校准能力核查（2026-11-04 结论）
+
+核查对象是**实际依赖** `com.github.jwoglom.pumpX2:pumpx2-messages:v1.9.0`（`use_local_pumpx2=false`）：从 Gradle 缓存取 jar 解包，按类名 + `javap` 注解核对；本地 `pumpx2-main-dev` 源码只用于确认字段语义，不当作依赖版本。
+
+**结论：有校准指令。** `RemoteBgEntryRequest` 带 `useForCgmCalibration` 布尔位，pumpx2 源码注释明确为「该血糖是否用于校准当前活跃的 G6 / G7 CGM 传感器」。
+
+| 类 | 用途 | 关键入参 / 字段 | opCode / characteristic |
+|---|---|---|---|
+| `request.control.RemoteBgEntryRequest` | 向泵提交一条血糖，可标记用于 CGM 校准 | `bg`(int, mg/dL)、`useForCgmCalibration`、`entryType`（`BloodGlucoseReadingType`）、`source`（`BloodGlucoseReadingSource`）、`pumpTime`、`bolusId`；cargo 11 字节 | `-74`（`0xB6`）/ `CONTROL`，`minApi = API_V2_5`；response = `RemoteBgEntryResponse` |
+| `response.control.RemoteBgEntryResponse` | 提交回执 | 继承 `StatusMessage`，读 `isSuccess` / `status` | 同上 |
+| `LastBGRequest` / `LastBGResponse` | 读泵「上次血糖」及来源（`BgSource.MANUAL/CGM`） | 只读展示/预填，**不触发校准** | — |
+| `response.historyLog.BGHistoryLog` | 历史记录里的血糖条目 | `bg`、`cgmCalibration`、`bgSourceId`、`bgSourceType`；`isUsedForCgmCalibration()` | history log（无 opCode） |
+| `CgmCalibrationHistoryLog` / `CgmCalibrationG7HistoryLog` / `CgmCalibrationGxHistoryLog` / `CgmBleCalibrationEvtG7HistoryLog` | 泵侧校准事件记录 | 事后核对校准是否被接受 | history log（无 opCode） |
+| `CGMStatusRequest` / `CgmStatusV2Request`（含 Response 的 `SessionState`） | 确认是否在 CGM 会话、传感器类型 | 发校准前的前置读取 | — |
+| `StartDexcomG6SensorSessionRequest` / `StopDexcomCGMSensorSessionRequest` | 会话启停；本项目 `CGMActions` 已在用 | 前置 / 善后 | — |
+
+其余 BG/CGM 请求（`SetBgReminderRequest`、`CgmHighLowAlertRequest`、`CgmOutOfRangeAlertRequest`、`CgmRiseFallAlertRequest`、`SetSensorTypeRequest`、`CgmSupportPackageStatusRequest`、`CGM*AlertSettingsRequest`）是提醒 / 告警 / 设置，**与校准无关**。
+
+**本项目调用现状：有依赖，但只用了非校准路径。** 生产代码在 `MainActivity :: sendServiceBolusRequest` 里以 `useForCgmCalibration = false` 发送；调试页 `Debug :: triggerRemoteBgEntryRequestMessage` 可手工把该位填 1，但只是裸消息、没有会话与前置校验；`LastBGRequest` 用于向导预填；会话启停由 `CGMActions` 负责。**没有校准 UI、没有校准状态机，也没有读取 `CgmCalibration*HistoryLog`。**
+
+**若要做（另立项，不并入 TIR）的实现链**：
+
+1. 前置读取：`CGMStatusRequest` / `CgmStatusV2Request` 确认会话活跃与传感器类型（G6/G7），并确认泵 API ≥ `API_V2_5`。
+2. 组包：`RemoteBgEntryRequest(bgMgdl, useForCgmCalibration = true, entryType, source, pumpTime, bolusId)`；`pumpTime` / `bolusId` 的取值口径（泵运行秒数、是否允许 0 占位）**待核实**。
+3. 发送并读 `RemoteBgEntryResponse.isSuccess`；区分「泵拒绝」「无会话」「超时」三态。
+4. 事后核对：重新拉 history log，看 `BGHistoryLog.cgmCalibration != 0` 或 `CgmCalibration*HistoryLog` 是否新增。
+5. UI 状态机：空闲 → 校验前置 → 待发送 → 等待回执 → 成功 / 失败（可重试）/ 超时；失败不得静默。
+
+**不确定项（明确保留）**：泵固件是否真的把这条 BG 用于传感器校准算法、G6/G7/FSL 各类型的支持范围、`minApi = API_V2_5` 对应的泵型，均**未在真机验证**。history log 只能证明「泵记录了这次校准」，不能证明「传感器算法已采用」。
+
+#### 4.7.3 录入链路（将来新增指尖录入 / 校准界面时按此实现）
 
 1. **输入单位跟随设置**：`glucoseUnitPreference` 为 MGDL 时输入整数 mg/dL；为 MMOL 时输入 1 位小数 mmol。
 2. **落库一律整数 mg/dL**，这是唯一真值；字段语义为「mg/dL 整数」，不存 mmol、不存输入字符串。
@@ -266,7 +297,7 @@
    - 判定方式：保存时同时比较「输入文本是否与回显文本一致」与「新折算值 vs 原库值」；两者都满足且差值 ≤ 1 才保留原值，否则以新折算值为准（用户确实改了数值）。
 7. **不做往返链**：存储层不存 mmol，显示前不做「mg/dL → mmol → mg/dL」；一次换算只发生在「输入」与「显示」两个边界。
 
-#### 4.7.3 校验与边界
+#### 4.7.4 校验与边界
 
 | 项 | 规则 |
 |---|---|
@@ -274,10 +305,10 @@
 | 硬拒绝 | 空（= 未填，不等于 0）、0、负数、非数字 → 即时标红、禁用保存 |
 | mmol 小数 | 允许 1 位小数；超过 1 位按四舍五入到 1 位再折算（或在输入层限制，二选一但须统一）；输入框不能用整数键盘 |
 | 极端值 | < 20 mg/dL 或 > 600 mg/dL：二次确认 + 提示「可能填错单位」（典型误输：把 5.6 mmol 当 56 输入） |
-| 上游校验 | 大剂量发送前的既有校验（`BolusCalcCondition.FailedSanityCheck` 等，来自 pumpx2 库）继续复用，本地不另立医疗上限；其血糖上下限**待核实** |
+| 上游校验 | `BolusCalcCondition.FailedSanityCheck` 只覆盖大剂量链路（`InitiateBolusRequest` 前）；指尖录入 / 校准的泵侧校验口径**待核实**，本地不另立医疗上限 |
 | 非法输入与存量 | 校验失败不影响已存记录；也不因校验失败清空输入 |
 
-#### 4.7.4 现状里的单位换算缺陷（先记录，不改代码）
+#### 4.7.5 大剂量向导血糖框的既有缺陷（独立修复线，先记录不改代码）
 
 1. **mmol 小数被整数键盘吞掉**：`IntegerOutlinedText` 只保留数字，输入「5.6」实际变成「56」，再按 mmol 折算 ≈1009 mg/dL；mmol 用户当前无法正常录入。
 2. **截断而非四舍五入**：`GlucoseConverter.convert(...).toInt()` 对 5.6 得 100（100.9 被截断），与「四舍五入 101」不一致，正是 ±1 回差来源之一。
@@ -285,9 +316,9 @@
 4. **空值被当成 0**：`rawToInt("")` 返回 0，mg/dL 模式下清空输入会以 0 参与大剂量计算，而不是「未填」。
 5. **副标题归因错误**：`glucoseHumanEntered = it.toIntOrNull()`，小数 mmol 输入时该值为 null，副标题显示 `BG` / `CGM` 而非 `Entered`。
 
-以上 5 条作为独立修复项排期；本节只记录，避免后续复用该输入控件时再踩。
+以上 5 条是**大剂量向导血糖框**的独立修复线，不阻塞 TIR 与指尖录入/校准；本节只记录，避免后续复用该输入控件时再踩。
 
-#### 4.7.5 与 TIR 的关系
+#### 4.7.6 与 TIR 的关系
 
 - 指尖血糖**不进 TIR 分母**：TIR / TBR / TAR / 覆盖率只统计 CGM 有效点（§3），人工录入值不参与时间加权。
 - 指尖血糖的用途：CGM 校准参考、低血糖事件核对（与 CGM 曲线对照）、人工补录展示；多日视图可作**独立标记点**叠加，但不改变任何百分比。
@@ -562,7 +593,7 @@ LBGI = Σ Risk / n
 
 ---
 
-## 13. 决策清单（D1–D22）
+## 13. 决策清单（D1–D23）
 
 > D1/D2/D4/D6/D7/D8/D10/D16 为「待定（边做边修）」：不阻塞其它工作；实现时先按建议值落地，发现不对就地调整。
 
@@ -589,7 +620,8 @@ LBGI = Σ Risk / n
 | D19 | 单位策略：内部 mg/dL、显示层换算、阈值以 mg/dL 为唯一真值 | 已定（2026-11-04 用户定调，§4.6） |
 | D20 | 换算常数复用 `GlucoseConverter.MGDL_TO_MMOL_FACTOR`（0.0555，≈1/18.018；不另立 18/18.016） | 已定（2026-11-04 用户认可） |
 | D21 | 指尖血糖录入的落库与回显策略：落库整数 mg/dL、mmol 反算四舍五入、回显 ±1 回差提示、单位切换不迁移、编辑不改值不覆盖 | 已定（2026-11-04 用户定调「内部按美标」，§4.7） |
-| D22 | 指尖血糖是否纳入 TIR / 统计 | 待定（默认不进 TIR 分母；不进分期，§4.7.5） |
+| D22 | 指尖血糖是否纳入 TIR / 统计 | 待定（默认不进 TIR 分母；不进分期，§4.7.6） |
+| D23 | 指尖录入 / CGM 校准是否做，取决于 pumpx2 是否有校准指令 → **有**（`RemoteBgEntryRequest.useForCgmCalibration`，`-74`/CONTROL/API_V2_5）；故「另立项做，不并入 TIR」，真机是否真校准**待验证** | 已定（2026-11-04 用户指示：没有就不做；核查结果为有，§4.7.2） |
 
 ---
 
