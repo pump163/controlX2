@@ -8,40 +8,38 @@ import org.junit.Test
 class BolusFormTest {
 
     @Test
-    fun splitByPercent_halfRoundsUp() {
-        val split = BolusForm.splitByPercent(totalMilliunits = 401, percent = 50)
-        assertEquals(201, split.nowMilliunits)
-        assertEquals(200, split.laterMilliunits)
-    }
-
-    @Test
-    fun splitByPercent_remainderGoesToLater() {
-        val split = BolusForm.splitByPercent(totalMilliunits = 55, percent = 50)
-        assertEquals(28, split.nowMilliunits)
-        assertEquals(27, split.laterMilliunits)
-    }
-
-    @Test
-    fun splitByPercent_70_30() {
-        val split = BolusForm.splitByPercent(totalMilliunits = 401, percent = 70)
-        assertEquals(281, split.nowMilliunits)
-        assertEquals(120, split.laterMilliunits)
+    fun splitByPercent_roundsToIncrement() {
+        assertEquals(BolusSplit(200, 200), BolusForm.splitByPercent(400, 50))
+        assertEquals(BolusSplit(250, 225), BolusForm.splitByPercent(475, 50))
+        assertEquals(BolusSplit(300, 100), BolusForm.splitByPercent(400, 75))
     }
 
     @Test
     fun splitByPercent_edges() {
-        assertEquals(BolusSplit(0, 55), BolusForm.splitByPercent(55, 0))
-        assertEquals(BolusSplit(55, 0), BolusForm.splitByPercent(55, 100))
+        assertEquals(BolusSplit(0, 400), BolusForm.splitByPercent(400, 0))
+        assertEquals(BolusSplit(400, 0), BolusForm.splitByPercent(400, 100))
     }
 
     @Test
-    fun splitByPercent_alwaysKeepsTotal() {
-        for (total in listOf(50, 99, 100, 401, 25_000)) {
+    fun splitByPercent_alwaysOnIncrementGrid() {
+        val increment = BolusLimits.BOLUS_INCREMENT_MILLIUNITS
+        for (total in listOf(50, 100, 400, 1_000, 24_975, 25_000)) {
             for (percent in 0..100) {
                 val split = BolusForm.splitByPercent(total, percent)
+                assertEquals(0, split.nowMilliunits % increment)
+                assertEquals(0, split.laterMilliunits % increment)
                 assertEquals(total, split.nowMilliunits + split.laterMilliunits)
             }
         }
+    }
+
+    @Test
+    fun quantizeToIncrement_halfUp() {
+        assertEquals(0, BolusForm.quantizeToIncrement(0))
+        assertEquals(25, BolusForm.quantizeToIncrement(13))
+        assertEquals(25, BolusForm.quantizeToIncrement(25))
+        assertEquals(50, BolusForm.quantizeToIncrement(38))
+        assertEquals(400, BolusForm.quantizeToIncrement(400))
     }
 
     @Test
@@ -49,7 +47,7 @@ class BolusFormTest {
         val minimum = BolusDraft(nowMilliunits = 50)
         assertTrue(BolusForm.isValid(minimum, ciqEnabled = false))
 
-        val below = BolusDraft(nowMilliunits = 49)
+        val below = BolusDraft(nowMilliunits = 25)
         assertEquals(
             listOf(BolusValidationError.AMOUNT_BELOW_MINIMUM),
             BolusForm.validate(below, ciqEnabled = false),
@@ -60,11 +58,21 @@ class BolusFormTest {
     fun validate_acceptsMaximumAndRejectsAbove() {
         val maximum = BolusDraft(nowMilliunits = 25_000)
         assertTrue(BolusForm.isValid(maximum, ciqEnabled = false))
+        assertTrue(BolusForm.isValid(BolusDraft(nowMilliunits = 24_975), ciqEnabled = false))
 
-        val above = BolusDraft(nowMilliunits = 25_001)
+        val above = BolusDraft(nowMilliunits = 25_025)
         assertEquals(
             listOf(BolusValidationError.AMOUNT_ABOVE_MAXIMUM),
             BolusForm.validate(above, ciqEnabled = false),
+        )
+    }
+
+    @Test
+    fun validate_rejectsOffIncrementGrid() {
+        val draft = BolusDraft(nowMilliunits = 401)
+        assertEquals(
+            listOf(BolusValidationError.INCREMENT_NOT_ALIGNED),
+            BolusForm.validate(draft, ciqEnabled = false),
         )
     }
 
@@ -78,20 +86,52 @@ class BolusFormTest {
     }
 
     @Test
-    fun validate_squareNowBelowMinimum() {
+    fun validate_extendedTotalBoundary() {
+        val minimum = BolusDraft(
+            nowMilliunits = 0,
+            laterMilliunits = 400,
+            extendedSeconds = 3_600,
+            shape = BolusShape.DUAL,
+        )
+        assertTrue(BolusForm.isValid(minimum, ciqEnabled = false))
+
+        val below = minimum.copy(laterMilliunits = 375)
+        assertEquals(
+            listOf(BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM),
+            BolusForm.validate(below, ciqEnabled = false),
+        )
+    }
+
+    @Test
+    fun validate_zeroImmediateAccepted() {
+        // 0:100 —— 立即 0、全部延后；已真机确认可被泵接受。
         val draft = BolusDraft(
-            nowMilliunits = 49,
-            laterMilliunits = 100,
+            nowMilliunits = 0,
+            laterMilliunits = 400,
+            extendedSeconds = 7_200,
+            shape = BolusShape.DUAL,
+        )
+        assertTrue(BolusForm.isValid(draft, ciqEnabled = null))
+        assertFalse(BolusForm.isImmediatePartUnverified(draft))
+    }
+
+    @Test
+    fun validate_nonZeroImmediateBelowMinimumAllowedButFlagged() {
+        // 1–49 milliunits（25 步进下即 25）未验：不硬拦，确认页提示泵可能拒绝。
+        val draft = BolusDraft(
+            nowMilliunits = 25,
+            laterMilliunits = 375,
             extendedSeconds = 3_600,
             shape = BolusShape.SQUARE,
         )
-        assertTrue(BolusForm.validate(draft, ciqEnabled = false).contains(BolusValidationError.NOW_BELOW_MINIMUM))
+        assertTrue(BolusForm.isValid(draft, ciqEnabled = false))
+        assertTrue(BolusForm.isImmediatePartUnverified(draft))
     }
 
     @Test
     fun validate_squareLaterRequired() {
         val draft = BolusDraft(
-            nowMilliunits = 50,
+            nowMilliunits = 400,
             laterMilliunits = 0,
             extendedSeconds = 3_600,
             shape = BolusShape.SQUARE,
@@ -102,8 +142,8 @@ class BolusFormTest {
     @Test
     fun validate_durationGating_ciq() {
         val draft = BolusDraft(
-            nowMilliunits = 50,
-            laterMilliunits = 100,
+            nowMilliunits = 100,
+            laterMilliunits = 300,
             extendedSeconds = 7_201,
             shape = BolusShape.DUAL,
         )
@@ -114,8 +154,8 @@ class BolusFormTest {
     @Test
     fun validate_durationGating_nonCiqUpperBound() {
         val draft = BolusDraft(
-            nowMilliunits = 50,
-            laterMilliunits = 100,
+            nowMilliunits = 100,
+            laterMilliunits = 300,
             extendedSeconds = 28_801,
             shape = BolusShape.SQUARE,
         )

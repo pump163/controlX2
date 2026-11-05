@@ -99,3 +99,12 @@ class BolusEntryCoordinator(
         const val RECONCILE_TICK_MILLIS = 500L
     }
 }
+
+/**
+ * UI 侧拿到协调器的唯一入口：`MainActivity` 构造协调器时登记，`Landing` 的 v2 页面只读。
+ * 未登记（预览/单测）时为 null，页面按「无会话」渲染。
+ */
+object BolusRuntime {
+    var coordinator: BolusEntryCoordinator? = null
+}
+

@@ -67,6 +67,7 @@ import com.jwoglom.controlx2.shared.util.extractPumpSid
 import com.jwoglom.controlx2.pump.pairing.PairingCodeEntry
 import com.pumppan.controlx2.bolus.BolusEntryCoordinator
 import com.pumppan.controlx2.bolus.BolusRouter
+import com.pumppan.controlx2.bolus.BolusRuntime
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.PumpReadyState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -166,7 +167,7 @@ class MainActivity : ComponentActivity() {
         isPumpConnected = { dataStore.pumpConnected.value == true },
         scope = applicationScope,
         mode = { BolusRouter.controllerMode(this) },
-    )
+    ).also { BolusRuntime.coordinator = it }
     private val historyLogDb by lazy { HistoryLogDatabase.getDatabase(this) }
     private val historyLogRepo by lazy { HistoryLogRepo(historyLogDb.historyLogDao()) }
     // hack: the ViewModel references the current pumpSid, so that streaming works in the UI, which we store lazily in the app preferences

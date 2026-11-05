@@ -99,8 +99,8 @@ import com.jwoglom.controlx2.presentation.screens.sections.resetTempRateDataStor
 import com.jwoglom.controlx2.presentation.navigation.SheetLaunchRequest
 import com.jwoglom.controlx2.presentation.navigation.SheetLaunchTarget
 import com.jwoglom.controlx2.presentation.navigation.TempRateInputPrefill
-import com.pumppan.controlx2.bolus.BolusPlaceholderPage
 import com.pumppan.controlx2.bolus.BolusRouter
+import com.pumppan.controlx2.bolus.BolusV2Section
 import com.jwoglom.controlx2.presentation.theme.Colors
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.enums.BasalStatus
@@ -366,8 +366,8 @@ fun Landing(
                         }
 
                         LandingSection.BOLUS_V2 -> {
-                            // S4 落地后直接替换该占位页；这里不发任何泵命令
-                            BolusPlaceholderPage(
+                            // S3 动作表 + S4 四步输入页；本轮不接发送，页面内不发任何泵命令
+                            BolusV2Section(
                                 innerPadding = innerPadding,
                                 onBack = { selectedItem = LandingSection.DASHBOARD },
                             )
