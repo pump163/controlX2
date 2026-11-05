@@ -21,15 +21,19 @@ object BolusForm {
     /**
      * 按百分比拆分总量。
      *
-     * 取整规则：立即段按 half-up 就近量化到 25 milliunits（泵最小输注精度 0.025U），
-     * 延后段 = 总量 − 立即段。总量为 25 的倍数时，两段同为 25 的倍数且总和守恒；
-     * 总量不是 25 的倍数时由 [validate] 拦截（INCREMENT_NOT_ALIGNED）。
+     * 取整规则：立即段按 half-up 就近量化到 [increment]（泵的最小输注精度，默认 25 milliunits），
+     * 延后段 = 总量 − 立即段。总量为 [increment] 的倍数时，两段同在网格上且总和守恒；
+     * 否则由 [validate] 拦截（INCREMENT_NOT_ALIGNED）。
      */
-    fun splitByPercent(totalMilliunits: Int, percent: Int): BolusSplit {
+    fun splitByPercent(
+        totalMilliunits: Int,
+        percent: Int,
+        increment: Int = BolusLimits.BOLUS_INCREMENT_MILLIUNITS,
+    ): BolusSplit {
         require(totalMilliunits >= 0) { "totalMilliunits must be >= 0" }
         require(percent in 0..100) { "percent must be in 0..100" }
         val rawNow = (totalMilliunits * percent + 50) / 100
-        val now = quantizeToIncrement(rawNow)
+        val now = quantizeToIncrement(rawNow, increment)
         return BolusSplit(now, totalMilliunits - now)
     }
 

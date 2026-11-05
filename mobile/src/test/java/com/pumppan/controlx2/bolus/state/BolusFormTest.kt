@@ -34,6 +34,45 @@ class BolusFormTest {
     }
 
     @Test
+    fun quantizeToIncrement_parameterizedByPumpStep() {
+        for (increment in listOf(10, 25, 50)) {
+            for (raw in listOf(13, 38, 400)) {
+                val quantized = BolusForm.quantizeToIncrement(raw, increment)
+                assertEquals(0, quantized % increment)
+                assertTrue(kotlin.math.abs(quantized - raw) <= increment / 2)
+            }
+        }
+        assertEquals(10, BolusForm.quantizeToIncrement(13, 10))
+        assertEquals(25, BolusForm.quantizeToIncrement(13, 25))
+        assertEquals(50, BolusForm.quantizeToIncrement(38, 50))
+    }
+
+    @Test
+    fun splitByPercent_parameterizedIncrement() {
+        for (increment in listOf(10, 25, 50)) {
+            val totals = listOf(increment * 4, increment * 10, increment * 40)
+            for (total in totals) {
+                for (percent in listOf(0, 25, 50, 75, 100)) {
+                    val split = BolusForm.splitByPercent(total, percent, increment)
+                    assertEquals(0, split.nowMilliunits % increment)
+                    assertEquals(0, split.laterMilliunits % increment)
+                    assertEquals(total, split.nowMilliunits + split.laterMilliunits)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun validate_respectsConfiguredIncrement() {
+        val limits = BolusLimits(bolusIncrementMilliunits = 10)
+        assertTrue(BolusForm.isValid(BolusDraft(nowMilliunits = 50), ciqEnabled = false, limits = limits))
+        assertEquals(
+            listOf(BolusValidationError.INCREMENT_NOT_ALIGNED),
+            BolusForm.validate(BolusDraft(nowMilliunits = 55), ciqEnabled = false, limits = limits),
+        )
+    }
+
+    @Test
     fun quantizeToIncrement_halfUp() {
         assertEquals(0, BolusForm.quantizeToIncrement(0))
         assertEquals(25, BolusForm.quantizeToIncrement(13))

@@ -52,6 +52,7 @@ fun BolusShapePanel(
             label = stringResource(R.string.bolus_v2_field_total),
             value = state.totalMilliunits,
             scale = 1000,
+            increment = BolusLimits.Default.bolusIncrementMilliunits,
             onCommit = { onChange(state.withTotal(it)) },
         )
 
@@ -78,8 +79,8 @@ fun BolusShapePanel(
             Text(
                 text = stringResource(
                     R.string.bolus_v2_split_summary,
-                    formatScaled(state.nowMilliunits, 1000),
-                    formatScaled(state.laterMilliunits, 1000),
+                    formatScaled(state.nowMilliunits, 1000, BolusLimits.Default.bolusIncrementMilliunits),
+                    formatScaled(state.laterMilliunits, 1000, BolusLimits.Default.bolusIncrementMilliunits),
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -134,20 +135,21 @@ internal fun errorText(error: BolusValidationError, ciqEnabled: Boolean?): Strin
     BolusValidationError.SHAPE_INCONSISTENT -> stringResource(R.string.bolus_v2_error_shape)
 }
 
-/** 数值字段：模型存整型 milliunits，输入按 0.025U 步进量化，显示最多三位小数（去掉末尾 0）。 */
+/** 数值字段：模型存整型 milliunits，输入按配置的步进量化，显示位数随步进自适应。 */
 @Composable
 internal fun DecimalField(
     label: String,
     value: Int,
     scale: Int,
+    increment: Int = BolusLimits.Default.bolusIncrementMilliunits,
     onCommit: (Int) -> Unit,
 ) {
-    var text by rememberSaveable { mutableStateOf(if (value == 0) "" else formatScaled(value, scale)) }
+    var text by rememberSaveable { mutableStateOf(if (value == 0) "" else formatScaled(value, scale, increment)) }
     var editing by remember { mutableStateOf(false) }
     LaunchedEffect(value, editing) {
         // 输入过程中不打断；失焦后把文本对齐到量化后的模型值。
         if (!editing && parseScaled(text, scale) != value) {
-            text = if (value == 0) "" else formatScaled(value, scale)
+            text = if (value == 0) "" else formatScaled(value, scale, increment)
         }
     }
     OutlinedTextField(
@@ -157,8 +159,8 @@ internal fun DecimalField(
             text = filtered
             val parsed = parseScaled(filtered, scale)
             if (parsed != null) {
-                // milliunits 必须落在 0.025U 网格上。
-                val quantized = if (scale == 1000) BolusForm.quantizeToIncrement(parsed) else parsed
+                // milliunits 必须落在配置步进的网格上。
+                val quantized = if (scale == 1000) BolusForm.quantizeToIncrement(parsed, increment) else parsed
                 onCommit(quantized)
             } else if (filtered.isBlank()) {
                 onCommit(0)
@@ -195,8 +197,23 @@ internal fun PercentField(value: Int, onCommit: (Int) -> Unit) {
     )
 }
 
-private fun formatScaled(value: Int, scale: Int): String =
-    String.format(Locale.US, "%.3f", value.toDouble() / scale).trimEnd('0').trimEnd('.')
+/** 步进决定最少小数位：25 → 3 位（0.025）、10/50 → 2 位、100 → 1 位；再按值裁剪尾 0。 */
+private fun doseDecimals(increment: Int): Int {
+    var inc = increment
+    var decimals = 3
+    while (decimals > 1 && inc % 10 == 0) {
+        inc /= 10
+        decimals--
+    }
+    return decimals
+}
+
+private fun formatScaled(value: Int, scale: Int, increment: Int): String {
+    val decimals = if (scale == 1000) doseDecimals(increment) else 3
+    return String.format(Locale.US, "%.${decimals}f", value.toDouble() / scale)
+        .trimEnd('0')
+        .trimEnd('.')
+}
 
 private fun parseScaled(text: String, scale: Int): Int? =
     text.toDoubleOrNull()?.let { (it * scale).roundToInt() }

@@ -6,7 +6,10 @@ package com.pumppan.controlx2.bolus.state
  */
 data class BolusLimits(
     val minBolusMilliunits: Int = MIN_BOLUS_MILLIUNITS,
-    /** 泵最小输注精度：25 milliunits = 0.025U（X2/Mobi）；所有剂量须为其整数倍。 */
+    /**
+     * 输注步进（milliunits）。默认 25；现役泵常见 25 / 50 两档（美敦力 0.025U 已确认，
+     * X2 / Mobi 实际值待用户核实）。所有剂量须为其整数倍。
+     */
     val bolusIncrementMilliunits: Int = BOLUS_INCREMENT_MILLIUNITS,
     val maxBolusMilliunits: Int = MAX_BOLUS_MILLIUNITS,
     /** 扩展大剂量总量下限；已真机确认 0.4U，与 pumpx2 `MIN_EXTENDED_BOLUS_MILLIUNITS` 同值。 */

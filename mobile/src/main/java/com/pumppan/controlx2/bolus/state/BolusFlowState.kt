@@ -45,14 +45,18 @@ data class BolusFlowState(
     fun withTotal(totalMilliunits: Int): BolusFlowState {
         val safe = totalMilliunits.coerceAtLeast(0)
         if (shape == BolusShape.NORMAL) return withNow(safe)
-        val split = BolusForm.splitByPercent(safe, percent)
+        val split = BolusForm.splitByPercent(safe, percent, BolusLimits.Default.bolusIncrementMilliunits)
         return copy(nowMilliunits = split.nowMilliunits, laterMilliunits = split.laterMilliunits)
     }
 
     fun withPercent(percent: Int): BolusFlowState {
         val safe = percent.coerceIn(0, 100)
         if (shape == BolusShape.NORMAL) return copy(percent = safe)
-        val split = BolusForm.splitByPercent(totalMilliunits, safe)
+        val split = BolusForm.splitByPercent(
+            totalMilliunits,
+            safe,
+            BolusLimits.Default.bolusIncrementMilliunits,
+        )
         return copy(percent = safe, nowMilliunits = split.nowMilliunits, laterMilliunits = split.laterMilliunits)
     }
 
@@ -71,7 +75,11 @@ data class BolusFlowState(
             )
         }
         if (shape == BolusShape.NORMAL) {
-            val split = BolusForm.splitByPercent(totalMilliunits, percent)
+            val split = BolusForm.splitByPercent(
+                totalMilliunits,
+                percent,
+                BolusLimits.Default.bolusIncrementMilliunits,
+            )
             return copy(
                 shape = newShape,
                 nowMilliunits = split.nowMilliunits,
