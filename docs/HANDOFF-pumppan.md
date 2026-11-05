@@ -31,7 +31,7 @@
 
 ### 未完成的下一步
 
-1. **大剂量 v2 批次 A（当前阻塞点）**：先解决 `-98` 发送路径 —— HTTP BULK 已证实拦截（2026-11-05），需新增 dedicated bolus debug 写路径或复用 `SEND_PUMP_COMMAND_BOLUS` 签名链路；随后按 §10 复验普通 / 方波 / 双波 / 时长 / 取消（`46/-74` V2 已验，V1/V3/V4 待补）；批次 B 向导入口只占位不写码；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §11，真机结论见 `docs/feature/HTTP取证与真机点检.md` §8。
+1. **大剂量 v2 批次 A（当前阻塞点）**：按 `docs/feature/大剂量功能设计-v2.md` §5.6 的 **S0 纯状态层**起步（可单测、零泵交互），S1–S5 跟随；`-98` 未验期间不先做完整发送链路，S5 后单独一个提交做 **S6-prep 11 参探针**（走生产通道 `TO_SERVER_BOLUS_REQUEST_PHONE`，不走 HTTP BULK）。0.05U/25U、扩展最小 0.05U、CIQ 2h/非 CIQ 8h、不自建 90s 超时等已按说明书 7/12/13 章修订（§5.6 末表）。批次 B（向导）现在只做置灰入口（§5.7）。阈值外置方案见 `docs/feature/阈值配置外置-设计.md`（**仅设计，待实现**）。
 2. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
 3. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
 4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
