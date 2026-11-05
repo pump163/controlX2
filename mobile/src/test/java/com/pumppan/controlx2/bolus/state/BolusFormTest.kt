@@ -1,11 +1,20 @@
 package com.pumppan.controlx2.bolus.state
 
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BolusFormTest {
+
+    /** 型号分档：X2=50、Mobi=50（暂按 0.05，未真机核实）、未知=25、老泵=10。 */
+    private val pumpTiers = listOf(
+        "X2(50)" to BolusLimits.forModel(KnownDeviceModel.TSLIM_X2),
+        "Mobi(50)" to BolusLimits.forModel(KnownDeviceModel.MOBI),
+        "unknown(25)" to BolusLimits.forModel(null),
+        "old-pump(10)" to BolusLimits(bolusIncrementMilliunits = 10),
+    )
 
     @Test
     fun splitByPercent_roundsToIncrement() {
@@ -59,6 +68,71 @@ class BolusFormTest {
                     assertEquals(total, split.nowMilliunits + split.laterMilliunits)
                 }
             }
+        }
+    }
+
+    @Test
+    fun incrementFor_x2MobiAndUnknown() {
+        assertEquals(50, BolusLimits.incrementFor(KnownDeviceModel.TSLIM_X2))
+        // Mobi 未真机核实，暂按 0.05U（50）；若核实为 0.025U 只改配置 models.MOBI。
+        assertEquals(50, BolusLimits.incrementFor(KnownDeviceModel.MOBI))
+        // 未知型号走 default 25：25 网格是 50 的超集，不误拦现役机型的合法剂量。
+        assertEquals(25, BolusLimits.incrementFor(null))
+        assertEquals(25, BolusLimits.forModel(null).bolusIncrementMilliunits)
+    }
+
+    @Test
+    fun splitByPercent_x2Grid_usesFiftyMilliunits() {
+        // X2 档（50）：400@70% → 立即 300 / 延后 100（half-up 到 50 网格）。
+        assertEquals(BolusSplit(300, 100), BolusForm.splitByPercent(400, 70, 50))
+        assertEquals(BolusSplit(250, 200), BolusForm.splitByPercent(450, 50, 50))
+        assertEquals(BolusSplit(300, 150), BolusForm.splitByPercent(450, 70, 50))
+
+        for (total in listOf(400, 500, 24_950, 25_000)) {
+            for (percent in 0..100) {
+                val split = BolusForm.splitByPercent(total, percent, 50)
+                assertEquals(0, split.nowMilliunits % 50)
+                assertEquals(0, split.laterMilliunits % 50)
+                assertEquals(total, split.nowMilliunits + split.laterMilliunits)
+            }
+        }
+    }
+
+    @Test
+    fun validate_x2AcceptsFiftyGridAndRejectsOtherValues() {
+        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
+        assertTrue(BolusForm.isValid(BolusDraft(nowMilliunits = 400), ciqEnabled = false, limits = x2))
+        assertTrue(BolusForm.isValid(BolusDraft(nowMilliunits = 25_000), ciqEnabled = false, limits = x2))
+        assertEquals(
+            listOf(BolusValidationError.INCREMENT_NOT_ALIGNED),
+            BolusForm.validate(BolusDraft(nowMilliunits = 425), ciqEnabled = false, limits = x2),
+        )
+        assertEquals(
+            listOf(BolusValidationError.INCREMENT_NOT_ALIGNED),
+            BolusForm.validate(BolusDraft(nowMilliunits = 24_975), ciqEnabled = false, limits = x2),
+        )
+    }
+
+    @Test
+    fun validate_boundsAndGrid_perPumpTier() {
+        for ((name, limits) in pumpTiers) {
+            val inc = limits.bolusIncrementMilliunits
+            assertTrue("$name: 0.05U 有效", BolusForm.isValid(BolusDraft(nowMilliunits = 50), false, limits))
+            assertTrue("$name: 25U 有效", BolusForm.isValid(BolusDraft(nowMilliunits = 25_000), false, limits))
+            assertTrue(
+                "$name: 上限下一格有效",
+                BolusForm.isValid(BolusDraft(nowMilliunits = 25_000 - inc), false, limits),
+            )
+            assertEquals(
+                "$name: 超上限",
+                listOf(BolusValidationError.AMOUNT_ABOVE_MAXIMUM),
+                BolusForm.validate(BolusDraft(nowMilliunits = 25_000 + inc), false, limits),
+            )
+            assertEquals(
+                "$name: 非步进网格",
+                listOf(BolusValidationError.INCREMENT_NOT_ALIGNED),
+                BolusForm.validate(BolusDraft(nowMilliunits = 50 + inc / 2), false, limits),
+            )
         }
     }
 

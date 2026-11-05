@@ -45,6 +45,7 @@ fun BolusShapePanel(
     state: BolusFlowState,
     errors: List<BolusValidationError>,
     ciqEnabled: Boolean?,
+    limits: BolusLimits = BolusLimits.Default,
     onChange: (BolusFlowState) -> Unit,
 ) {
     Column(Modifier) {
@@ -52,8 +53,8 @@ fun BolusShapePanel(
             label = stringResource(R.string.bolus_v2_field_total),
             value = state.totalMilliunits,
             scale = 1000,
-            increment = BolusLimits.Default.bolusIncrementMilliunits,
-            onCommit = { onChange(state.withTotal(it)) },
+            increment = limits.bolusIncrementMilliunits,
+            onCommit = { onChange(state.withTotal(it, limits)) },
         )
 
         Spacer(Modifier.height(12.dp))
@@ -70,7 +71,7 @@ fun BolusShapePanel(
             )
             Switch(
                 checked = state.shape != BolusShape.NORMAL,
-                onCheckedChange = { onChange(state.withExtended(it)) },
+                onCheckedChange = { onChange(state.withExtended(it, limits)) },
             )
         }
 
@@ -79,8 +80,8 @@ fun BolusShapePanel(
             Text(
                 text = stringResource(
                     R.string.bolus_v2_split_summary,
-                    formatScaled(state.nowMilliunits, 1000, BolusLimits.Default.bolusIncrementMilliunits),
-                    formatScaled(state.laterMilliunits, 1000, BolusLimits.Default.bolusIncrementMilliunits),
+                    formatDose(state.nowMilliunits, limits.bolusIncrementMilliunits),
+                    formatDose(state.laterMilliunits, limits.bolusIncrementMilliunits),
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -88,20 +89,20 @@ fun BolusShapePanel(
 
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BolusLimits.Default.extendedPercentPresets.forEach { preset ->
+                limits.extendedPercentPresets.forEach { preset ->
                     FilterChip(
                         selected = state.percent == preset,
-                        onClick = { onChange(state.withPercent(preset)) },
+                        onClick = { onChange(state.withPercent(preset, limits)) },
                         label = { Text("$preset : ${100 - preset}") },
                     )
                 }
             }
 
             Spacer(Modifier.height(8.dp))
-            PercentField(value = state.percent, onCommit = { onChange(state.withPercent(it)) })
+            PercentField(value = state.percent, onCommit = { onChange(state.withPercent(it, limits)) })
 
             Spacer(Modifier.height(8.dp))
-            val maxHours = BolusForm.maxExtendedSeconds(ciqEnabled) / 3600
+            val maxHours = limits.maxExtendedSeconds(ciqEnabled) / 3600
             DecimalField(
                 label = stringResource(R.string.bolus_v2_field_duration, maxHours),
                 value = state.extendedSeconds,
@@ -147,9 +148,10 @@ internal fun DecimalField(
     var text by rememberSaveable { mutableStateOf(if (value == 0) "" else formatScaled(value, scale, increment)) }
     var editing by remember { mutableStateOf(false) }
     LaunchedEffect(value, editing) {
-        // 输入过程中不打断；失焦后把文本对齐到量化后的模型值。
-        if (!editing && parseScaled(text, scale) != value) {
-            text = if (value == 0) "" else formatScaled(value, scale, increment)
+        // 输入过程中不打断；失焦后把文本对齐到量化后的模型值（含固定小数位）。
+        if (!editing) {
+            val canonical = if (value == 0) "" else formatScaled(value, scale, increment)
+            if (text != canonical) text = canonical
         }
     }
     OutlinedTextField(
@@ -197,7 +199,7 @@ internal fun PercentField(value: Int, onCommit: (Int) -> Unit) {
     )
 }
 
-/** 步进决定最少小数位：25 → 3 位（0.025）、10/50 → 2 位、100 → 1 位；再按值裁剪尾 0。 */
+/** 步进决定剂量小数位：25 → 3 位（0.025）、10/50 → 2 位（0.01 / 0.05）、100 → 1 位。 */
 private fun doseDecimals(increment: Int): Int {
     var inc = increment
     var decimals = 3
@@ -208,9 +210,17 @@ private fun doseDecimals(increment: Int): Int {
     return decimals
 }
 
+/**
+ * 剂量显示：按步进固定小数位、不裁尾 0（X2/Mobi → 50 网格，显示 0.05 / 0.10）。
+ * 这样「显示的位数」与「泵能打出的最小步进」一致，用户不会看到 0.1 却不知道是 0.05 的倍数。
+ */
+internal fun formatDose(milliunits: Int, increment: Int): String =
+    String.format(Locale.US, "%.${doseDecimals(increment)}f", milliunits / 1000.0)
+
 private fun formatScaled(value: Int, scale: Int, increment: Int): String {
-    val decimals = if (scale == 1000) doseDecimals(increment) else 3
-    return String.format(Locale.US, "%.${decimals}f", value.toDouble() / scale)
+    if (scale == 1000) return formatDose(value, increment)
+    // 其它字段（时长，scale=3600）仍按 3 位小数并裁掉尾 0。
+    return String.format(Locale.US, "%.3f", value.toDouble() / scale)
         .trimEnd('0')
         .trimEnd('.')
 }

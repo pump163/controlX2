@@ -1,6 +1,7 @@
 package com.pumppan.controlx2.bolus.state
 
 import androidx.compose.runtime.saveable.SaverScope
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -106,6 +107,7 @@ class BolusFlowStateTest {
 
     @Test
     fun withTotal_dualResplitsByCurrentPercent() {
+        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
         val dual = BolusFlowState(
             step = BolusFlowStep.SHAPE,
             shape = BolusShape.DUAL,
@@ -114,18 +116,20 @@ class BolusFlowStateTest {
             extendedSeconds = 3_600,
         )
 
-        val changed = dual.withTotal(600)
+        val changed = dual.withTotal(600, x2)
         assertEquals(300, changed.nowMilliunits)
         assertEquals(300, changed.laterMilliunits)
 
-        val atSeventy = changed.withPercent(70).withTotal(400)
-        assertEquals(275, atSeventy.nowMilliunits)
-        assertEquals(125, atSeventy.laterMilliunits)
+        // X2 是 50 网格：400@70% → 300 / 100（25 网格下的 275 / 125 在 X2 上打不出来）。
+        val atSeventy = changed.withPercent(70, x2).withTotal(400, x2)
+        assertEquals(300, atSeventy.nowMilliunits)
+        assertEquals(100, atSeventy.laterMilliunits)
         assertEquals(70, atSeventy.percent)
     }
 
     @Test
     fun withPercent_resplitsDualAndKeepsTotal() {
+        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
         val dual = BolusFlowState(
             step = BolusFlowStep.SHAPE,
             shape = BolusShape.DUAL,
@@ -134,10 +138,42 @@ class BolusFlowStateTest {
             extendedSeconds = 3_600,
         )
 
-        val atThirty = dual.withPercent(30)
-        assertEquals(125, atThirty.nowMilliunits)
-        assertEquals(275, atThirty.laterMilliunits)
+        // X2：400@30% → 立即 100 / 延后 300。
+        val atThirty = dual.withPercent(30, x2)
+        assertEquals(100, atThirty.nowMilliunits)
+        assertEquals(300, atThirty.laterMilliunits)
         assertEquals(dual.totalMilliunits, atThirty.totalMilliunits)
+    }
+
+    @Test
+    fun resplit_staysOnGrid_perModelTier() {
+        val tiers = listOf(
+            "X2(50)" to BolusLimits.forModel(KnownDeviceModel.TSLIM_X2),
+            "Mobi(50)" to BolusLimits.forModel(KnownDeviceModel.MOBI),
+            "unknown(25)" to BolusLimits.forModel(null),
+            "old-pump(10)" to BolusLimits(bolusIncrementMilliunits = 10),
+        )
+        for ((name, limits) in tiers) {
+            val inc = limits.bolusIncrementMilliunits
+            val total = inc * 8
+            val dual = BolusFlowState(step = BolusFlowStep.SHAPE, nowMilliunits = total)
+                .withExtended(true, limits)
+            assertEquals("$name: 开扩展后总量守恒", total, dual.totalMilliunits)
+            assertEquals("$name: 立即段在网格上", 0, dual.nowMilliunits % inc)
+            assertEquals("$name: 延后段在网格上", 0, dual.laterMilliunits % inc)
+
+            for (percent in listOf(0, 25, 30, 50, 70, 75, 100)) {
+                val resplit = dual.withPercent(percent, limits)
+                assertEquals("$name: 改百分比后总量守恒", total, resplit.totalMilliunits)
+                assertEquals("$name: 立即段在网格上", 0, resplit.nowMilliunits % inc)
+                assertEquals("$name: 延后段在网格上", 0, resplit.laterMilliunits % inc)
+
+                val grown = resplit.withTotal(total + inc * 2, limits)
+                assertEquals("$name: 改总量后守恒", total + inc * 2, grown.totalMilliunits)
+                assertEquals("$name: 立即段在网格上", 0, grown.nowMilliunits % inc)
+                assertEquals("$name: 延后段在网格上", 0, grown.laterMilliunits % inc)
+            }
+        }
     }
 
     @Test
@@ -174,6 +210,23 @@ class BolusFlowStateTest {
         assertTrue(result is BolusAdvance.Invalid)
         assertTrue(
             (result as BolusAdvance.Invalid).errors
+                .contains(BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM),
+        )
+
+        // X2 是 50 网格：400 有效；350 在网格上但不足 0.4U。
+        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
+        val x2AtMinimum = BolusFlowState(step = BolusFlowStep.SHAPE, shape = BolusShape.DUAL)
+            .withPercent(0, x2)
+            .withTotal(400, x2)
+            .withDurationSeconds(3_600)
+        assertEquals(400, x2AtMinimum.laterMilliunits)
+        assertTrue(x2AtMinimum.advance(ciqEnabled = null, x2) is BolusAdvance.Ok)
+
+        val x2Below = x2AtMinimum.withTotal(350, x2)
+        val x2Result = x2Below.advance(ciqEnabled = null, x2)
+        assertTrue(x2Result is BolusAdvance.Invalid)
+        assertTrue(
+            (x2Result as BolusAdvance.Invalid).errors
                 .contains(BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM),
         )
     }

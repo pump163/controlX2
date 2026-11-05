@@ -16,16 +16,21 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
+import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.bolus.state.BolusAdvance
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusFlowStep
+import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusSource
 
 /**
@@ -41,7 +46,15 @@ fun BolusFlowScreen(
     var flow by rememberSaveable(stateSaver = BolusFlowState.Saver) { mutableStateOf(BolusFlowState()) }
     // CIQ 状态暂无 UI 可读来源，按 fail-closed 取 null（时长上限 2h）。
     val ciqEnabled: Boolean? = null
-    val errors = if (flow.step == BolusFlowStep.SHAPE) flow.validationErrors(ciqEnabled) else emptyList()
+    // 型号决定输注步进：X2/Mobi 按 50，未知型号按默认 25（见 BolusLimits.incrementFor）。
+    val deviceName by LocalDataStore.current.setupDeviceName.observeAsState()
+    val model = remember(deviceName) { determinePumpModel(deviceName.orEmpty()) }
+    val limits = remember(model) { BolusLimits.forModel(model) }
+    val errors = if (flow.step == BolusFlowStep.SHAPE) {
+        flow.validationErrors(ciqEnabled, limits)
+    } else {
+        emptyList()
+    }
 
     Column(
         modifier = Modifier
@@ -71,12 +84,14 @@ fun BolusFlowScreen(
                 state = flow,
                 errors = errors,
                 ciqEnabled = ciqEnabled,
+                limits = limits,
                 onChange = { flow = it },
             )
 
             BolusFlowStep.CONFIRM -> BolusConfirmPanel(
                 state = flow,
-                onDeliver = { flow = deliver(flow, ciqEnabled) },
+                limits = limits,
+                onDeliver = { flow = deliver(flow, ciqEnabled, limits) },
                 onBack = { flow = flow.back() },
             )
 
@@ -102,7 +117,7 @@ fun BolusFlowScreen(
                 }
                 Button(
                     onClick = {
-                        when (val result = flow.advance(ciqEnabled)) {
+                        when (val result = flow.advance(ciqEnabled, limits)) {
                             is BolusAdvance.Ok -> flow = result.state
                             is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
                         }
@@ -123,8 +138,12 @@ fun BolusFlowScreen(
 }
 
 /** 确认 → 结局：只推进状态，不发送（S6 才接发送通道）。 */
-private fun deliver(state: BolusFlowState, ciqEnabled: Boolean?): BolusFlowState =
-    when (val result = state.advance(ciqEnabled)) {
+private fun deliver(
+    state: BolusFlowState,
+    ciqEnabled: Boolean?,
+    limits: BolusLimits,
+): BolusFlowState =
+    when (val result = state.advance(ciqEnabled, limits)) {
         is BolusAdvance.Ok -> result.state
         is BolusAdvance.Invalid -> state
     }

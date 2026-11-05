@@ -1,5 +1,7 @@
 package com.pumppan.controlx2.bolus.state
 
+import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
+
 /**
  * 大剂量相关阈值的唯一来源。S0 只提供可注入的数据类与默认值；
  * assets/prefs 加载属另一篇设计（阈值配置外置-设计.md），此处不做。
@@ -7,8 +9,10 @@ package com.pumppan.controlx2.bolus.state
 data class BolusLimits(
     val minBolusMilliunits: Int = MIN_BOLUS_MILLIUNITS,
     /**
-     * 输注步进（milliunits）。默认 25；现役泵常见 25 / 50 两档（美敦力 0.025U 已确认，
-     * X2 / Mobi 实际值待用户核实）。所有剂量须为其整数倍。
+     * 输注步进（milliunits），按泵型号分档（[incrementFor] / [forModel]）。
+     * t:slim X2 = 0.05U（50，用户已核实 2026-11-05）；
+     * Mobi 未经真机核实，暂按 0.05U（50）；若核实为 0.025U，只需改配置的 `models.MOBI` 一行；
+     * 未知型号走默认 25；美敦力 0.025U 仅作参考对照。
      */
     val bolusIncrementMilliunits: Int = BOLUS_INCREMENT_MILLIUNITS,
     val maxBolusMilliunits: Int = MAX_BOLUS_MILLIUNITS,
@@ -39,7 +43,35 @@ data class BolusLimits(
 
     companion object {
         const val MIN_BOLUS_MILLIUNITS = 50
+
+        /**
+         * 未知型号 / 外置配置 `default` 的步进：25。
+         *
+         * 为什么不取 50：25 网格是 50 的超集，识别不出型号时不会误拦现役机型的合法剂量；
+         * 50 网格会在将来出现 0.025U 设备时直接拒掉合法值。识别到型号后再按 [incrementFor] 收紧。
+         */
         const val BOLUS_INCREMENT_MILLIUNITS = 25
+
+        /** t:slim X2 的 bolus 精度 0.05U（用户核实，2026-11-05）。 */
+        const val TSLIM_X2_INCREMENT_MILLIUNITS = 50
+
+        /**
+         * Mobi 暂按 0.05U（50）：未经真机核实。
+         * 若核实为 0.025U，只需改配置 `models.MOBI.bolusIncrementMilliunits`，不改代码。
+         */
+        const val MOBI_INCREMENT_MILLIUNITS = 50
+
+        /** 型号 → 步进档位；未知型号（未解析出）取默认 25。 */
+        fun incrementFor(model: KnownDeviceModel?): Int = when (model) {
+            KnownDeviceModel.TSLIM_X2 -> TSLIM_X2_INCREMENT_MILLIUNITS
+            KnownDeviceModel.MOBI -> MOBI_INCREMENT_MILLIUNITS
+            else -> BOLUS_INCREMENT_MILLIUNITS
+        }
+
+        /** 按型号生成一份阈值（现只影响步进；外置配置落地后由这里合并文件值）。 */
+        fun forModel(model: KnownDeviceModel?): BolusLimits =
+            Default.copy(bolusIncrementMilliunits = incrementFor(model))
+
         const val MAX_BOLUS_MILLIUNITS = 25_000
         const val MIN_EXTENDED_TOTAL_MILLIUNITS = 400
         const val MAX_EXTENDED_SECONDS_NON_CIQ = 28_800

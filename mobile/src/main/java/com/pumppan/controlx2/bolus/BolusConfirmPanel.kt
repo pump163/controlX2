@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.R
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusForm
+import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import java.util.Locale
 
@@ -23,20 +24,21 @@ import java.util.Locale
 @Composable
 fun BolusConfirmPanel(
     state: BolusFlowState,
+    limits: BolusLimits = BolusLimits.Default,
     onDeliver: () -> Unit,
     onBack: () -> Unit,
 ) {
     Column(Modifier) {
         SummaryRow(stringResource(R.string.bolus_v2_confirm_mode), modeName(state.shape != BolusShape.NORMAL))
-        SummaryRow(stringResource(R.string.bolus_v2_confirm_total), units(state.totalMilliunits))
+        SummaryRow(stringResource(R.string.bolus_v2_confirm_total), units(state.totalMilliunits, limits))
         if (state.shape != BolusShape.NORMAL) {
-            SummaryRow(stringResource(R.string.bolus_v2_confirm_immediate), units(state.nowMilliunits))
-            SummaryRow(stringResource(R.string.bolus_v2_confirm_extended), units(state.laterMilliunits))
+            SummaryRow(stringResource(R.string.bolus_v2_confirm_immediate), units(state.nowMilliunits, limits))
+            SummaryRow(stringResource(R.string.bolus_v2_confirm_extended), units(state.laterMilliunits, limits))
             SummaryRow(
                 stringResource(R.string.bolus_v2_confirm_duration),
                 stringResource(R.string.bolus_v2_duration_value, "%.1f".format(Locale.US, state.extendedSeconds / 3600.0)),
             )
-            if (BolusForm.isImmediatePartUnverified(state.draft())) {
+            if (BolusForm.isImmediatePartUnverified(state.draft(), limits)) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = stringResource(R.string.bolus_v2_confirm_now_small_warning),
@@ -89,7 +91,5 @@ private fun modeName(extended: Boolean): String = stringResource(
     if (extended) R.string.bolus_v2_mode_extended else R.string.bolus_v2_mode_standard,
 )
 
-private fun units(milliunits: Int): String {
-    val value = String.format(Locale.US, "%.3f", milliunits / 1000.0).trimEnd('0').trimEnd('.')
-    return "${value.ifEmpty { "0" }} U"
-}
+private fun units(milliunits: Int, limits: BolusLimits): String =
+    "${formatDose(milliunits, limits.bolusIncrementMilliunits)} U"

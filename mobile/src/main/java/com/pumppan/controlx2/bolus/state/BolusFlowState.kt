@@ -42,20 +42,20 @@ data class BolusFlowState(
     fun withDurationSeconds(seconds: Int): BolusFlowState = copy(extendedSeconds = seconds.coerceAtLeast(0))
 
     /** 改总量：普通形状直接改立即段；扩展形状按当前占比重新拆分。 */
-    fun withTotal(totalMilliunits: Int): BolusFlowState {
+    fun withTotal(totalMilliunits: Int, limits: BolusLimits = BolusLimits.Default): BolusFlowState {
         val safe = totalMilliunits.coerceAtLeast(0)
         if (shape == BolusShape.NORMAL) return withNow(safe)
-        val split = BolusForm.splitByPercent(safe, percent, BolusLimits.Default.bolusIncrementMilliunits)
+        val split = BolusForm.splitByPercent(safe, percent, limits.bolusIncrementMilliunits)
         return copy(nowMilliunits = split.nowMilliunits, laterMilliunits = split.laterMilliunits)
     }
 
-    fun withPercent(percent: Int): BolusFlowState {
+    fun withPercent(percent: Int, limits: BolusLimits = BolusLimits.Default): BolusFlowState {
         val safe = percent.coerceIn(0, 100)
         if (shape == BolusShape.NORMAL) return copy(percent = safe)
         val split = BolusForm.splitByPercent(
             totalMilliunits,
             safe,
-            BolusLimits.Default.bolusIncrementMilliunits,
+            limits.bolusIncrementMilliunits,
         )
         return copy(percent = safe, nowMilliunits = split.nowMilliunits, laterMilliunits = split.laterMilliunits)
     }
@@ -64,7 +64,7 @@ data class BolusFlowState(
      * 形状切换：普通 → 方波/双波按占比拆分；方波/双波 → 普通把延后段并入立即段并清空时长。
      * 方波与双波之间切换只改标签，保留当前数值。
      */
-    fun withShape(newShape: BolusShape): BolusFlowState {
+    fun withShape(newShape: BolusShape, limits: BolusLimits = BolusLimits.Default): BolusFlowState {
         if (newShape == shape) return this
         if (newShape == BolusShape.NORMAL) {
             return copy(
@@ -78,7 +78,7 @@ data class BolusFlowState(
             val split = BolusForm.splitByPercent(
                 totalMilliunits,
                 percent,
-                BolusLimits.Default.bolusIncrementMilliunits,
+                limits.bolusIncrementMilliunits,
             )
             return copy(
                 shape = newShape,
@@ -91,17 +91,19 @@ data class BolusFlowState(
     }
 
     /** 「扩展大剂量」开关：开 → 双波（立即 + 延后），关 → 普通并合并数值。 */
-    fun withExtended(enabled: Boolean): BolusFlowState =
-        withShape(if (enabled) BolusShape.DUAL else BolusShape.NORMAL)
+    fun withExtended(enabled: Boolean, limits: BolusLimits = BolusLimits.Default): BolusFlowState =
+        withShape(if (enabled) BolusShape.DUAL else BolusShape.NORMAL, limits)
 
-    fun validationErrors(ciqEnabled: Boolean?): List<BolusValidationError> =
-        BolusForm.validate(draft(), ciqEnabled)
+    fun validationErrors(
+        ciqEnabled: Boolean?,
+        limits: BolusLimits = BolusLimits.Default,
+    ): List<BolusValidationError> = BolusForm.validate(draft(), ciqEnabled, limits)
 
     /** 前进一格；剂量步骤校验不过则原地返回错误，不推进。 */
-    fun advance(ciqEnabled: Boolean?): BolusAdvance = when (step) {
+    fun advance(ciqEnabled: Boolean?, limits: BolusLimits = BolusLimits.Default): BolusAdvance = when (step) {
         BolusFlowStep.ENTRY -> BolusAdvance.Ok(copy(step = BolusFlowStep.SHAPE))
         BolusFlowStep.SHAPE -> {
-            val errors = validationErrors(ciqEnabled)
+            val errors = validationErrors(ciqEnabled, limits)
             if (errors.isEmpty()) BolusAdvance.Ok(copy(step = BolusFlowStep.CONFIRM))
             else BolusAdvance.Invalid(errors)
         }
