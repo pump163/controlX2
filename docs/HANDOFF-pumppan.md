@@ -1,8 +1,8 @@
 # HANDOFF · pumppan 分支交接记录
 
-> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-04（目录约定 / HEAD / APK 复核）
+> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-05（用户改动 / 真机实测 / HEAD 复核）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：以 `git log -1` 为准（本文件同步时为 `82710ea`）
+> 当前 HEAD：以 `git log -1` 为准（本文件同步时为 `ec92377`；本次 docs 提交后再前进一格）
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
@@ -11,9 +11,9 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `5e24620` | 本次 docs 提交前的真实 HEAD（本提交后会再前进一格）；TIR 细化 `5e24620`、缓存查看器改名 `82710ea`、术语收敛 `9c392f0`（11-03 收尾 `df55e2d`） |
-| i18n main | `main` | `7be32df` | 新增《泵能力收敛与自建挡板方案》并登记状态索引（2026-11-04 本地另有未提交改动：§2.1 补 1.9.3 回滚冲突面） |
-| lab | `assets` | `93bacfa` | WORKLOG §75–§79（术语收敛 / TIR 多日远期目标 / 工作清单归档 / §78 并入 / 声音门控更正），2026-11-04 复核 |
+| pumppan | `pumppan` | `ec92377` | 2026-11-05：UI 行组件统一为 `BaseRow` + HTTP 真机实测（`fe8a887`）；用户归档审查意见到 `docs/old/`（`ec92377`）；此前 TIR 细化 `5e24620`、缓存查看器改名 `82710ea`、术语收敛 `9c392f0` |
+| i18n main | `main` | `f0543e1` | 归档已完成文档、未完成文档移交 pumppan（2026-11-05 复核，工作区干净） |
+| lab | `assets` | `ad6f4d7` | WORKLOG §80/§81 用户真机记录 + §82 进度更新（2026-11-05，已推送） |
 
 ### 已拍板（不再重复讨论）
 
@@ -31,9 +31,9 @@
 
 ### 未完成的下一步
 
-1. **大剂量 v2 落地**：批次 A：直接输入链路（预设可并入）→ 批次 B：向导入口（先占位不写码）。先真机取证（`docs/feature/HTTP取证与真机点检.md`：§10 只读两项 + Debug 页 11 参约 30 行），再定发送路径 A/B（#46 阻塞项）；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §11。
-2. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板。
-3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
+1. **大剂量 v2 批次 A（当前阻塞点）**：先解决 `-98` 发送路径 —— HTTP BULK 已证实拦截（2026-11-05），需新增 dedicated bolus debug 写路径或复用 `SEND_PUMP_COMMAND_BOLUS` 签名链路；随后按 §10 复验普通 / 方波 / 双波 / 时长 / 取消（`46/-74` V2 已验，V1/V3/V4 待补）；批次 B 向导入口只占位不写码；设计续接点见 `docs/feature/大剂量功能设计-v2.md` §11，真机结论见 `docs/feature/HTTP取证与真机点检.md` §8。
+2. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
+3. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
 4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
 6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
@@ -48,7 +48,7 @@
 
 ## 一句话现状
 
-pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。
+pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。**2026-11-05**：设置/调试/控制页行组件统一为 `BaseRow`（`ActionRow` / `NavigationRow` / `ToggleRow` 全部改调，`fe8a887`），`:mobile:compileDebugKotlin` 通过、未出包；同日 HTTP 调试 API 真机实测（设备 `buildVersion=82710ea`）——只读命令全过，`46/-74` 有响应**证实 V2 可用**，`-94` 权限与 `-96` 取消通过，`-98` 大剂量被 `PumpCommHandler.isBolusCommand` 在 BULK 通道拦截（Timeout → HTTP 500，**未送达未输注**），`debug-write-bt-characteristic` 为 stub 不可用；取消后 `CurrentBolusStatus` / `ExtendedBolusStatusV2` 均 Idle、无残留，泵侧今日零异常（详见 `docs/feature/HTTP取证与真机点检.md` §8 与 lab WORKLOG §80–§82）；用户另将 `docs/pumppan-审查修改意见.md` 归档到 `docs/old/`（`ec92377`）。
 
 ---
 
