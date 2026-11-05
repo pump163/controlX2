@@ -486,6 +486,7 @@
     <string name="dashboard_bolus_icon">Bolus icon</string>
     <string name="dashboard_cancel_bolus_icon">Cancel bolus icon</string>
     <string name="dashboard_bolus">Bolus</string>
+    <string name="bolus_v2_placeholder_body">The new bolus page is not available yet.</string>
     <string name="dashboard_cancel">Cancel</string>
     <string name="comm_last_conn_pump_mess_timestamp_relative">Last connected: %1$s</string>
     <string name="comm_last_up_timestamp_relative">Last updated: %1$s</string>
@@ -813,6 +814,10 @@
     <string name="settings_home_show_history_sync_sub">Toggle the history record sync progress bar at the bottom of the home screen.</string>
     <string name="settings_auto_fetch_history_logs">Auto-fetch history records</string>
     <string name="settings_auto_fetch_history_logs_sub">When off, the home CGM chart and TIR stop updating, and pump history records no longer accumulate. Manual history record viewing still works.</string>
+    <string name="settings_pumppan_bolus_ui">Use the new bolus delivery screen</string>
+    <string name="settings_pumppan_bolus_ui_sub">Adds a bolus entry to the navigation bar and hides the original bolus button.</string>
+    <string name="settings_pumppan_bolus_ui_stop">Stop using the new bolus delivery</string>
+    <string name="settings_pumppan_bolus_ui_stop_sub">Restores the original bolus button.</string>
     <string name="sound_back">Back</string>
     <string name="sound_settings">Sound Settings</string>
     <string name="sound_loading_sound_settings">Loading sound settings...</string>

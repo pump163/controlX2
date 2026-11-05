@@ -66,6 +66,7 @@ import com.jwoglom.controlx2.util.AppVersionCheck
 import com.jwoglom.controlx2.util.AppVersionInfo
 import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
+import com.pumppan.controlx2.PumppanPrefs
 import com.pumppan.controlx2.ui.*
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -508,7 +509,7 @@ fun Settings(
                 SettingsDivider()
             }
 
-            // 单独成组：自动读取历史记录（按用户要求不新增组标题，靠上下组间线区分）
+            // 单独成组：自动读取历史记录 + 大剂量新页面开关（按用户要求不新增组标题，靠上下组间线区分）
             item {
                 var autoFetchHistoryLogs by remember { mutableStateOf(Prefs(context).autoFetchHistoryLogs()) }
                 ActionRow(
@@ -527,6 +528,36 @@ fun Settings(
                     modifier = Modifier.semantics {
                         stateDescription = context.getString(
                             if (autoFetchHistoryLogs) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
+                )
+                SettingsRowDivider()
+
+                // S9：大剂量新页面开关（默认关闭）；开启后导航栏中间出现入口，旧的 FAB 入口隐藏。
+                // 文案随状态翻转：关闭态描述「切过去会得到什么」，开启态描述「退回去会得到什么」。
+                var bolusUiV2 by remember { mutableStateOf(PumppanPrefs.bolusUiV2(context)) }
+                ActionRow(
+                    title = context.getString(
+                        if (bolusUiV2) R.string.settings_pumppan_bolus_ui_stop
+                        else R.string.settings_pumppan_bolus_ui
+                    ),
+                    subtitle = context.getString(
+                        if (bolusUiV2) R.string.settings_pumppan_bolus_ui_stop_sub
+                        else R.string.settings_pumppan_bolus_ui_sub
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            if (bolusUiV2) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        bolusUiV2 = !bolusUiV2
+                        PumppanPrefs.setBolusUiV2(context, bolusUiV2)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (bolusUiV2) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
                         )
                     },
                 )

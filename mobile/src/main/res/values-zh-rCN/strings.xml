@@ -480,6 +480,7 @@
     <string name="dashboard_bolus_icon">大剂量图标</string>
     <string name="dashboard_cancel_bolus_icon">取消大剂量图标</string>
     <string name="dashboard_bolus">大剂量</string>
+    <string name="bolus_v2_placeholder_body">新的大剂量输注页面尚未开放</string>
     <string name="dashboard_cancel">取消</string>
     <string name="comm_last_conn_pump_mess_timestamp_relative">上次连接：%1$s</string>
     <string name="comm_last_up_timestamp_relative">上次更新：%1$s</string>
@@ -807,6 +808,10 @@
     <string name="settings_home_show_history_sync_sub">切换首页下方的历史记录同步进度条。</string>
     <string name="settings_auto_fetch_history_logs">自动读取历史记录</string>
     <string name="settings_auto_fetch_history_logs_sub">关闭后首页 CGM 图表与 TIR 停止更新，泵历史记录不再自动累积；手动查看历史记录仍可用。</string>
+    <string name="settings_pumppan_bolus_ui">使用新的大剂量输注</string>
+    <string name="settings_pumppan_bolus_ui_sub">导航栏新的大剂量入口，取消原有大剂量按钮。</string>
+    <string name="settings_pumppan_bolus_ui_stop">不使用新的大剂量输注</string>
+    <string name="settings_pumppan_bolus_ui_stop_sub">恢复原有大剂量按钮。</string>
     <string name="sound_back">返回</string>
     <string name="sound_settings">声音设置</string>
     <string name="sound_loading_sound_settings">正在加载声音设置...</string>

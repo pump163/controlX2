@@ -99,6 +99,8 @@ import com.jwoglom.controlx2.presentation.screens.sections.resetTempRateDataStor
 import com.jwoglom.controlx2.presentation.navigation.SheetLaunchRequest
 import com.jwoglom.controlx2.presentation.navigation.SheetLaunchTarget
 import com.jwoglom.controlx2.presentation.navigation.TempRateInputPrefill
+import com.pumppan.controlx2.bolus.BolusPlaceholderPage
+import com.pumppan.controlx2.bolus.BolusRouter
 import com.jwoglom.controlx2.presentation.theme.Colors
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.enums.BasalStatus
@@ -127,6 +129,8 @@ fun Landing(
 ) {
     val context = LocalContext.current
     val ds = LocalDataStore.current
+    // 大剂量入口的唯一开关判断点（设置页切换后实时生效）
+    val bolusUiMode = BolusRouter.rememberBolusUiMode()
     val coroutineScope = rememberCoroutineScope()
 
     val pumpConnected = ds.pumpConnected.observeAsState()
@@ -361,6 +365,14 @@ fun Landing(
                             )
                         }
 
+                        LandingSection.BOLUS_V2 -> {
+                            // S4 落地后直接替换该占位页；这里不发任何泵命令
+                            BolusPlaceholderPage(
+                                innerPadding = innerPadding,
+                                onBack = { selectedItem = LandingSection.DASHBOARD },
+                            )
+                        }
+
                         LandingSection.ACTIONS -> {
                             Actions(
                                 innerPadding = innerPadding,
@@ -523,6 +535,7 @@ fun Landing(
         floatingActionButton = {
             when (selectedItem) {
                 LandingSection.DASHBOARD ->
+                    if (BolusRouter.showLegacyEntry(bolusUiMode)) {
                         ExtendedFloatingActionButton(
                             onClick = {
                                 coroutineScope.launch {
@@ -562,13 +575,17 @@ fun Landing(
                                 )
                             }
                         )
+                    }
                 else -> {}
             }
         },
         bottomBar = {
             NavigationBar {
                 LandingSection.values()
-                    .filter { item -> item.showInNav }
+                    .filter { item ->
+                        item.showInNav &&
+                            (item != LandingSection.BOLUS_V2 || BolusRouter.showNavEntry(bolusUiMode))
+                    }
                     .forEach { item ->
                         NavigationBarItem(
                             icon = {
@@ -586,7 +603,17 @@ fun Landing(
                                         }
                                     },
                                     content = {
-                                        Icon(item.icon, contentDescription = stringResource(item.labelRes))
+                                        if (item == LandingSection.BOLUS_V2) {
+                                            // 复用旧大剂量按钮的同一 drawable，不新画图标
+                                            Image(
+                                                if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
+                                                else painterResource(R.drawable.bolus_icon_secondary),
+                                                contentDescription = stringResource(item.labelRes),
+                                                modifier = Modifier.size(24.dp),
+                                            )
+                                        } else {
+                                            Icon(item.icon, contentDescription = stringResource(item.labelRes))
+                                        }
                                     }
                                 )
                            },
@@ -606,6 +633,9 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
     DASHBOARD(R.string.dashboard_dashboard, Icons.Filled.Info, true),
 
     NOTIFICATIONS(R.string.dashboard_notifications, Icons.Filled.Notifications, true),
+
+    // 大剂量新入口（v2）：放中间位，图标在导航栏渲染时用旧大剂量 drawable 覆盖
+    BOLUS_V2(R.string.dashboard_bolus, Icons.Filled.Info, true),
 
     ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, true),
     CGM_ACTIONS(R.string.dashboard_actions, Icons.Filled.Create, false),
@@ -628,6 +658,7 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
 fun LandingSection.parentSection(): LandingSection? = when (this) {
     LandingSection.DASHBOARD,
     LandingSection.NOTIFICATIONS,
+    LandingSection.BOLUS_V2,
     LandingSection.ACTIONS,
     LandingSection.SETTINGS -> null
     LandingSection.CGM_ACTIONS,
