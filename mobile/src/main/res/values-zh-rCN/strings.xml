@@ -374,7 +374,7 @@
     <string name="debug_bolus_id">大剂量 ID</string>
     <string name="debug_carbs_g">碳水（克）</string>
     <string name="debug_mode_bitmap_1_4">模式图（1-4）</string>
-    <string name="debug_slot">分段</string>
+    <string name="debug_slot">睡眠计划编号</string>
     <string name="debug_sched_bytes_comma_separated">分段字节（逗号分隔）</string>
     <string name="debug_flag">标志</string>
     <string name="debug_minutes_15">分钟数（≥15）</string>
