@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.pumppan.controlx2.PumppanPrefs
+import com.pumppan.controlx2.bolus.state.BolusControllerMode
 
 /** 大剂量入口的两种形态：旧弹层（legacy）与导航栏新页面（v2，S9 暂为占位页）。 */
 enum class BolusUiMode {
@@ -23,6 +24,10 @@ enum class BolusUiMode {
 object BolusRouter {
     fun mode(context: Context): BolusUiMode =
         if (PumppanPrefs.bolusUiV2(context)) BolusUiMode.V2 else BolusUiMode.LEGACY
+
+    /** 同一个开关也决定是否消费泵侧大剂量报文（LEGACY 下零请求、零 timer）。 */
+    fun controllerMode(context: Context): BolusControllerMode =
+        if (PumppanPrefs.bolusUiV2(context)) BolusControllerMode.V2 else BolusControllerMode.LEGACY
 
     fun showLegacyEntry(mode: BolusUiMode): Boolean = mode == BolusUiMode.LEGACY
 
