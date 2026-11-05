@@ -277,3 +277,92 @@ def cargo(total, bolus_id, bitmask, ext_vol, ext_secs,
 ### 结论（§8 收尾）
 **V2 已证实；V1/V3/V4 待后续；-98 大剂量经 HTTP BULK 调试通道不可发出（设计拦截 / stub 探针无效），需另行设计 debug 路径或走 `SEND_PUMP_COMMAND_BOLUS` 签名链路后复测。** 轮 A/B 因该拦截暂停，B 轮方波测试待恢复。
 
+---
+
+### 9. 发送链逐层扫描与「CONTROL 是否也拦」（2026-11-05，仅核实）
+
+> **状态：代码层核实完成，真机未验证。** 本节不含任何代码改动。
+
+#### 9.1 一句话结论
+
+**CONTROL 也拦。** 判定不依赖 characteristic：`isBolusCommand` 的第一条分支是 `message is InitiateBolusRequest`（类型判定，任何 Characteristic 都为真），位置 `PumpCommHandler.kt:653-655`；实际丢弃发生在 4 个 bulk 发送点（`:727`、`:737`、`:752`、`:778`）。HTTP 只有 `/api/pump/messages` 一条写路径，固定走 `SEND_PUMP_COMMANDS_BULK`，所以 **HTTP 现在发不出 -98，把 `characteristic` 改成 `CONTROL` 也没用**。
+
+#### 9.2 分层表
+
+| 层 | 文件:行 | 判定条件 | 拦 -98？ | 性质 |
+|---|---|---|---|---|
+| ① Debug 命令列表枚举 | `Debug.kt:372-379` | `filter`：排除 `authentication.*`、`historyLog.*`、`FactoryResetRequest`、`FactoryResetBRequest`、`Nonexistent` | **否**（-98 不在名单里） | **UI 隐藏**（只影响下拉列表） |
+| ② Debug 点击分支 | `Debug.kt:402-407` | `className == InitiateBolusRequest` → 专用对话框 | 否 | UI 有专用入口 |
+| ③ Debug → 发送 | `MainActivity.sendPumpCommands` | `MessagePaths.PREFIX_TO_PUMP + SendType.slug`，无判定 | 否 | 无判定 |
+| ④ CommService 路由 | `CommService.kt`（`TO_PUMP_DEBUG_COMMANDS` 分支） | `-> sendPumpCommDebugMessages()` | 否 | 无判定 |
+| ⑤ `SEND_PUMP_COMMANDS_BULK` | `PumpCommHandler.kt:737-738` | `if (isBolusCommand(it)) Timber.e(...)` | **是** | **发送层拒绝：静默丢弃，UI 无提示，不抛异常** |
+| ⑥ `SEND_PUMP_COMMAND`（单条） | `PumpCommHandler.kt:727-728` | 同上 | 是 | 发送层拒绝 |
+| ⑦ `SEND_PUMP_COMMANDS_BUST_CACHE_BULK` | `PumpCommHandler.kt:752-753` | 同上 | 是 | 发送层拒绝 |
+| ⑧ `CACHED_PUMP_COMMANDS_BULK` | `PumpCommHandler.kt:778-779` | 同上 | 是 | 发送层拒绝 |
+| ⑨ `SEND_PUMP_COMMAND_BOLUS`（正式链路） | `PumpCommHandler.kt:786-812` | 必须 `isBolusCommand == true` + HMAC 有效 + `prefInsulinDeliveryActions()` 开 | **否（唯一放行路径）** | 白名单 + 三重前置 |
+| ⑩ pumpx2 `Packetize.packetize` | `Packetize.java:63-65` | `modifiesInsulinDelivery() && !actionsAffectingInsulinDeliveryEnabled` | 是（任何通道） | **抛运行时异常** |
+| ⑪ HTTP `POST /api/pump/messages` | `HttpDebugApiService.kt:793→851-852` | 解析 → `toBulkBytes` → `sendPumpMessagesCallback`（即层⑤） | **是** | 复用层⑤ |
+| ⑫ HTTP `POST /api/pump/debug-write-bt-characteristic` | `HttpDebugApiService.kt:990-1005` | `// todo`，返回空 body | 无法发 | 未实现（不是拒绝） |
+
+#### 9.3 Debug 黑名单的准确构成（用户所说「3 条」）
+
+`Debug.kt:372-379` 是**列表枚举时的 `filter`（UI 隐藏）**，不是发送层。按 pumpx2 1.9.0 的请求类实测计数：
+
+| 被过滤的类 | 数量 | 性质 |
+|---|---|---|
+| `authentication.*` | 8 | 配对握手用，隐藏图省事 |
+| `historyLog.*` | 1 | 历史读取用 |
+| `FactoryResetRequest`（opcode **-24**） | 1 | **真正危险** |
+| `FactoryResetBRequest`（opcode **124**） | 1 | **真正危险** |
+| `Nonexistent*` | 9 | 占位/未实现，泵上不存在 |
+| **合计** | **20** | |
+
+所以「3 条」与实测不符：**真正危险的只有 2 条**（两个工厂复位），9 条是未实现占位，其余 9 条属于整包隐藏。**`InitiateBolusRequest`(-98) 不在这个名单里**——它一直显示在列表里、也一直有对话框，**是发送层把它丢掉的**（层⑤），不是 UI 藏起来了。
+
+| 命令 | 列表可见 | 发送层 |
+|---|---|---|
+| `InitiateBolusRequest` (-98) | ✅ 可见、有对话框 | ❌ 被 `isBolusCommand` 丢弃 |
+| `CancelBolusRequest` (-96) | ✅ 可见 | ✅ 不拦（A4 实测 200 成功） |
+| `BolusPermissionRequest` (-94) | ✅ 可见 | ✅ 不拦（A1 实测成功） |
+
+#### 9.4 HTTP 调用样例（**当前不可用**，需先做 §9.5 方案 A）
+
+现状原样调用 → 30 秒超时、未输注：
+
+```bash
+curl -s -u user:pass -H 'Content-Type: application/json' \
+  -d '{"cargo":"00000000e80300000800000000000000000000000000000000000000000000000000000000","opCode":-98,"characteristic":"CONTROL"}' \
+  http://<手机IP>:18282/api/pump/messages
+```
+
+> `characteristic` 写 `CONTROL` 或 `BULK` 结果相同：判定在类型上，不在通道上（§9.1）。
+> `bolusId` 必须换成**刚由 -94 `BolusPermissionRequest` 拿到的值**，否则泵会拒绝。
+
+三组 37 字节 cargo（`bolusId` 占位 1000 = 0x03E8，实际要替换）：
+
+| 场景 | 参数 | cargo hex |
+|---|---|---|
+| 干跑 0/0/0 | total=0, ext=0, secs=0, bitmask=8 | `00000000e80300000800000000000000000000000000000000000000000000000000000000` |
+| 0.05 U 立即 | total=50, ext=0, secs=0, bitmask=8 | `32000000e80300000800000000000000000000000000000000000000000000000000000000` |
+| 方波 0:100（0 立即 + 0.4 U 延后 / 2 h） | total=0, ext=400, secs=7200, bitmask=12 | `00000000e80300000c0000000000000000000000000000000090010000201c000000000000` |
+
+> **bitmask 以 1.9.0 为准**：`FOOD1=1`、`CORRECTION=2`、`EXTENDED=4`、`FOOD2=8`；方波 = `EXTENDED|FOOD2 = 12`。
+> 旧 §8 中 A2 用的 `bitmask=3` 是错的（3 = FOOD1|CORRECTION），作废。
+
+响应读取：返回体 `response` 数组是 `Message.jsonToString()`，关注 `opCode`、`bolusId`、`statusId`/`reasonId`、`totalVolume`、`extendedVolume`、`extendedSeconds`；超时体现在 `exceptions[].TimeoutException`。44/46 需另发 `CurrentBolusStatusRequest` / `ExtendedBolusStatusRequest`（不会随本批自动带回），在 Debug 页响应列表或 logcat 里看是否出现**同一个 `bolusId`**。
+
+#### 9.5 三种绕过办法与推荐
+
+| # | 改法 | 改哪些文件 | 影响面 | 风险 | 评价 |
+|---|---|---|---|---|---|
+| **A（推荐）** | HTTP 显式 `allowBolus` → 新增 `SEND_PUMP_COMMANDS_BULK_ALLOW_BOLUS`，仅该分支跳过 `isBolusCommand`；其余前置不变（`prefInsulinDeliveryActions` + 有效 `bolusId` + packetize 的 `modifiesInsulinDelivery` 闸门） | `HttpDebugApiService.kt`、`CommService.kt`、`CommServiceCodes.kt`、`PumpCommHandler.kt`（约 30 行） | 只影响显式带标记的调试请求；正式流程 0 影响 | 调试接口本就在同网段 + Basic Auth 下，已能发 -96/工厂复位；此处只多开 -98 | **推荐：可测、可回滚、不碰生产链路** |
+| B | Debug 页改走 `MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE`（正式签名链路） | `Debug.kt`、`CommService.kt`，复用 `BolusManager` 确认流程 | 触发正式确认对话框与 `initiateBolusSecret` 签名 | 与正式会话共用状态，调试时可能干扰正在进行的输注 | 备选（A 的 packetize 闸门实测过不去再用） |
+| C | 实现 `debug-write-bt-characteristic`（现为 stub），直接写 CONTROL 原始包 | `HttpDebugApiService.kt`、`PumpCommHandler.kt` | 需自行拼完整 61 字节带 HMAC 包、维护 `txId` 与泵时间；拿不到请求-响应绑定 | 风险最高，易写坏泵状态 | **不推荐** |
+
+**推荐结论：先做 A（HTTP 优先），失败再上 B。**
+
+#### 9.6 本轮已确认 / 未确认
+
+- **已确认（代码层）**：`-98` 有 4 个 bulk 发送点会丢弃；HTTP 只走 bulk；`CONTROL` 不改变结果；`debug-write-bt-characteristic` 是 stub；Debug 列表过滤只影响可见性且不含 -98。
+- **未确认（需真机）**：`-98` 带有效 `bolusId` 与 37 字节 cargo 时泵是否接受；开启 `prefInsulinDeliveryActions()` 后 `Packetize` 闸门是否放行；44/46 是否回同一 `bolusId`；-98 的响应 opcode 与 `statusId` 语义。
+
