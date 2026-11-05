@@ -604,9 +604,11 @@ fun Landing(
                                     },
                                     content = {
                                         if (item == LandingSection.BOLUS_V2) {
-                                            // 复用旧大剂量按钮的同一 drawable，不新画图标
-                                            Image(
-                                                if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
+                                            // 复用旧大剂量按钮的同一 drawable；颜色由 NavigationBarItem
+                                            // 提供的 LocalContentColor（MaterialTheme 派生）统一着色，
+                                            // 无任何硬编码色值，深浅色主题均跟随导航项配色。
+                                            Icon(
+                                                painter = if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
                                                 else painterResource(R.drawable.bolus_icon_secondary),
                                                 contentDescription = stringResource(item.labelRes),
                                                 modifier = Modifier.size(24.dp),
