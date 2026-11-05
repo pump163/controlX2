@@ -66,6 +66,11 @@ class BolusSessionHolder(
         reconciling = false
     }
 
+    /** 只清会话，保留对账标记：对账期间的消息不能把「对账中」提前结束。 */
+    fun clearSession() {
+        session = null
+    }
+
     fun isExpired(now: Long = clock()): Boolean {
         val end = session?.expectedEndAtMillis ?: return true
         return now > end
@@ -73,8 +78,11 @@ class BolusSessionHolder(
 
     /** 三态活性：供「是否允许发起新的大剂量」等门控使用。 */
     fun isAnyBolusActive(connected: Boolean, now: Long = clock()): BolusActivity {
+        // 对账未完成时不能误报 Idle（可能正在输注，只是还没拿到证据）
+        if (reconciling) return BolusActivity.UNKNOWN
         if (!connected) return BolusActivity.UNKNOWN
         val current = session ?: return BolusActivity.IDLE
+        if (current.phase == SessionPhase.UNKNOWN) return BolusActivity.UNKNOWN
         if (!isActivePhase(current.phase)) return BolusActivity.IDLE
         if (current.expectedEndAtMillis != null && now > current.expectedEndAtMillis) {
             return BolusActivity.IDLE
@@ -89,6 +97,7 @@ class BolusSessionHolder(
     fun cancelRowState(connected: Boolean, now: Long = clock()): CancelRowState {
         if (reconciling) return CancelRowState.RECONCILING
         val current = session ?: return CancelRowState.HIDDEN
+        if (current.phase == SessionPhase.UNKNOWN) return CancelRowState.READ_ONLY
         if (!isActivePhase(current.phase)) return CancelRowState.HIDDEN
         if (current.expectedEndAtMillis != null && now > current.expectedEndAtMillis) {
             return CancelRowState.HIDDEN

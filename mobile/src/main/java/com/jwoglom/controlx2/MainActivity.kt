@@ -66,7 +66,9 @@ import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.controlx2.shared.util.extractPumpSid
 import com.jwoglom.controlx2.pump.pairing.PairingCodeEntry
 import com.pumppan.controlx2.bolus.state.BolusControllerMode
+import com.pumppan.controlx2.bolus.state.BolusReconciler
 import com.pumppan.controlx2.bolus.state.BolusSessionController
+import com.pumppan.controlx2.bolus.state.BolusStatusRequestSender
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.PumpReadyState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -78,6 +80,10 @@ import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
 import com.jwoglom.pumpx2.pump.messages.models.StatusMessage
 import com.jwoglom.pumpx2.pump.messages.request.control.InitiateBolusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusV2Request
 import com.jwoglom.pumpx2.pump.messages.request.control.RemoteBgEntryRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.RemoteCarbEntryRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
@@ -118,6 +124,8 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -144,6 +152,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_TEMP_RATE_MINUTES = "minutes"
 
         private const val REQUEST_BT_PERMISSIONS = 2
+        private const val BOLUS_RECONCILE_TICK_MILLIS = 500L
     }
 
     // pumppan: 语言开关只对 Activity 生效（Application/Service 由 PumppanApplication 覆盖）
@@ -159,6 +168,30 @@ class MainActivity : ComponentActivity() {
 
     // S1：v2 大剂量状态控制器（被动消费泵侧报文；开关为 LEGACY 时零消耗）
     private val bolusSessionController = BolusSessionController(mode = { bolusControllerMode() })
+
+    // S2：四步对账器（薄适配器直接复用 sendPumpCommands，仅发只读请求）
+    private val bolusReconciler = BolusReconciler(
+        sender = object : BolusStatusRequestSender {
+            override fun requestCurrentBolusStatus() {
+                sendPumpCommands(SendType.STANDARD, listOf(CurrentBolusStatusRequest()))
+            }
+
+            override fun requestExtendedBolusStatus() {
+                sendPumpCommands(SendType.STANDARD, listOf(ExtendedBolusStatusRequest()))
+            }
+
+            override fun requestExtendedBolusStatusV2() {
+                sendPumpCommands(SendType.STANDARD, listOf(ExtendedBolusStatusV2Request()))
+            }
+
+            override fun requestLastBolusStatus() {
+                sendPumpCommands(SendType.STANDARD, listOf(LastBolusStatusV2Request()))
+            }
+        },
+        holder = bolusSessionController.holder,
+        mode = { bolusControllerMode() },
+    )
+    private var bolusColdStartReconciled = false
 
     private val applicationScope = CoroutineScope(SupervisorJob())
     private val historyLogDb by lazy { HistoryLogDatabase.getDatabase(this) }
@@ -759,6 +792,8 @@ class MainActivity : ComponentActivity() {
                 dataStore.pumpLastConnectionTimestamp.value = Instant.now()
                 // Auto-clear any stale critical-error banner once we're successfully connected.
                 dataStore.pumpCriticalError.value = null
+                // S2：连上/重连后做一次只读对账（LEGACY 下内部直接返回）
+                triggerBolusReconcile()
             }
 
             // on explicit disconnection
@@ -826,8 +861,27 @@ class MainActivity : ComponentActivity() {
     /** S1：v2 控制器尚未启用；S2 接入设置开关后只改这一处。 */
     private fun bolusControllerMode(): BolusControllerMode = BolusControllerMode.LEGACY
 
+    /** S2：v2 开关后才发起对账；LEGACY 下不发任何请求，也不改动状态。 */
+    private fun triggerBolusReconcile() {
+        if (bolusControllerMode() != BolusControllerMode.V2) return
+        if (bolusReconciler.running) return
+        if (dataStore.pumpConnected.value != true) return
+        bolusReconciler.start()
+        applicationScope.launch {
+            while (bolusReconciler.running) {
+                delay(BOLUS_RECONCILE_TICK_MILLIS)
+                bolusReconciler.onTick()
+            }
+        }
+    }
+
     private fun onPumpMessageReceived(message: Message, cached: Boolean) {
         bolusSessionController.applyMessage(message)
+        if (!bolusColdStartReconciled) {
+            bolusColdStartReconciled = true
+            triggerBolusReconcile()
+        }
+        bolusReconciler.onMessage(message)
         if (dataStore.debugPromptAwaitingResponses.value?.contains(message.javaClass.name) == true) {
             synchronized (dataStore.debugPromptAwaitingResponses) {
                 val awaiting = dataStore.debugPromptAwaitingResponses.value ?: mutableSetOf()

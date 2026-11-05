@@ -84,7 +84,9 @@ class BolusSessionController(
      */
     private fun onCurrentBolus(message: CurrentBolusStatusResponse) {
         when (message.status) {
-            CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID -> holder.clear()
+            CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID ->
+                // 对账中的「空」只是证据，不能把 reconciling 标记一并清掉
+                if (holder.reconciling) holder.clearSession() else holder.clear()
 
             CurrentBolusStatus.REQUESTING, CurrentBolusStatus.DELIVERING -> {
                 if (message.bolusId == 0) {
