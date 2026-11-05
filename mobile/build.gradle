@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.devtools.ksp'
     id 'hu.supercluster.paperwork'
     id 'io.github.takahirom.roborazzi'
 }
@@ -200,6 +201,11 @@ dependencies {
     // Room comes transitively from :db (which exposes room-runtime as api).
     // The only direct Room usage in mobile is HistoryLogFetcherIntegrationTest
     // calling Room.inMemoryDatabaseBuilder, satisfied by that transitive dep.
+    // Bolus presets use their own small database in the mobile module, so the
+    // Room compiler (KSP) and room-ktx (suspend DAO support) are declared here.
+    var room_version = '2.7.0'
+    ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // SLF4J (pumpx2 library uses it)

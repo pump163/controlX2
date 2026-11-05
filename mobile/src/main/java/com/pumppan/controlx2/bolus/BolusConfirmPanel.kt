@@ -25,7 +25,9 @@ import java.util.Locale
 fun BolusConfirmPanel(
     state: BolusFlowState,
     limits: BolusLimits = BolusLimits.Default,
+    justSaved: Boolean = false,
     onDeliver: () -> Unit,
+    onSaveAsPreset: () -> Unit,
     onBack: () -> Unit,
 ) {
     Column(Modifier) {
@@ -59,6 +61,20 @@ fun BolusConfirmPanel(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(onClick = onSaveAsPreset, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.bolus_v2_preset_save_as))
+        }
+        if (justSaved) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.bolus_v2_preset_saved),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
 
         Spacer(Modifier.height(12.dp))
 
