@@ -1,10 +1,13 @@
 package com.pumppan.controlx2.ui
 
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 /**
  * 开关行：标题 + 可选副标题 + Switch。
@@ -28,13 +31,14 @@ fun ToggleRow(
     readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val titleColor = rowTitleColor(readOnly)
+    // 控制页开关行不做只读降透明：激活与否都保持不透明，仅用字重区分激活态
+    val titleColor = rowTitleColor(false)
     BaseRow(
         title = title,
         titleStyle = rowTitleStyle(emphasized),
         titleColor = titleColor,
         subtitle = subtitle,
-        subtitleColor = rowSubtitleColor(readOnly),
+        subtitleColor = rowSubtitleColor(false),
         leadingIcon = leadingIcon?.let { icon ->
             {
                 CompositionLocalProvider(LocalContentColor provides titleColor) { icon() }
@@ -45,9 +49,21 @@ fun ToggleRow(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 enabled = !readOnly,
+                // 只读时按正常配色显示，避免整行/开关出现「变灰不可用」的误导性透明
+                colors = SwitchDefaults.colors(
+                    disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurface,
+                    disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledUncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    disabledUncheckedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledCheckedTrackColor = MaterialTheme.colorScheme.primary,
+                    disabledCheckedBorderColor = MaterialTheme.colorScheme.primary,
+                    disabledCheckedIconColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             )
         },
         onClick = null,
+        containerColor = if (emphasized) MaterialTheme.colorScheme.surface else Color.Transparent,
         modifier = modifier,
     )
 }

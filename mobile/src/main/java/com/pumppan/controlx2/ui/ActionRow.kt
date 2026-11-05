@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 /**
  * 操作行：标题 + 副标题，点击执行动作（不跳页面）。
@@ -52,6 +53,7 @@ fun ActionRow(
             { CompositionLocalProvider(LocalContentColor provides titleColor) { icon() } }
         },
         onClick = if (readOnly) null else onClick,
+        containerColor = if (emphasized) MaterialTheme.colorScheme.surface else Color.Transparent,
         modifier = modifier,
     )
 }
