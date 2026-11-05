@@ -255,6 +255,11 @@
     <string name="ciq_enabled">Enabled</string>
     <string name="ciq_weight_lbs">Weight (lbs)</string>
     <string name="ciq_total_daily_insulin_units_2">Total Daily Insulin (units)</string>
+    <string name="ciq_summary_status">Status: %1$s</string>
+    <string name="ciq_summary_weight">Weight: %1$s</string>
+    <string name="ciq_summary_tdi">Total Daily Insulin: %1$s units</string>
+    <string name="ciq_unit_lbs">lbs</string>
+    <string name="ciq_unit_kg">kg</string>
     <string name="ciq_enter_valid_numbers">Please enter valid numbers</string>
     <string name="ciq_apply">Apply</string>
     <string name="ciq_cancel">Cancel</string>

@@ -249,6 +249,11 @@
     <string name="ciq_enabled">启用</string>
     <string name="ciq_weight_lbs">体重 (磅数)</string>
     <string name="ciq_total_daily_insulin_units_2">每日胰岛素总量（单位）</string>
+    <string name="ciq_summary_status">状态: %1$s</string>
+    <string name="ciq_summary_weight">体重: %1$s</string>
+    <string name="ciq_summary_tdi">每日胰岛素总量: %1$s 单位</string>
+    <string name="ciq_unit_lbs">磅</string>
+    <string name="ciq_unit_kg">公斤</string>
     <string name="ciq_enter_valid_numbers">请输入有效数字</string>
     <string name="ciq_apply">应用</string>
     <string name="ciq_cancel">取消</string>

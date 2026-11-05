@@ -108,19 +108,26 @@ fun ControlIQSettingsActions(
     val controlIQTotalDailyInsulin = ds.controlIQTotalDailyInsulin.observeAsState()
     val sleepSchedule = ds.controlIQSleepScheduleResponse.observeAsState()
 
-    val controlIQSummaryText = remember(
-        controlIQEnabled.value,
-        controlIQWeight.value,
-        controlIQWeightUnit.value,
-        controlIQTotalDailyInsulin.value,
-    ) {
-        if (controlIQEnabled.value == null) {
-            context.getString(R.string.ciq_loading)
-        } else {
-            "Status: ${if (controlIQEnabled.value == true) "Enabled" else "Disabled"}\n" +
-                "Weight: ${controlIQWeight.value ?: "?"} ${controlIQWeightUnit.value ?: ""}\n" +
-                "Total Daily Insulin: ${controlIQTotalDailyInsulin.value ?: "?"} units"
+    val controlIQSummaryText = if (controlIQEnabled.value == null) {
+        stringResource(R.string.ciq_loading)
+    } else {
+        val enabledText = stringResource(
+            if (controlIQEnabled.value == true) R.string.ciq_enabled else R.string.ciq_disabled
+        )
+        val weightUnitText = when (controlIQWeightUnit.value?.lowercase()) {
+            "lbs" -> stringResource(R.string.ciq_unit_lbs)
+            "kg" -> stringResource(R.string.ciq_unit_kg)
+            else -> controlIQWeightUnit.value ?: ""
         }
+        val weightText = listOfNotNull(
+            controlIQWeight.value?.toString(),
+            weightUnitText.takeIf { it.isNotBlank() },
+        ).joinToString(" ").ifBlank { "?" }
+        listOf(
+            stringResource(R.string.ciq_summary_status, enabledText),
+            stringResource(R.string.ciq_summary_weight, weightText),
+            stringResource(R.string.ciq_summary_tdi, controlIQTotalDailyInsulin.value?.toString() ?: "?"),
+        ).joinToString("\n")
     }
 
     val refreshScope = rememberCoroutineScope()
@@ -266,11 +273,11 @@ fun ControlIQSettingsActions(
                             NavigationRow(
                                 title = context.getString(R.string.ciq_schedule, index + 1),
                                 subtitle = if (enabled) {
-                                    val days = slot.activeDays().joinToString(", ") { it.name.take(3) }
-                                    "Enabled\n" +
+                                    val days = slot.activeDays().map { dayLabel(it) }.joinToString(", ")
+                                    stringResource(R.string.ciq_enabled) + "\n" +
                                         "${String.format("%02d:%02d", slot.startTime().hour(), slot.startTime().min())} - " +
                                         "${String.format("%02d:%02d", slot.endTime().hour(), slot.endTime().min())}\n" +
-                                        context.getString(R.string.ciq_days_days, days)
+                                        stringResource(R.string.ciq_days_days, days)
                                 } else {
                                     context.getString(R.string.ciq_disabled)
                                 },
