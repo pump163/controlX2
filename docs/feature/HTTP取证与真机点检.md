@@ -389,3 +389,5 @@ curl -s -u user:pass -H 'Content-Type: application/json' \
 
 > 本记录仅为 HTTP 取证，未发送任何带剂量的大剂量命令；`-98` 仍未在真机被泵接受，不得写成"已验证"。
 
+> **例外说明（2026-11-06）**：`mobile-release_pumppan_probe.apk` 是按用户明确请求出的正式签名包（`:mobile:assembleRelease`，沿用仓库 `debug.keystore`，`applicationId` 与 `versionCode` 均未改），仅用于 S6-prep 探针取证。**这是用户明确的一次例外，不是惯例**；后续出包仍按常规命名与流程执行。
+
