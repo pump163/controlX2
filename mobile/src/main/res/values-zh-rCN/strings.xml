@@ -591,7 +591,7 @@
     <string name="profile_actions">配置文件设置</string>
     <string name="profile_no_profiles_present">无配置文件</string>
     <string name="profile_configure_at_least_one_first">请至少配置一个配置文件以继续</string>
-    <string name="profile_idp_id_in_slot">IDP ID %1$s，插槽 %2$s</string>
+    <string name="profile_idp_id_in_slot">IDP ID %1$s，序号 %2$s</string>
     <string name="profile_active_profile">\n当前配置文件</string>
     <string name="profile_back">返回</string>
     <string name="profile_profile">配置文件 \'%1$s\'</string>
