@@ -53,6 +53,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -133,8 +134,9 @@ fun Landing(
     val notificationBundle = ds.notificationBundle.observeAsState()
 
 
-    // Local state owns user-driven tab changes, but must reset when parent route changes.
-    var selectedItem by remember(sectionState) { mutableStateOf(sectionState) }
+    // Local state owns user-driven tab changes，且要跨 NavHost 子页（AppSetup / PumpSetup）保存：
+    // 用 rememberSaveable，popBackStack 回来时恢复原来所在的分区，而不是重置到首页。
+    var selectedItem by rememberSaveable(sectionState) { mutableStateOf(sectionState) }
     val bottomSheetState = rememberBottomSheetState(initialValue = bottomScaffoldDisplayState)
     val displayBottomScaffold = rememberBottomSheetScaffoldState(
         bottomSheetState = bottomSheetState
