@@ -1,8 +1,8 @@
 # HANDOFF · pumppan 分支交接记录
 
-> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-05（用户改动 / 真机实测 / HEAD 复核）
+> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-06（收工保存点 / 大剂量流程定案 / HEAD 复核）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：以 `git log -1` 为准（本文件同步时为 `ec92377`；本次 docs 提交后再前进一格）
+> 当前 HEAD：`ac47152`（文档收工点；下次开工以 `git log -1` 为准）
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
@@ -11,9 +11,9 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `ec92377` | 2026-11-05：UI 行组件统一为 `BaseRow` + HTTP 真机实测（`fe8a887`）；用户归档审查意见到 `docs/old/`（`ec92377`）；此前 TIR 细化 `5e24620`、缓存查看器改名 `82710ea`、术语收敛 `9c392f0` |
+| pumppan | `pumppan` | `ac47152` | 2026-11-06：大剂量页面流程定案（§4.6 入口状态机 / §4.6.7 第 2 页三按钮 + 自动命名预设 / §6 命名口径 / 批次 C 登记）；此前 S6-prep 探针 `1ae368c`、HTTP 取证 `5d03245`、入口与提醒 `2090888`、加入预设 `93c1123` |
 | i18n main | `main` | `f0543e1` | 归档已完成文档、未完成文档移交 pumppan（2026-11-05 复核，工作区干净） |
-| lab | `assets` | `ad6f4d7` | WORKLOG §80/§81 用户真机记录 + §82 进度更新（2026-11-05，已推送） |
+| lab | `assets` | `72f4794` | WORKLOG §93 批次 C 登记（2026-11-06，已推送） |
 
 ### 已拍板（不再重复讨论）
 
@@ -31,12 +31,28 @@
 
 ### 未完成的下一步
 
-1. **大剂量 v2 批次 A（当前阻塞点）**：按 `docs/feature/大剂量功能设计-v2.md` §5.6 的 **S0 纯状态层**起步（可单测、零泵交互），S1–S5 跟随；`-98` 未验期间不先做完整发送链路，S5 后单独一个提交做 **S6-prep 11 参探针**（走生产通道 `TO_SERVER_BOLUS_REQUEST_PHONE`，不走 HTTP BULK）。0.05U/25U、扩展最小 0.05U、CIQ 2h/非 CIQ 8h、不自建 90s 超时等已按说明书 7/12/13 章修订（§5.6 末表）。批次 B（向导）现在只做置灰入口（§5.7）。阈值外置方案见 `docs/feature/阈值配置外置-设计.md`（**仅设计，待实现**）。**S9 已提前落地（开关与导航入口已实现，v2 入口暂为占位页）**：设置页「自动读取历史记录」同组新增「使用新的大剂量输注」开关（pref key `pumppan-bolus-ui`，默认关闭），开启后导航栏中间出现大剂量图标（复用旧 drawable）、Dashboard 右下角旧 FAB 隐藏；判断集中在 `com.pumppan.controlx2.bolus.BolusRouter`，点击进入 `BolusPlaceholderPage`（无输入框、不发泵命令），S4 落地后直接替换该文件即可。
-2. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
-3. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
-4. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
-5. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
-6. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
+#### 明天第一件事（2026-11-07，真机）
+
+1. 安装 `D:\Programming\apk\mobile-release_pumppan_probe.apk`：**同签名覆盖安装**，装完确认设置与输注参数仍在。
+2. 先开「允许调整输注」，先发 `BolusPermissionRequest(-94)` 拿到 `bolusId`；后续每一步都用同一个 `bolusId`。
+3. 按五步测（**合计 ≤0.5U**）：
+   1. `0/0/0` 干跑（只看泵是否接受，不实际输注）；
+   2. `0.05U` 立即段；
+   3. 方波 `0:100`（0 + 0.4U / 120 min / bitmask 12），**只跑 1–2 分钟即取消**；
+   4. `-96` 取消（带 `bolusId`）；
+   5. 双波 `50:50`。
+4. 每步记录 `44` / `46` / `48` 回包与 `bolusProbe:` 日志。
+5. **提醒：`-98` 至今未真机验证**，S6 发送适配层阻塞于此；未验通过前不得记为已验证、不得接正式发送链路。
+
+#### 其余待办
+
+1. **大剂量 v2 代码待写（文档已定，代码未写）**：① 第 2 页底部三按钮 + 「+」自动命名预设（`BolusFlowScreen.kt` / `BolusPresetStore.kt` / `BolusConfirmPanel.kt` / `BolusPresetDialogs.kt`）；② 入口状态机（`BolusV2Section.kt:29-56` 的 `showFlow` 二分改 `when (phaseToPage(phase))`，新增取消输注页 / 二选一页 / 已完成提示页）；③ 通知改造（补 `setContentIntent`、正文开始/结束时间、`maxRequests=60` 跟随延后段时长；约 3 文件 40–50 行）。依据 §4.6 / §4.6.7 / §6 与 §4.7 差异清单。
+2. **大剂量批次 A 状态**：S0–S5 与 S6-prep 探针已完成；S9 开关与导航入口已落地（v2 入口暂为占位页）；S6 发送适配层待 `-98` 真机验证后开工。批次 B（向导）只做置灰入口（§5.7）；批次 C（定时大剂量提醒）仅登记、不设计（§5.1）。
+3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
+4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
+5. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
+6. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
+7. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
 
 > 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/old/工作清单-2026-11-02至04.md`（内容已并入 lab `i18n/WORKLOG.md` §78），HANDOFF 不再重复维护。
 
