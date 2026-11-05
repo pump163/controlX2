@@ -84,11 +84,13 @@
 
 ---
 
-## 3. 基线单测失败 `VicoCgmChartTest`（DST）—— 仅记录未修
-- **问题**：历史时刻的时区偏移用「当前时刻」计算，跨 DST 切换的历史数据会偏 1 小时，导致该用例在 DST 边界失败。
+## 3. 基线单测失败 `VicoCgmChartTest`（DST）—— 已记录，未提 PR
+- **现象**：`VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection` 失败（期望 `11:54 PM`，实际 `12:54 AM`；2026-11-05 本机复现，单独跑该用例同样失败）。
+- **根因**：`pumpTimeToLocalTz` 用**当天**的时区偏移换算任意历史时间戳；用例时间戳是 3 月（EDT −4），运行日为 11 月（EST −5），两者差 1 小时。
 - **证据**：`shared/src/main/java/com/jwoglom/controlx2/shared/util/UnitsRenderer.kt:14-16`，`val offsetSeconds = TimeZone.getDefault().getOffset(Date().time) / 1000`（`:15`）。
 - **建议改法**：`getOffset(time.toEpochMilli())`，或改用 `ZoneId.default` + `LocalDateTime` 换算。
-- **影响面**：CGM 图表/历史时间换算；属正确性缺陷而非仅测试问题。
+- **影响判断**：跨夏令时的历史血糖/事件时间显示可能偏 1 小时（需真机或带 DST 的单测确认，**目前只判为可能**，不写成已确认缺陷）。
+- **状态**：**已记录，未提 PR**。属上游既有问题，与本方案无关（S1/S2 未改动该换算链路）。
 - **是否需纯英文 PR**：是（纯代码）。
 - **与 i18n 分支冲突**：否（该文件未被本分支改动）。
 
