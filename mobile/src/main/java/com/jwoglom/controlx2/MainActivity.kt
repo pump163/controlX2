@@ -1052,6 +1052,10 @@ class MainActivity : ComponentActivity() {
                 dataStore.bolusCarbEntryResponse.value = message
             }
             is InitiateBolusResponse -> {
+                Timber.i(
+                    "bolusProbe: InitiateBolusResponse bolusId=%s status=%s statusType=%s statusTypeId=%s",
+                    message.bolusId, message.status, message.statusType, message.statusTypeId
+                )
                 dataStore.bolusInitiateResponse.value = message
                 runOnUiThread { bolusConfirmDialog?.dismiss() }
             }

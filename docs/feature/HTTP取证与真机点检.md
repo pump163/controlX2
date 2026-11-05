@@ -364,5 +364,28 @@ curl -s -u user:pass -H 'Content-Type: application/json' \
 #### 9.6 本轮已确认 / 未确认
 
 - **已确认（代码层）**：`-98` 有 4 个 bulk 发送点会丢弃；HTTP 只走 bulk；`CONTROL` 不改变结果；`debug-write-bt-characteristic` 是 stub；Debug 列表过滤只影响可见性且不含 -98。
-- **未确认（需真机）**：`-98` 带有效 `bolusId` 与 37 字节 cargo 时泵是否接受；开启 `prefInsulinDeliveryActions()` 后 `Packetize` 闸门是否放行；44/46 是否回同一 `bolusId`；-98 的响应 opcode 与 `statusId` 语义。
+- **已确认（2026-11-06 真机 HTTP）**：接口可用且 Basic Auth 生效；只读命令 44/46 正常往返；`-98` 干跑无任何响应（客户端 65 s 超时，零字节），而同为 CONTROL 的 `-96` 0.47 s 正常回包 → 发送层静默丢弃成立。
+- **未确认（需真机）**：`-98` 带有效 `bolusId` 与 37 字节 cargo 时泵是否接受；开启 `prefInsulinDeliveryActions()` 后 `Packetize` 闸门是否放行；44/46 是否回同一 `bolusId`（11-06 无活动大剂量，两者均为 0，未验证）；-98 的响应 opcode 与 `statusId` 语义。
+
+#### 9.7 2026-11-06 实测记录（真机 HTTP）
+
+环境：手机 `192.168.8.52:18282`，Basic Auth `admin:123456`。`GET /` 返回 `version 1.0.0-20260504`、`buildVersion fe8a887`、`buildTime 2026-11-05T00:21:17+08:00`、`pumpx2 1.9.0`。
+
+| 步骤 | 请求 | 结果 |
+|---|---|---|
+| 鉴权 | `GET /api/pump/connected`，不带 Authorization | **401**（0.37 s） |
+| 鉴权 | 同上，带 Basic Auth | **200**（0.23 s），`pumpConnected=true` |
+| 只读 44 | `{"cargo":"","opCode":44,"characteristic":"CURRENT_STATUS"}` | **200**（0.40 s）；`bolusId=0`、`requestedVolume=0`、`statusId=0`、`bolusTypeBitmask=0` |
+| 只读 46 | `{"cargo":"","opCode":46,"characteristic":"CURRENT_STATUS"}` | **200**（1.09 s）；`bolusId=0`、`requestedVolume=0`、`duration=0`、`bolusStatus=0` |
+| **-98 干跑** | 37 B cargo（total=0/ext=0/secs=0，bitmask 8，bolusId 占位 1000），`characteristic=CONTROL` | **HTTP 000，65.0 s 客户端超时，零字节响应**（无 header、无 body）。共 3 次（45 s / 120 s / 65 s）均零响应 |
+| -96 对照 | `{"cargo":"e8030000","opCode":-96,"characteristic":"CONTROL"}` | **200**（0.47 s）；`CancelBolusResponse: bolusId=1000, statusId=1, reasonId=2` |
+| -98 解析对照 | 同上但 cargo 只有 1 字节 `"00"` | **400**（13.7 s），说明请求能被解析层正常拒绝，不是路由问题 |
+
+三句结论：
+
+1. **接口可用**：Basic Auth 生效（无凭据 401、带凭据 200），只读命令稳定往返，`POST /api/pump/messages` 的 body 格式与 §9.4 一致。
+2. **44/46 的 `bolusId` 同源性未验证**：实测两次都是 `0`（当时无进行中的大剂量），只能确认两命令都能回包，不能确认「同一笔」。
+3. **`-98` 确认为 App 发送层静默丢弃**：同一 CONTROL 通道下 `-96` 0.47 s 就回包，而 `-98` 永远无响应（65 s 零字节）——泵未收到该请求；与 §9.1 的 `isBolusCommand` 代码结论一致。
+
+> 本记录仅为 HTTP 取证，未发送任何带剂量的大剂量命令；`-98` 仍未在真机被泵接受，不得写成"已验证"。
 

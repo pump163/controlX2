@@ -8,9 +8,14 @@ import android.content.Context
 import android.content.DialogInterface
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -146,10 +151,12 @@ import com.jwoglom.controlx2.presentation.util.sendSupportBundleEmail
 import com.jwoglom.controlx2.presentation.util.shareSupportBundle
 import com.jwoglom.controlx2.shared.FeatureFlags
 import com.jwoglom.controlx2.shared.MessagePaths
+import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.pumppan.controlx2.ui.*
+import kotlin.math.roundToLong
 import com.jwoglom.pumpx2.pump.PumpState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -400,9 +407,9 @@ fun Debug(
                                             )
                                             return@DropdownMenuItem
                                         } else if (className == InitiateBolusRequest::class.java.name) {
-                                            triggerInitiateBolusRequestDialog(
+                                            triggerBolusProbeDialog(
                                                 context,
-                                                sendPumpCommands
+                                                sendMessage
                                             )
                                             return@DropdownMenuItem
                                         } else if (className == CancelBolusRequest::class.java.name) {
@@ -1404,66 +1411,201 @@ fun triggerHistoryLogRange(
     }
 }
 
-fun triggerInitiateBolusRequestDialog(
+private const val BOLUS_PROBE_MAX_MILLIUNITS = 25_000L
+private val BOLUS_PROBE_BITMASKS = listOf(1, 2, 4, 8, 12)
+private const val BOLUS_PROBE_INDEX_8 = 3
+private const val BOLUS_PROBE_INDEX_12 = 4
+
+private fun bolusProbeParseMilliunits(raw: String): Long? {
+    val units = raw.trim().toDoubleOrNull() ?: return null
+    if (units.isNaN() || units.isInfinite() || units < 0.0) return null
+    return (units * 1000.0).roundToLong()
+}
+
+private fun bolusProbeConversionLabel(milliunits: Long?): String =
+    if (milliunits == null) "" else "= ${milliunits / 1000.0} U / ${milliunits} mU"
+
+/**
+ * S6-prep 探针：用 11 参构造器构造 InitiateBolusRequest，并经生产通道
+ * TO_SERVER_BOLUS_REQUEST_PHONE（SEND_PUMP_COMMAND_BOLUS，签名 + insulin delivery 开关）
+ * 发出。0/0/0 干跑时 pumpx2 的 11 参构造器会因 Validate 拒绝，改用 buildCargo + byte[] 构造。
+ */
+fun triggerBolusProbeDialog(
     context: Context,
-    sendPumpCommands: (SendType, List<Message>) -> Unit,
+    sendMessage: (String, ByteArray) -> Unit,
 ) {
-    val builder = AlertDialog.Builder(context)
-    builder.setTitle(context.getString(R.string.debug_enter_units_to_deliver_bolus))
-    builder.setMessage(context.getString(R.string.debug_enter_number_of_units_in_integer))
-    val input1 = EditText(context)
-    input1.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
-    builder.setView(input1)
-    builder.setPositiveButton(context.getString(R.string.debug_ok), DialogInterface.OnClickListener { dialog, which ->
-        val numUnitsStr = input1.text.toString()
-        Timber.i("numUnits: %s", numUnitsStr)
-        if ("" == numUnitsStr) {
-            Timber.e("Not delivering bolus because no units entered.")
-            return@OnClickListener
+    val pad = (16 * context.resources.displayMetrics.density).toInt()
+    val layout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(pad, pad, pad, pad)
+    }
+
+    fun label(text: String): TextView = TextView(context).apply { this.text = text }
+
+    val immediateInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        hint = context.getString(R.string.debug_bolus_probe_immediate_hint)
+        setText("0")
+    }
+    val immediateConversion = label("")
+    val extendedInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        hint = context.getString(R.string.debug_bolus_probe_extended_hint)
+        setText("0")
+    }
+    val extendedConversion = label("")
+    val durationInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER
+        hint = context.getString(R.string.debug_bolus_probe_duration_hint)
+        setText("0")
+    }
+    val bolusIdInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER
+        hint = context.getString(R.string.debug_bolus_probe_bolus_id_hint)
+        setText("0")
+    }
+    val bitmaskSpinner = Spinner(context).apply {
+        adapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_spinner_dropdown_item,
+            BOLUS_PROBE_BITMASKS.map { it.toString() },
+        )
+        setSelection(BOLUS_PROBE_INDEX_8)
+    }
+
+    var lastRecommendedIndex = BOLUS_PROBE_INDEX_8
+    var userPickedBitmask = false
+    bitmaskSpinner.setOnTouchListener { _, _ ->
+        userPickedBitmask = true
+        false
+    }
+
+    fun refreshConversion() {
+        immediateConversion.text =
+            bolusProbeConversionLabel(bolusProbeParseMilliunits(immediateInput.text.toString()))
+        extendedConversion.text =
+            bolusProbeConversionLabel(bolusProbeParseMilliunits(extendedInput.text.toString()))
+        if (!userPickedBitmask) {
+            val extended = bolusProbeParseMilliunits(extendedInput.text.toString()) ?: 0L
+            val recommended = if (extended > 0L) BOLUS_PROBE_INDEX_12 else BOLUS_PROBE_INDEX_8
+            if (recommended != lastRecommendedIndex) {
+                lastRecommendedIndex = recommended
+                bitmaskSpinner.setSelection(recommended)
+            }
         }
-        val builder2 = AlertDialog.Builder(context)
-        builder2.setTitle(context.getString(R.string.debug_confirm_bolus))
-        builder2.setMessage(context.getString(R.string.debug_enter_bolus_id_from_bolus_permission))
-        val input2 = EditText(context)
-        input2.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
-        builder2.setView(input2)
-        builder2.setPositiveButton(context.getString(R.string.debug_ok),
-            DialogInterface.OnClickListener { dialog, which ->
-                val bolusIdStr = input2.text.toString()
-                Timber.i("currentIob: %s", bolusIdStr)
-                if ("" == bolusIdStr) {
-                    Timber.e("Not delivering bolus because no bolus ID entered.")
-                    return@OnClickListener
-                }
-                val numUnits = numUnitsStr.toInt()
-                val bolusId = bolusIdStr.toInt()
-                // tandemEventCallback.lastBolusId = bolusId
-                // InitiateBolusRequest(long totalVolume, int bolusTypeBitmask, long foodVolume, long correctionVolume, int bolusCarbs, int bolusBG, long bolusIOB)
-                sendPumpCommands(
-                    SendType.DEBUG_PROMPT,
-                    listOf(
-                        InitiateBolusRequest(
-                            numUnits.toLong(),
-                            bolusId,
-                            BolusDeliveryHistoryLog.BolusType.toBitmask(BolusDeliveryHistoryLog.BolusType.FOOD2),
-                            0L,
-                            0L,
-                            0,
-                            0,
-                            0
+    }
+
+    val watcher = object : TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            refreshConversion()
+        }
+
+        override fun afterTextChanged(s: Editable?) {}
+    }
+    immediateInput.addTextChangedListener(watcher)
+    extendedInput.addTextChangedListener(watcher)
+
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_immediate)))
+    layout.addView(immediateInput)
+    layout.addView(immediateConversion)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_extended)))
+    layout.addView(extendedInput)
+    layout.addView(extendedConversion)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_duration)))
+    layout.addView(durationInput)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_bitmask)))
+    layout.addView(bitmaskSpinner)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_bolus_id)))
+    layout.addView(bolusIdInput)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_warning)))
+    refreshConversion()
+
+    fun reject(message: String) {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
+
+    val dialog = AlertDialog.Builder(context)
+        .setTitle(context.getString(R.string.debug_bolus_probe_title))
+        .setView(layout)
+        .setPositiveButton(context.getString(R.string.debug_ok), null)
+        .setNegativeButton(context.getString(R.string.debug_cancel)) { d, _ -> d.dismiss() }
+        .create()
+    dialog.setOnShowListener {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val immediate = bolusProbeParseMilliunits(immediateInput.text.toString())
+            val extended = bolusProbeParseMilliunits(extendedInput.text.toString())
+            val minutes = durationInput.text.toString().trim().toLongOrNull()
+            val bolusId = bolusIdInput.text.toString().trim().toIntOrNull() ?: 0
+            val bitmask = BOLUS_PROBE_BITMASKS[bitmaskSpinner.selectedItemPosition]
+
+            when {
+                immediate == null || extended == null ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_negative))
+
+                immediate + extended > BOLUS_PROBE_MAX_MILLIUNITS ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_total, BOLUS_PROBE_MAX_MILLIUNITS))
+
+                minutes == null || minutes < 0 ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_duration))
+
+                !(immediate == 0L && extended == 0L) && immediate < 50L && immediate + extended < 400L ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_minimum))
+
+                extended > 0L && minutes <= 0 ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_extended))
+
+                bolusId <= 0 ->
+                    reject(context.getString(R.string.debug_bolus_probe_reject_bolus_id))
+
+                else -> {
+                    val durationSeconds = minutes * 60L
+                    AlertDialog.Builder(context)
+                        .setTitle(context.getString(R.string.debug_bolus_probe_confirm_title))
+                        .setMessage(
+                            context.getString(
+                                R.string.debug_bolus_probe_confirm_message,
+                                immediate / 1000.0,
+                                extended / 1000.0,
+                                minutes,
+                                bitmask,
+                            )
                         )
-                    )
-                )
-            })
-        builder2.setNegativeButton(
-            context.getString(R.string.debug_cancel)
-        ) { dialog, which -> dialog.cancel() }
-        builder2.show()
-    })
-    builder.setNegativeButton(
-        context.getString(R.string.debug_cancel)
-    ) { dialog, which -> dialog.cancel() }
-    builder.show()
+                        .setNegativeButton(context.getString(R.string.debug_cancel)) { d, _ -> d.dismiss() }
+                        .setPositiveButton(context.getString(R.string.debug_ok)) { d, _ ->
+                            d.dismiss()
+                            val request = if (immediate == 0L && extended == 0L) {
+                                InitiateBolusRequest(
+                                    InitiateBolusRequest.buildCargo(
+                                        0L, bolusId, bitmask, 0L, 0L, 0, 0, 0L, extended, durationSeconds, 0L
+                                    )
+                                )
+                            } else {
+                                InitiateBolusRequest(
+                                    immediate, bolusId, bitmask, 0L, 0L, 0, 0, 0L, extended, durationSeconds, 0L
+                                )
+                            }
+                            Timber.i(
+                                "bolusProbe: sending immediateMU=%s extendedMU=%s extendedSeconds=%s bitmask=%s bolusId=%s",
+                                immediate, extended, durationSeconds, bitmask, bolusId,
+                            )
+                            sendMessage(
+                                MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE,
+                                PumpMessageSerializer.toBytes(request),
+                            )
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.debug_bolus_probe_sent),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                            dialog.dismiss()
+                        }
+                        .show()
+                }
+            }
+        }
+    }
+    dialog.show()
 }
 
 fun triggerCancelBolusRequestDialog(

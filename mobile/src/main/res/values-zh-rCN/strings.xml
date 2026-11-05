@@ -357,6 +357,26 @@
     <string name="debug_enter_number_of_units_in_integer">输入整数形式的数值：1000 = 1 单位，100 = 0.1 单位，10 = 0.01 单位。最小值为 50（0.05 单位）</string>
     <string name="debug_confirm_bolus">确认执行大剂量！！</string>
     <string name="debug_enter_bolus_id_from_bolus_permission">输入 BolusPermissionRequest 中的大剂量 ID。此操作将实际执行大剂量输注。输入空值可取消。</string>
+    <string name="debug_bolus_probe_title">InitiateBolusRequest（调试探针）</string>
+    <string name="debug_bolus_probe_immediate">立即段（U）</string>
+    <string name="debug_bolus_probe_immediate_hint">0.05 表示 0.05 U</string>
+    <string name="debug_bolus_probe_extended">延后段（U）</string>
+    <string name="debug_bolus_probe_extended_hint">0.4 表示 0.4 U</string>
+    <string name="debug_bolus_probe_duration">延后时长（分钟）</string>
+    <string name="debug_bolus_probe_duration_hint">120 表示 2 小时</string>
+    <string name="debug_bolus_probe_bitmask">bolusTypeBitmask</string>
+    <string name="debug_bolus_probe_bolus_id">bolusId（来自 BolusPermissionResponse）</string>
+    <string name="debug_bolus_probe_bolus_id_hint">0 表示尚未获取</string>
+    <string name="debug_bolus_probe_warning">仅调试使用，走生产大剂量通道。默认 0/0/0，总量硬顶 25 U。首次建议先 0 剂量确认泵是否接受。</string>
+    <string name="debug_bolus_probe_confirm_title">确认调试大剂量</string>
+    <string name="debug_bolus_probe_confirm_message">立即 %1$s U + 延后 %2$s U / %3$d 分钟 / bitmask %4$d\n此操作走生产签名大剂量通道，仅调试使用。</string>
+    <string name="debug_bolus_probe_reject_negative">剂量必须是非负数字。</string>
+    <string name="debug_bolus_probe_reject_total">总量超过 %1$d mU（25 U），已拒绝发送。</string>
+    <string name="debug_bolus_probe_reject_duration">时长必须是非负整数分钟。</string>
+    <string name="debug_bolus_probe_reject_minimum">pumpx2 要求立即段 ≥ 0.05 U，或立即+延后 ≥ 0.40 U（仅 0/0/0 干跑例外）。</string>
+    <string name="debug_bolus_probe_reject_extended">延后段不为 0 但时长为 0，已拒绝发送。</string>
+    <string name="debug_bolus_probe_reject_bolus_id">bolusId 必须大于 0。请先发送 BolusPermissionRequest 取得 bolusId 再填。</string>
+    <string name="debug_bolus_probe_sent">已通过生产大剂量通道发送。请观察 InitiateBolusResponse，随后发送 44 与 46 对照 bolusId。</string>
     <string name="debug_enter_bolus_id_this_can_be">输入大剂量 ID（可从 currentStatus.LastBolusStatusV2 获取）</string>
     <string name="debug_enter_bolus_id_can_be_recv_from_in_prog">输入大剂量 ID（可从正在进行的大剂量获取）</string>
     <string name="debug_no_usable_constructor_found_for">未找到 %1$s 可用的构造函数</string>

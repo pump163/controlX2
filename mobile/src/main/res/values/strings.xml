@@ -363,6 +363,26 @@
     <string name="debug_enter_number_of_units_in_integer">Enter the number of units in INTEGER FORM: 1000 = 1 unit, 100 = 0.1 unit, 10 = 0.01 unit. Minimum value is 50 (0.05 unit)</string>
     <string name="debug_confirm_bolus">CONFIRM BOLUS!!</string>
     <string name="debug_enter_bolus_id_from_bolus_permission">Enter the bolus ID from BolusPermissionRequest. THIS WILL ACTUALLY DELIVER THE BOLUS. Enter a blank value to cancel.</string>
+    <string name="debug_bolus_probe_title">InitiateBolusRequest (debug probe)</string>
+    <string name="debug_bolus_probe_immediate">Immediate amount (U)</string>
+    <string name="debug_bolus_probe_immediate_hint">0.05 = 0.05 U</string>
+    <string name="debug_bolus_probe_extended">Extended amount (U)</string>
+    <string name="debug_bolus_probe_extended_hint">0.4 = 0.4 U</string>
+    <string name="debug_bolus_probe_duration">Extended duration (minutes)</string>
+    <string name="debug_bolus_probe_duration_hint">120 = 2 hours</string>
+    <string name="debug_bolus_probe_bitmask">bolusTypeBitmask</string>
+    <string name="debug_bolus_probe_bolus_id">bolusId (from BolusPermissionResponse)</string>
+    <string name="debug_bolus_probe_bolus_id_hint">0 means not obtained yet</string>
+    <string name="debug_bolus_probe_warning">Debug use only via the production bolus channel. Default 0/0/0. Total capped at 25 U. Confirm the pump accepts 0 before trying any dose.</string>
+    <string name="debug_bolus_probe_confirm_title">Confirm debug bolus</string>
+    <string name="debug_bolus_probe_confirm_message">Immediate %1$s U + extended %2$s U / %3$d min / bitmask %4$d\nThis uses the production signed bolus channel. Debug use only.</string>
+    <string name="debug_bolus_probe_reject_negative">Amounts must be non-negative numbers.</string>
+    <string name="debug_bolus_probe_reject_total">Total exceeds %1$d mU (25 U). Refusing to send.</string>
+    <string name="debug_bolus_probe_reject_duration">Duration must be a non-negative whole number of minutes.</string>
+    <string name="debug_bolus_probe_reject_minimum">pumpx2 requires immediate ≥ 0.05 U, or immediate + extended ≥ 0.40 U (only the 0/0/0 dry run is exempt).</string>
+    <string name="debug_bolus_probe_reject_extended">Extended amount is set but duration is 0. Refusing to send.</string>
+    <string name="debug_bolus_probe_reject_bolus_id">bolusId must be &gt; 0. Request BolusPermissionRequest first, then enter its bolusId.</string>
+    <string name="debug_bolus_probe_sent">Sent via the production bolus channel. Watch InitiateBolusResponse, then send 44 and 46 to compare bolusId.</string>
     <string name="debug_enter_bolus_id_this_can_be">Enter the bolus ID (this can be received from currentStatus.LastBolusStatusV2)</string>
     <string name="debug_enter_bolus_id_can_be_recv_from_in_prog">Enter the bolus ID (this can be received from the in-progress bolus)</string>
     <string name="debug_no_usable_constructor_found_for">No usable constructor found for %1$s</string>
