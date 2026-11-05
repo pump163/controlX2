@@ -65,6 +65,8 @@ import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.controlx2.shared.util.extractPumpSid
 import com.jwoglom.controlx2.pump.pairing.PairingCodeEntry
+import com.pumppan.controlx2.bolus.state.BolusControllerMode
+import com.pumppan.controlx2.bolus.state.BolusSessionController
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.PumpReadyState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -154,6 +156,9 @@ class MainActivity : ComponentActivity() {
     private val sheetLaunchRequestState = mutableStateOf<SheetLaunchRequest?>(null)
     private var btPermissionsRequestInFlight = false
     private var notificationPermissionRequestInFlight = false
+
+    // S1：v2 大剂量状态控制器（被动消费泵侧报文；开关为 LEGACY 时零消耗）
+    private val bolusSessionController = BolusSessionController(mode = { bolusControllerMode() })
 
     private val applicationScope = CoroutineScope(SupervisorJob())
     private val historyLogDb by lazy { HistoryLogDatabase.getDatabase(this) }
@@ -818,7 +823,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** S1：v2 控制器尚未启用；S2 接入设置开关后只改这一处。 */
+    private fun bolusControllerMode(): BolusControllerMode = BolusControllerMode.LEGACY
+
     private fun onPumpMessageReceived(message: Message, cached: Boolean) {
+        bolusSessionController.applyMessage(message)
         if (dataStore.debugPromptAwaitingResponses.value?.contains(message.javaClass.name) == true) {
             synchronized (dataStore.debugPromptAwaitingResponses) {
                 val awaiting = dataStore.debugPromptAwaitingResponses.value ?: mutableSetOf()
