@@ -535,6 +535,9 @@
     <string name="bolus_v2_step_result">Result</string>
     <string name="bolus_v2_next">Next</string>
     <string name="bolus_v2_done">Done</string>
+    <string name="bolus_v2_last_bolus">Last bolus %1$s U at %2$s</string>
+    <string name="bolus_v2_last_bolus_unknown_time">Last bolus %1$s U at an unknown time</string>
+    <string name="bolus_v2_last_bolus_none">No previous bolus record</string>
     <string name="dashboard_cancel">Cancel</string>
     <string name="comm_last_conn_pump_mess_timestamp_relative">Last connected: %1$s</string>
     <string name="comm_last_up_timestamp_relative">Last updated: %1$s</string>

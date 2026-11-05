@@ -63,6 +63,8 @@ fun BolusFlowScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
+        // 四步流程每一屏顶部都保留同一行提醒，进入即有上下文。
+        LastBolusReminder(modifier = Modifier.padding(bottom = 8.dp))
         Text(
             text = stringResource(R.string.bolus_v2_step_of, flow.step.ordinal + 1, BolusFlowStep.values().size),
             style = MaterialTheme.typography.labelMedium,

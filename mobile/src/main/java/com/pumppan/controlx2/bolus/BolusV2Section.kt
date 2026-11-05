@@ -41,6 +41,8 @@ fun BolusV2Section(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            // 一进大剂量页就能看到上次大剂量；静态提示，不弹窗、不拦截。
+            LastBolusReminder(modifier = Modifier.padding(bottom = 8.dp))
             Text(
                 text = stringResource(R.string.dashboard_bolus),
                 style = MaterialTheme.typography.headlineSmall,

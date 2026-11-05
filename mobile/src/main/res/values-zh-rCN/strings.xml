@@ -529,6 +529,9 @@
     <string name="bolus_v2_step_result">结局</string>
     <string name="bolus_v2_next">下一步</string>
     <string name="bolus_v2_done">完成</string>
+    <string name="bolus_v2_last_bolus">最后一次 %1$s U 大剂量于 %2$s</string>
+    <string name="bolus_v2_last_bolus_unknown_time">最后一次 %1$s U 大剂量，时间未知</string>
+    <string name="bolus_v2_last_bolus_none">暂无上次大剂量记录</string>
     <string name="dashboard_cancel">取消</string>
     <string name="comm_last_conn_pump_mess_timestamp_relative">上次连接：%1$s</string>
     <string name="comm_last_up_timestamp_relative">上次更新：%1$s</string>
