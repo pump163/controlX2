@@ -118,8 +118,6 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetRes
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
 import java.time.temporal.ChronoUnit
