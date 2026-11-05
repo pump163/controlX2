@@ -475,10 +475,6 @@ fun ProfileActions(
                     }
                 }
                 item {
-                    Line("\n")
-                }
-
-                item {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
