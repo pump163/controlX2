@@ -1,19 +1,15 @@
 package com.pumppan.controlx2.bolus
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,11 +25,14 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.R
 import com.pumppan.controlx2.bolus.preset.BolusPreset
 import com.pumppan.controlx2.bolus.preset.BolusPresetSpec
+import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusLimits
-import java.util.Locale
 
-/** 编辑一条预设：改名 + 改数值；不做任何输注状态判断。 */
+/**
+ * 编辑一条预设：改名 + 直接改**绝对值**（立即段 / 延后段 / 时长分钟）。
+ * 预设只存绝对值，百分比仅作派生显示，不参与入库；不改任何输注状态。
+ */
 @Composable
 fun BolusPresetEditDialog(
     preset: BolusPreset,
@@ -43,10 +42,11 @@ fun BolusPresetEditDialog(
     onSave: (String, BolusPresetSpec) -> Unit,
 ) {
     var name by remember(preset.id) { mutableStateOf(preset.name) }
-    var total by remember(preset.id) { mutableStateOf(preset.totalMilliunits) }
+    var immediate by remember(preset.id) { mutableStateOf(preset.immediateMilliunits) }
+    var later by remember(preset.id) { mutableStateOf(preset.laterMilliunits) }
+    var minutes by remember(preset.id) { mutableStateOf(preset.durationMinutes) }
     var extended by remember(preset.id) { mutableStateOf(preset.extendedEnabled) }
-    var percent by remember(preset.id) { mutableStateOf(preset.nowPercent) }
-    var seconds by remember(preset.id) { mutableStateOf(preset.extendedSeconds) }
+    val maxMinutes = limits.maxExtendedSeconds(null, null) / 60
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -60,117 +60,60 @@ fun BolusPresetEditDialog(
                     onCheckedChange = { enabled ->
                         extended = enabled
                         if (enabled) {
-                            if (seconds <= 0) seconds = BolusFlowState.DEFAULT_EXTENDED_SECONDS
-                            if (percent >= 100) percent = BolusFlowState.DEFAULT_PERCENT
+                            // 从普通切成延展：把现有剂量按 50/50 落到两段（百分比仅此处辅助）。
+                            if (later <= 0) {
+                                val half = BolusForm.quantizeToIncrement(
+                                    (immediate + 1) / 2,
+                                    limits.bolusIncrementMilliunits,
+                                )
+                                later = half
+                                immediate -= half
+                            }
+                            if (minutes <= 0) minutes = BolusFlowState.DEFAULT_EXTENDED_SECONDS / 60
+                        } else {
+                            // 关掉延展：延后段并回立即段，时长归零。
+                            immediate += later
+                            later = 0
+                            minutes = 0
                         }
                     },
                 )
                 Spacer(Modifier.height(8.dp))
                 DecimalField(
-                    label = stringResource(R.string.bolus_v2_field_total),
-                    value = total,
+                    label = stringResource(R.string.bolus_v2_field_immediate),
+                    value = immediate,
                     scale = 1000,
                     increment = limits.bolusIncrementMilliunits,
-                    onCommit = { total = it },
+                    onCommit = { immediate = it },
                 )
                 if (extended) {
                     Spacer(Modifier.height(8.dp))
-                    PercentField(value = percent, onCommit = { percent = it.coerceIn(0, 100) })
-                    Spacer(Modifier.height(8.dp))
                     DecimalField(
-                        label = stringResource(R.string.bolus_v2_field_duration, 8),
-                        value = seconds,
-                        scale = 3600,
-                        onCommit = { seconds = it },
+                        label = stringResource(R.string.bolus_v2_field_later),
+                        value = later,
+                        scale = 1000,
+                        increment = limits.bolusIncrementMilliunits,
+                        onCommit = { later = it },
                     )
-                }
-                if (errorText != null) {
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = errorText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
+                    MinutesField(
+                        label = stringResource(R.string.bolus_v2_field_duration, maxMinutes),
+                        seconds = minutes * 60,
+                        maxMinutes = maxMinutes,
+                        onCommit = { minutes = it / 60 },
                     )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(name, specOf(total, extended, percent, seconds)) }) {
-                Text(stringResource(R.string.setup_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dashboard_cancel))
-            }
-        },
-    )
-}
-
-/** 确认页「保存为预设」：可改名，选择新建或覆盖已有条目。 */
-@Composable
-fun BolusSavePresetDialog(
-    presets: List<BolusPreset>,
-    initialName: String,
-    initialSpec: BolusPresetSpec,
-    limits: BolusLimits,
-    errorText: String?,
-    onDismiss: () -> Unit,
-    onSaveNew: (String, BolusPresetSpec) -> Unit,
-    onOverwrite: (Long, String, BolusPresetSpec) -> Unit,
-) {
-    var name by remember { mutableStateOf(initialName) }
-    var overwrite by remember { mutableStateOf(false) }
-    var overwriteId by remember { mutableStateOf(presets.firstOrNull()?.id) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.bolus_v2_preset_save_as)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                PresetNameField(name = name, onNameChange = { name = it })
-                Spacer(Modifier.height(6.dp))
-                PresetSpecSummary(initialSpec, limits)
-
-                Spacer(Modifier.height(12.dp))
-                ModeRow(
-                    selected = !overwrite,
-                    label = stringResource(R.string.bolus_v2_preset_mode_new),
-                    onClick = { overwrite = false },
-                )
-                ModeRow(
-                    selected = overwrite,
-                    label = stringResource(R.string.bolus_v2_preset_mode_overwrite),
-                    enabled = presets.isNotEmpty(),
-                    onClick = { if (presets.isNotEmpty()) overwrite = true },
-                )
-                if (overwrite) {
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        text = stringResource(R.string.bolus_v2_preset_select),
-                        style = MaterialTheme.typography.labelMedium,
+                        text = stringResource(
+                            R.string.bolus_v2_split_summary,
+                            formatDose(immediate, limits.bolusIncrementMilliunits),
+                            formatDose(later, limits.bolusIncrementMilliunits),
+                            BolusForm.percentOf(immediate, immediate + later),
+                            100 - BolusForm.percentOf(immediate, immediate + later),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Column(Modifier.heightIn(max = 180.dp).verticalScroll(rememberScrollState())) {
-                        presets.forEach { preset ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { overwriteId = preset.id }
-                                    .padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                RadioButton(
-                                    selected = overwriteId == preset.id,
-                                    onClick = { overwriteId = preset.id },
-                                )
-                                Text(
-                                    text = preset.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-                    }
                 }
                 if (errorText != null) {
                     Spacer(Modifier.height(8.dp))
@@ -185,10 +128,15 @@ fun BolusSavePresetDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val target = if (overwrite) overwriteId else null
-                    if (target != null) onOverwrite(target, name, initialSpec) else onSaveNew(name, initialSpec)
-                },
-                enabled = !overwrite || overwriteId != null,
+                    onSave(
+                        name,
+                        BolusPresetSpec(
+                            immediateMilliunits = immediate.coerceAtLeast(0),
+                            laterMilliunits = if (extended) later.coerceAtLeast(0) else 0,
+                            durationMinutes = if (extended) minutes.coerceAtLeast(0) else 0,
+                        ),
+                    )
+                }
             ) {
                 Text(stringResource(R.string.setup_save))
             }
@@ -212,29 +160,6 @@ private fun PresetNameField(name: String, onNameChange: (String) -> Unit) {
     )
 }
 
-/** 保存对话框里的只读摘要：要存的数值就是确认页这份草稿。 */
-@Composable
-private fun PresetSpecSummary(spec: BolusPresetSpec, limits: BolusLimits) {
-    val dose = formatDose(spec.totalMilliunits, limits.bolusIncrementMilliunits)
-    val mode = stringResource(
-        if (spec.extendedEnabled) R.string.bolus_v2_mode_extended else R.string.bolus_v2_mode_standard,
-    )
-    val detail = if (spec.extendedEnabled) {
-        val hours = stringResource(
-            R.string.bolus_v2_duration_value,
-            String.format(Locale.US, "%.1f", spec.extendedSeconds / 3600.0),
-        )
-        " · ${spec.nowPercent}:${100 - spec.nowPercent} · $hours"
-    } else {
-        ""
-    }
-    Text(
-        text = "$dose U · $mode$detail",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
 @Composable
 private fun ExtendedSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
@@ -250,38 +175,3 @@ private fun ExtendedSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit)
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
-
-@Composable
-private fun ModeRow(
-    selected: Boolean,
-    label: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(selected = selected, onClick = onClick, enabled = enabled)
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (enabled) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-private fun specOf(
-    totalMilliunits: Int,
-    extendedEnabled: Boolean,
-    nowPercent: Int,
-    extendedSeconds: Int,
-): BolusPresetSpec = BolusPresetSpec(
-    totalMilliunits = totalMilliunits,
-    extendedEnabled = extendedEnabled,
-    nowPercent = if (extendedEnabled) nowPercent.coerceIn(0, 100) else 100,
-    extendedSeconds = if (extendedEnabled) extendedSeconds else 0,
-)

@@ -1,7 +1,8 @@
 package com.pumppan.controlx2.bolus
 
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +22,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,11 +33,11 @@ import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.util.SendType
-import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
-import com.pumppan.controlx2.bolus.preset.BolusPreset
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
 import com.pumppan.controlx2.bolus.preset.BolusPresetDatabase
 import com.pumppan.controlx2.bolus.preset.BolusPresetSaveResult
 import com.pumppan.controlx2.bolus.preset.BolusPresetSpec
@@ -52,62 +53,89 @@ import com.pumppan.controlx2.bolus.state.BolusFlowStep
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.BolusShape
-import com.pumppan.controlx2.bolus.state.BolusSource
 import com.pumppan.controlx2.bolus.state.BolusValidationError
-import com.pumppan.controlx2.bolus.state.PumpCapabilities
+import com.pumppan.controlx2.bolus.state.CiqVersion
+import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * 四步输入页：入口选择 → 剂量与形状 → 校验与确认 → 结局。
+ * 三步输入页（原「入口选择」步已移到标签栏）：剂量与形状 → 校验与确认 → 结局。
  * 发送走 [BolusSender]（S6）：发送前二次校验能力 → `-94` 取 bolusId →
  * 生产通道 `TO_SERVER_BOLUS_REQUEST_PHONE`（BolusManager 内完成 HMAC 与确认）。
- * 草稿用 rememberSaveable + BolusFlowState.Saver：旋转恢复；返回上一格时模型值保留。
+ *
+ * 草稿由上层（[BolusV2Section]）以**全局唯一一份**持有并通过 [state] 传入：
+ * 本组件不自己保存草稿，切标签不会产生第二份。
+ * 底部按钮固定在页面尾部（[BolusBottomBar]），不随内容滚动，键盘弹出时不遮挡。
  */
 @Composable
 fun BolusFlowScreen(
-    innerPadding: PaddingValues,
+    state: BolusFlowState,
+    limits: BolusLimits,
+    profile: PumpCapabilityProfile,
+    onStateChange: (BolusFlowState) -> Unit,
     onExit: () -> Unit,
     sendMessage: (String, ByteArray) -> Unit,
     sendPumpCommands: (SendType, List<Message>) -> Unit,
 ) {
-    var flow by rememberSaveable(stateSaver = BolusFlowState.Saver) { mutableStateOf(BolusFlowState()) }
-    // CIQ 状态暂无 UI 可读来源，按 fail-closed 取 null（时长上限 2h）。
+    // 发送协程里要读「当前」相位：state 是形参，改用 rememberUpdatedState 防捕获旧值。
+    val latestState by rememberUpdatedState(state)
+    // CIQ 开关状态暂无独立数据源；版本另从 ControlIQInfo 响应取（见下）。
     val ciqEnabled: Boolean? = null
-    // 型号决定输注步进：X2/Mobi 按 50，未知型号按默认 25（见 BolusLimits.incrementFor）。
     val dataStore = LocalDataStore.current
-    val deviceName by dataStore.setupDeviceName.observeAsState()
-    val model = remember(deviceName) { determinePumpModel(deviceName.orEmpty()) }
-    val limits = remember(model) { BolusLimits.forModel(model) }
-    // 能力闸门唯一来源：发送前二次校验也查它（不依赖按钮置灰）。
-    val profile = remember(model) { PumpCapabilities.forModel(model) }
-    val errors = if (flow.step == BolusFlowStep.SHAPE) {
-        flow.validationErrors(ciqEnabled, limits)
+    // Control-IQ 版本信号：V2（Control-IQ+ 1.5）→ 8h；V1（1.0）→ 2h；
+    // 拿不到响应 → null（保守按 2h，不猜 8h）。
+    val ciqInfo by dataStore.controlIQInfoResponse.observeAsState()
+    val ciqVersion = remember(ciqInfo) {
+        when (ciqInfo) {
+            is ControlIQInfoV2Response -> CiqVersion.V2
+            is ControlIQInfoV1Response -> CiqVersion.V1
+            else -> null
+        }
+    }
+    val errors = if (state.step == BolusFlowStep.SHAPE) {
+        state.validationErrors(ciqEnabled, limits, ciqVersion)
     } else {
         emptyList()
     }
+    // §7.5：泵的 Max Bolus 设置只做提示不硬拦；取不到响应时不做任何提示。
+    val maxBolusSettings by dataStore.globalMaxBolusSettingsResponse.observeAsState()
+    val maxBolusMilliunits = maxBolusSettings?.maxBolus
+    val overMaxBolus = state.step == BolusFlowStep.CONFIRM &&
+        maxBolusMilliunits != null && state.totalMilliunits > maxBolusMilliunits
 
-    // 预设：纯本地 Room 库（独立文件），不读写任何泵数据。
+    // 第 2 页「+」：把当前输入值存为预设（追加末尾、自动命名）。
     val context = LocalContext.current
-    val store = remember {
-        BolusPresetStore(BolusPresetDatabase.getDatabase(context).bolusPresetDao())
+    val presetStore = remember(limits) {
+        BolusPresetStore(
+            BolusPresetDatabase.getDatabase(context, limits.bolusIncrementMilliunits).bolusPresetDao()
+        )
     }
     val scope = rememberCoroutineScope()
-    var presets by remember { mutableStateOf<List<BolusPreset>>(emptyList()) }
-    var editingPreset by remember { mutableStateOf<BolusPreset?>(null) }
-    var showSaveDialog by remember { mutableStateOf(false) }
-    var presetError by remember { mutableStateOf<BolusPresetSaveResult?>(null) }
-    var justSaved by remember { mutableStateOf(false) }
-    var draftName by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(store) { presets = store.list() }
 
     // S6 发送：pendingPlan 非空 → 发 -94 取 bolusId → 生产通道发送 -98。
     var pendingPlan by remember { mutableStateOf<BolusSendPlan?>(null) }
     var sendErrors by remember { mutableStateOf<List<BolusValidationError>>(emptyList()) }
     var sendFailureRes by remember { mutableStateOf<Int?>(null) }
     val sendErrorText: String? =
-        sendErrors.firstOrNull()?.let { errorText(it, ciqEnabled) }
+        sendErrors.firstOrNull()?.let { errorText(it, ciqEnabled, ciqVersion, limits) }
             ?: sendFailureRes?.let { stringResource(it) }
+
+    // 发送前二次校验：即使按钮被绕过，也必须在 BolusSender 里再查一次能力。
+    val deliver: () -> Unit = {
+        when (val prep = BolusSender.prepare(state.draft(), ciqEnabled, limits, profile, ciqVersion)) {
+            is BolusPrepareResult.Blocked -> {
+                sendFailureRes = null
+                sendErrors = prep.errors
+            }
+
+            is BolusPrepareResult.Ready -> {
+                sendErrors = emptyList()
+                sendFailureRes = null
+                pendingPlan = prep.plan
+            }
+        }
+    }
 
     LaunchedEffect(pendingPlan) {
         val plan = pendingPlan ?: return@LaunchedEffect
@@ -125,7 +153,7 @@ fun BolusFlowScreen(
             }
         }
         // 用户已返回则放弃发送，不留下悬挂的 -94。
-        if (flow.step != BolusFlowStep.CONFIRM) {
+        if (latestState.step != BolusFlowStep.CONFIRM) {
             pendingPlan = null
             return@LaunchedEffect
         }
@@ -143,212 +171,146 @@ fun BolusFlowScreen(
                     // 未验证型号的延展：只写本地取证日志（不上传）。
                     BolusEvidenceLog.arm(plan, permission.bolusId, bytes.size)
                     sendMessage(MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE, bytes)
-                    flow = flow.copy(step = BolusFlowStep.RESULT)
+                    onStateChange(latestState.copy(step = BolusFlowStep.RESULT))
                 }
             }
         }
         pendingPlan = null
     }
 
-    val presetErrorText: String? = when (presetError) {
-        null -> null
-        is BolusPresetSaveResult.Saved -> null
-        BolusPresetSaveResult.EmptyName -> stringResource(R.string.bolus_v2_preset_error_empty_name)
-        BolusPresetSaveResult.DuplicateName -> stringResource(R.string.bolus_v2_preset_error_duplicate)
-        BolusPresetSaveResult.LimitReached -> stringResource(R.string.bolus_v2_preset_error_limit)
-        BolusPresetSaveResult.NotFound -> stringResource(R.string.bolus_v2_preset_error_missing)
-    }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
-        // 四步流程每一屏顶部都保留同一行提醒，进入即有上下文。
-        LastBolusReminder(modifier = Modifier.padding(bottom = 8.dp))
-        Text(
-            text = stringResource(R.string.bolus_v2_step_of, flow.step.ordinal + 1, BolusFlowStep.values().size),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(stepTitle(flow.step)),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(12.dp))
-
-        when (flow.step) {
-            BolusFlowStep.ENTRY -> BolusEntryPanel(
-                presets = presets,
-                limits = limits,
-                onSelect = { source: BolusSource ->
-                    draftName = ""
-                    justSaved = false
-                    flow = flow.selectSource(source)
-                },
-                onPresetSelect = { preset ->
-                    // 只预填成草稿初值；本次输注可任意改，不自动回写预设。
-                    draftName = preset.name
-                    justSaved = false
-                    flow = preset.prefilledState(limits)
-                },
-                onPresetEdit = { preset ->
-                    presetError = null
-                    editingPreset = preset
-                },
-                onPresetDelete = { preset ->
-                    scope.launch {
-                        store.delete(preset.id)
-                        presets = store.list()
-                    }
-                },
-                onPresetMove = { preset, direction ->
-                    scope.launch { presets = store.move(preset.id, direction) }
-                },
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            // 输入/确认/结局每一屏顶部都保留同一行提醒（确认页是最后一次拦人的位置）。
+            LastBolusReminder(
+                modifier = Modifier.padding(bottom = 8.dp),
             )
-
-            BolusFlowStep.SHAPE -> BolusShapePanel(
-                state = flow,
-                errors = errors,
-                ciqEnabled = ciqEnabled,
-                limits = limits,
-                onChange = { flow = it },
+            Text(
+                text = stringResource(R.string.bolus_v2_step_of, state.step.ordinal + 1, BolusFlowStep.values().size),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
-            BolusFlowStep.CONFIRM -> BolusConfirmPanel(
-                state = flow,
-                limits = limits,
-                justSaved = justSaved,
-                experimental = flow.shape != BolusShape.NORMAL && !limits.remoteExtendedBolusVerified,
-                errorText = sendErrorText,
-                deliverEnabled = pendingPlan == null,
-                onDeliver = {
-                    // 发送前二次校验：即使按钮被绕过，也必须在 BolusSender 里再查一次能力。
-                    when (val prep = BolusSender.prepare(flow.draft(), ciqEnabled, limits, profile)) {
-                        is BolusPrepareResult.Blocked -> {
-                            sendFailureRes = null
-                            sendErrors = prep.errors
-                        }
-
-                        is BolusPrepareResult.Ready -> {
-                            sendErrors = emptyList()
-                            sendFailureRes = null
-                            pendingPlan = prep.plan
-                        }
-                    }
-                },
-                onSaveAsPreset = {
-                    presetError = null
-                    showSaveDialog = true
-                },
-                onBack = { flow = flow.back() },
+            Text(
+                text = stringResource(stepTitle(state.step)),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
             )
+            Spacer(Modifier.height(12.dp))
 
-            BolusFlowStep.RESULT -> BolusResultPanel()
-        }
+            when (state.step) {
+                BolusFlowStep.SHAPE -> BolusShapePanel(
+                    state = state,
+                    errors = errors,
+                    ciqEnabled = ciqEnabled,
+                    limits = limits,
+                    ciqVersion = ciqVersion,
+                    onChange = onStateChange,
+                )
 
-        Spacer(Modifier.height(16.dp))
+                BolusFlowStep.CONFIRM -> BolusConfirmPanel(
+                    state = state,
+                    limits = limits,
+                    experimental = state.shape != BolusShape.NORMAL && !limits.remoteExtendedBolusVerified,
+                    overMaxBolus = overMaxBolus,
+                    maxBolusText = maxBolusMilliunits?.let { formatDose(it, limits.bolusIncrementMilliunits) },
+                    errorText = sendErrorText,
+                    deliverEnabled = pendingPlan == null,
+                    onDeliver = deliver,
+                    onBack = { onStateChange(state.back()) },
+                    showActions = false,
+                )
 
-        if (flow.step == BolusFlowStep.ENTRY) {
-            OutlinedButton(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.profile_back))
-            }
-        } else if (flow.step == BolusFlowStep.SHAPE) {
-            Row(Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = { flow = flow.back() }, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.profile_back))
-                }
-                Button(
-                    onClick = {
-                        when (val result = flow.advance(ciqEnabled, limits)) {
-                            is BolusAdvance.Ok -> flow = result.state
-                            is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                ) {
-                    Text(stringResource(R.string.bolus_v2_next))
-                }
-            }
-        } else if (flow.step == BolusFlowStep.RESULT) {
-            Button(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.bolus_v2_done))
+                BolusFlowStep.RESULT -> BolusResultPanel()
             }
         }
-    }
 
-    editingPreset?.let { preset ->
-        BolusPresetEditDialog(
-            preset = preset,
-            limits = limits,
-            errorText = presetErrorText,
-            onDismiss = {
-                presetError = null
-                editingPreset = null
-            },
-            onSave = { name, spec ->
-                scope.launch {
-                    when (val result = store.overwrite(preset.id, name, spec)) {
-                        is BolusPresetSaveResult.Saved -> {
-                            presets = store.list()
-                            presetError = null
-                            editingPreset = null
+        when (state.step) {
+            BolusFlowStep.SHAPE -> {
+                // §4.6.7：三枚按钮（返回 / 「+」存预设 / 下一步），固定在页面底部。
+                val canSavePreset =
+                    errors.isEmpty() && state.advance(ciqEnabled, limits, ciqVersion) is BolusAdvance.Ok
+                BolusBottomBar {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onExit, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.profile_back))
                         }
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    // 「+」：最小空号 1..12 自动命名，不覆盖已有预设。
+                                    when (presetStore.saveNewAuto(BolusPresetSpec.from(state))) {
+                                        is BolusPresetSaveResult.Saved -> Toast.makeText(
+                                            context,
+                                            R.string.bolus_v2_preset_added,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
 
-                        else -> presetError = result
+                                        else -> Toast.makeText(
+                                            context,
+                                            R.string.bolus_v2_preset_full,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                }
+                            },
+                            enabled = canSavePreset,
+                        ) {
+                            Text("+", style = MaterialTheme.typography.titleLarge)
+                        }
+                        Button(
+                            onClick = {
+                                when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
+                                    is BolusAdvance.Ok -> onStateChange(result.state)
+                                    is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.bolus_v2_next))
+                        }
+                    }
+                    if (!canSavePreset) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.bolus_v2_preset_add_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-            },
-        )
-    }
+            }
 
-    if (showSaveDialog) {
-        BolusSavePresetDialog(
-            presets = presets,
-            initialName = draftName,
-            initialSpec = BolusPresetSpec.from(flow),
-            limits = limits,
-            errorText = presetErrorText,
-            onDismiss = {
-                presetError = null
-                showSaveDialog = false
-            },
-            onSaveNew = { name, spec ->
-                scope.launch {
-                    when (val result = store.saveNew(name, spec)) {
-                        is BolusPresetSaveResult.Saved -> {
-                            presets = store.list()
-                            presetError = null
-                            showSaveDialog = false
-                            justSaved = true
-                            draftName = result.preset.name
-                        }
-
-                        else -> presetError = result
+            BolusFlowStep.CONFIRM -> BolusBottomBar {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { onStateChange(state.back()) }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.profile_back))
+                    }
+                    Button(
+                        onClick = deliver,
+                        enabled = pendingPlan == null,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            stringResource(
+                                if (overMaxBolus) R.string.bolus_v2_confirm_continue else R.string.bolus_v2_send,
+                            ),
+                        )
                     }
                 }
-            },
-            onOverwrite = { id, name, spec ->
-                scope.launch {
-                    when (val result = store.overwrite(id, name, spec)) {
-                        is BolusPresetSaveResult.Saved -> {
-                            presets = store.list()
-                            presetError = null
-                            showSaveDialog = false
-                            justSaved = true
-                            draftName = result.preset.name
-                        }
+            }
 
-                        else -> presetError = result
-                    }
+            BolusFlowStep.RESULT -> BolusBottomBar {
+                Button(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.bolus_v2_done))
                 }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -376,6 +338,9 @@ private fun BolusResultPanel() {
     val text = when {
         outcome is BolusOutcome.Success -> stringResource(R.string.bolus_v2_outcome_success)
         outcome is BolusOutcome.Cancelled -> stringResource(R.string.bolus_v2_outcome_cancelled)
+        // 取消失败与发起失败分开：前者要给出「未停止」的断管指引，不能只说「泵拒绝」。
+        failed != null && failed.fromCancel ->
+            stringResource(R.string.bolus_v2_outcome_failed_cancel)
         failed != null -> failureText(failed.error)
         connected == false -> stringResource(R.string.bolus_v2_outcome_failed_disconnected)
         timedOut -> stringResource(R.string.bolus_v2_outcome_failed_timeout)
@@ -387,6 +352,15 @@ private fun BolusResultPanel() {
         else -> MaterialTheme.colorScheme.onSurface
     }
     Text(text, style = MaterialTheme.typography.bodyLarge, color = color)
+    // 取消失败：明确给出断管指引，不能只显示状态码。
+    if (failed?.fromCancel == true) {
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.bolus_v2_cancel_not_stopped),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
     if (failed?.statusId != null) {
         Spacer(Modifier.height(4.dp))
         Text(
@@ -401,8 +375,9 @@ private fun BolusResultPanel() {
     }
 }
 
+/** S7 四类结局文案（NACK / ALARM / TIMEOUT / DISCONNECTED），结局页与完成页共用。 */
 @Composable
-private fun failureText(error: BolusError): String = when (error) {
+internal fun failureText(error: BolusError): String = when (error) {
     BolusError.NACK -> stringResource(R.string.bolus_v2_outcome_failed_nack)
     BolusError.ALARM -> stringResource(R.string.bolus_v2_outcome_failed_alarm)
     BolusError.TIMEOUT -> stringResource(R.string.bolus_v2_outcome_failed_timeout)
@@ -411,7 +386,6 @@ private fun failureText(error: BolusError): String = when (error) {
 }
 
 private fun stepTitle(step: BolusFlowStep): Int = when (step) {
-    BolusFlowStep.ENTRY -> R.string.bolus_v2_step_entry
     BolusFlowStep.SHAPE -> R.string.bolus_v2_step_shape
     BolusFlowStep.CONFIRM -> R.string.bolus_v2_step_confirm
     BolusFlowStep.RESULT -> R.string.bolus_v2_step_result

@@ -31,6 +31,7 @@ import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusValidationError
+import com.pumppan.controlx2.bolus.state.CiqVersion
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -46,6 +47,7 @@ fun BolusShapePanel(
     errors: List<BolusValidationError>,
     ciqEnabled: Boolean?,
     limits: BolusLimits = BolusLimits.Default,
+    ciqVersion: CiqVersion? = null,
     onChange: (BolusFlowState) -> Unit,
 ) {
     Column(Modifier) {
@@ -100,6 +102,8 @@ fun BolusShapePanel(
                     R.string.bolus_v2_split_summary,
                     formatDose(state.nowMilliunits, limits.bolusIncrementMilliunits),
                     formatDose(state.laterMilliunits, limits.bolusIncrementMilliunits),
+                    BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits),
+                    100 - BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits),
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -121,7 +125,7 @@ fun BolusShapePanel(
 
             Spacer(Modifier.height(8.dp))
             // UI 以分钟输入（15–480、1 分钟步进、默认 2 小时）；wire 仍传秒。
-            val maxMinutes = limits.maxExtendedSeconds(ciqEnabled) / 60
+            val maxMinutes = limits.maxExtendedSeconds(ciqEnabled, ciqVersion) / 60
             MinutesField(
                 label = stringResource(R.string.bolus_v2_field_duration, maxMinutes),
                 seconds = state.extendedSeconds,
@@ -142,7 +146,12 @@ fun BolusShapePanel(
 }
 
 @Composable
-internal fun errorText(error: BolusValidationError, ciqEnabled: Boolean?): String = when (error) {
+internal fun errorText(
+    error: BolusValidationError,
+    ciqEnabled: Boolean?,
+    ciqVersion: CiqVersion? = null,
+    limits: BolusLimits = BolusLimits.Default,
+): String = when (error) {
     BolusValidationError.NEGATIVE_AMOUNT -> stringResource(R.string.bolus_v2_error_negative)
     BolusValidationError.AMOUNT_BELOW_MINIMUM -> stringResource(R.string.bolus_v2_error_below_min)
     BolusValidationError.AMOUNT_ABOVE_MAXIMUM -> stringResource(R.string.bolus_v2_error_above_max)
@@ -155,7 +164,10 @@ internal fun errorText(error: BolusValidationError, ciqEnabled: Boolean?): Strin
     BolusValidationError.INCREMENT_NOT_ALIGNED -> stringResource(R.string.bolus_v2_error_increment)
     BolusValidationError.LATER_REQUIRED -> stringResource(R.string.bolus_v2_error_later_required)
     BolusValidationError.DURATION_OUT_OF_RANGE ->
-        stringResource(R.string.bolus_v2_error_duration, BolusForm.maxExtendedSeconds(ciqEnabled) / 60)
+        stringResource(
+            R.string.bolus_v2_error_duration,
+            BolusForm.maxExtendedSeconds(ciqEnabled, limits, ciqVersion) / 60,
+        )
     BolusValidationError.SHAPE_INCONSISTENT -> stringResource(R.string.bolus_v2_error_shape)
 }
 
@@ -205,7 +217,7 @@ internal fun DecimalField(
  * 模型仍存秒（协议字段是秒）。输入过程不打断，失焦后对齐到规范化分钟值。
  */
 @Composable
-private fun MinutesField(
+internal fun MinutesField(
     label: String,
     seconds: Int,
     maxMinutes: Int,

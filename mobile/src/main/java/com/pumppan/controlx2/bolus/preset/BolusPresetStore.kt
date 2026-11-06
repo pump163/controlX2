@@ -33,10 +33,9 @@ class BolusPresetStore(private val dao: BolusPresetDao) {
             BolusPresetEntity(
                 name = trimmed,
                 sortOrder = nextOrder,
-                totalMilliunits = spec.totalMilliunits,
-                extendedEnabled = spec.extendedEnabled,
-                nowPercent = spec.nowPercent,
-                extendedSeconds = spec.extendedSeconds,
+                immediateMilliunits = spec.immediateMilliunits,
+                laterMilliunits = spec.laterMilliunits,
+                durationMinutes = spec.durationMinutes,
             )
         )
         return BolusPresetSaveResult.Saved(
@@ -44,10 +43,58 @@ class BolusPresetStore(private val dao: BolusPresetDao) {
                 id = id,
                 name = trimmed,
                 sortOrder = nextOrder,
-                totalMilliunits = spec.totalMilliunits,
-                extendedEnabled = spec.extendedEnabled,
-                nowPercent = spec.nowPercent,
-                extendedSeconds = spec.extendedSeconds,
+                immediateMilliunits = spec.immediateMilliunits,
+                laterMilliunits = spec.laterMilliunits,
+                durationMinutes = spec.durationMinutes,
+            ),
+            isNew = true,
+        )
+    }
+
+    /**
+     * 「+」新建：按序号自动命名，取 `1..MAX_PRESETS` 中最小未被占用的整数。
+     * 不弹命名框、不覆盖任何条目；12 条已满时返回 [BolusPresetSaveResult.LimitReached]。
+     */
+    suspend fun saveNewAuto(spec: BolusPresetSpec): BolusPresetSaveResult {
+        val existing = list()
+        if (existing.size >= MAX_PRESETS) return BolusPresetSaveResult.LimitReached
+        val slot = nextFreeSlot(existing) ?: return BolusPresetSaveResult.LimitReached
+        return saveNew(slot.toString(), spec)
+    }
+
+    /**
+     * 「新建」：自动命名（同 [saveNewAuto]），插入到 [afterId] 条目**正后方**；
+     * [afterId] 为 null（未选中）或已不存在时追加到末尾。插入后序号重排成 0..N-1。
+     */
+    suspend fun saveNewAutoAfter(afterId: Long?, spec: BolusPresetSpec): BolusPresetSaveResult {
+        val existing = list()
+        if (existing.size >= MAX_PRESETS) return BolusPresetSaveResult.LimitReached
+        val slot = nextFreeSlot(existing) ?: return BolusPresetSaveResult.LimitReached
+
+        val index = insertionIndexAfter(existing, afterId)
+        // 先落到末尾再按目标顺序整体重排：避免与既有条目临时同号（排序会按 id 抖动）。
+        val id = dao.insert(
+            BolusPresetEntity(
+                name = slot.toString(),
+                sortOrder = existing.size,
+                immediateMilliunits = spec.immediateMilliunits,
+                laterMilliunits = spec.laterMilliunits,
+                durationMinutes = spec.durationMinutes,
+            )
+        )
+        val ordered = existing.take(index).map { it.id } + id + existing.drop(index).map { it.id }
+        val byId = dao.getAll().associateBy { it.id }
+        ordered.forEachIndexed { order, presetId ->
+            byId[presetId]?.let { entity -> if (entity.sortOrder != order) dao.update(entity.copy(sortOrder = order)) }
+        }
+        return BolusPresetSaveResult.Saved(
+            preset = BolusPreset(
+                id = id,
+                name = slot.toString(),
+                sortOrder = index,
+                immediateMilliunits = spec.immediateMilliunits,
+                laterMilliunits = spec.laterMilliunits,
+                durationMinutes = spec.durationMinutes,
             ),
             isNew = true,
         )
@@ -66,10 +113,9 @@ class BolusPresetStore(private val dao: BolusPresetDao) {
 
         val updated = current.copy(
             name = trimmed,
-            totalMilliunits = spec.totalMilliunits,
-            extendedEnabled = spec.extendedEnabled,
-            nowPercent = spec.nowPercent,
-            extendedSeconds = spec.extendedSeconds,
+            immediateMilliunits = spec.immediateMilliunits,
+            laterMilliunits = spec.laterMilliunits,
+            durationMinutes = spec.durationMinutes,
         )
         dao.update(updated.toEntity())
         return BolusPresetSaveResult.Saved(updated, isNew = false)
@@ -104,6 +150,19 @@ class BolusPresetStore(private val dao: BolusPresetDao) {
 
     companion object {
         const val MAX_PRESETS = 12
+
+        /** 插入位置：选中条目正后方；未选中 / 找不到则追加到末尾。 */
+        fun insertionIndexAfter(items: List<BolusPreset>, afterId: Long?): Int {
+            if (afterId == null) return items.size
+            val index = items.indexOfFirst { it.id == afterId }
+            return if (index < 0) items.size else index + 1
+        }
+
+        /** 自动命名槽位：`1..MAX_PRESETS` 中最小未被占用的整数。 */
+        fun nextFreeSlot(existing: List<BolusPreset>): Int? {
+            val used = existing.map { it.name.trim().lowercase() }.toSet()
+            return (1..MAX_PRESETS).firstOrNull { it.toString() !in used }
+        }
 
         /** 去首尾空格后比较，大小写不敏感；中文不受影响。 */
         fun isDuplicateName(

@@ -244,12 +244,13 @@ fun Dashboard(
                 }
 
                 // History Log Sync Progress
+                // 开关打开即常显：不传 replaceWithPaddingWhenComplete，避免同步完成后
+                // 组件因 isSynced 提前 return 导致进度条只在刷新瞬间闪现。
                 if (FeatureFlag.historyLogSyncBarVisibleState.value) {
                     historyLogViewModel?.let {
                         item {
                             HistoryLogSyncProgressBar(
-                                historyLogViewModel = it,
-                                replaceWithPaddingWhenComplete = true
+                                historyLogViewModel = it
                             )
                         }
                     }

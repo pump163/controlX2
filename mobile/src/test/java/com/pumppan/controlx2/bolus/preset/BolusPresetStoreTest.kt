@@ -35,7 +35,7 @@ private class FakeBolusPresetDao : BolusPresetDao {
 
 class BolusPresetStoreTest {
 
-    private val spec = BolusPresetSpec(totalMilliunits = 1000, extendedEnabled = false, nowPercent = 100, extendedSeconds = 0)
+    private val spec = BolusPresetSpec(immediateMilliunits = 1000, laterMilliunits = 0, durationMinutes = 0)
 
     @Test
     fun saveNew_thenOverwrite_thenDelete() = runBlocking {
@@ -49,12 +49,12 @@ class BolusPresetStoreTest {
         val updated = store.overwrite(
             created.preset.id,
             "早餐加量",
-            spec.copy(totalMilliunits = 1200, extendedEnabled = true, nowPercent = 70, extendedSeconds = 3600),
+            spec.copy(immediateMilliunits = 840, laterMilliunits = 360, durationMinutes = 60),
         ) as BolusPresetSaveResult.Saved
         assertEquals("早餐加量", updated.preset.name)
         assertEquals(1200, updated.preset.totalMilliunits)
         assertTrue(updated.preset.extendedEnabled)
-        assertEquals(70, updated.preset.nowPercent)
+        assertEquals(70, updated.preset.percent)
         assertEquals(3600, updated.preset.extendedSeconds)
 
         store.delete(created.preset.id)
@@ -129,5 +129,72 @@ class BolusPresetStoreTest {
         store.delete(store.list()[1].id)
         assertEquals(listOf(a.id, c.id), store.list().map { it.id })
         assertEquals(listOf(0, 1), store.list().map { it.sortOrder })
+    }
+
+    @Test
+    fun saveNewAutoAfter_insertsRightBehindSelectedAndRenumbers() = runBlocking {
+        val store = BolusPresetStore(FakeBolusPresetDao())
+        val a = (store.saveNew("A", spec) as BolusPresetSaveResult.Saved).preset
+        store.saveNew("B", spec)
+        store.saveNew("C", spec)
+
+        val inserted = store.saveNewAutoAfter(a.id, spec) as BolusPresetSaveResult.Saved
+        assertEquals("1", inserted.preset.name)
+        assertEquals(1, inserted.preset.sortOrder)
+        assertEquals(listOf("A", "1", "B", "C"), store.list().map { it.name })
+        assertEquals(listOf(0, 1, 2, 3), store.list().map { it.sortOrder })
+    }
+
+    @Test
+    fun saveNewAutoAfter_withoutSelectionAppendsToEnd() = runBlocking {
+        val store = BolusPresetStore(FakeBolusPresetDao())
+        store.saveNew("A", spec)
+        store.saveNew("B", spec)
+
+        val inserted = store.saveNewAutoAfter(null, spec) as BolusPresetSaveResult.Saved
+        assertEquals(listOf("A", "B", "1"), store.list().map { it.name })
+        assertEquals(2, inserted.preset.sortOrder)
+    }
+
+    @Test
+    fun saveNewAutoAfter_unknownIdAppendsToEnd() = runBlocking {
+        val store = BolusPresetStore(FakeBolusPresetDao())
+        store.saveNew("A", spec)
+
+        store.saveNewAutoAfter(99L, spec) as BolusPresetSaveResult.Saved
+        assertEquals(listOf("A", "1"), store.list().map { it.name })
+    }
+
+    @Test
+    fun saveNewAutoAfter_rejectsWhenFull() = runBlocking {
+        val store = BolusPresetStore(FakeBolusPresetDao())
+        repeat(BolusPresetStore.MAX_PRESETS) { index -> store.saveNew("P$index", spec) }
+        val anchor = store.list().first()
+
+        assertEquals(BolusPresetSaveResult.LimitReached, store.saveNewAutoAfter(anchor.id, spec))
+        assertEquals(BolusPresetStore.MAX_PRESETS, store.list().size)
+    }
+
+    @Test
+    fun saveNewAutoAfter_reusesSmallestFreeSlot() = runBlocking {
+        val store = BolusPresetStore(FakeBolusPresetDao())
+        store.saveNew("1", spec)
+        val three = (store.saveNew("3", spec) as BolusPresetSaveResult.Saved).preset
+        store.delete(store.list().first().id)
+
+        val inserted = store.saveNewAutoAfter(three.id, spec) as BolusPresetSaveResult.Saved
+        assertEquals("1", inserted.preset.name)
+    }
+
+    @Test
+    fun insertionIndexAfter_fallsBackToEnd() {
+        val items = listOf(
+            BolusPreset(1L, "A", 0, 1000, 0, 0),
+            BolusPreset(2L, "B", 1, 1000, 0, 0),
+        )
+        assertEquals(2, BolusPresetStore.insertionIndexAfter(items, null))
+        assertEquals(1, BolusPresetStore.insertionIndexAfter(items, 1L))
+        assertEquals(2, BolusPresetStore.insertionIndexAfter(items, 2L))
+        assertEquals(2, BolusPresetStore.insertionIndexAfter(items, 99L))
     }
 }

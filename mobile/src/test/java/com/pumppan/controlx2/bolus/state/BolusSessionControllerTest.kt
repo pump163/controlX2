@@ -135,7 +135,12 @@ class BolusSessionControllerTest {
 
         assertEquals(SessionPhase.FAILED, controller.session?.phase)
         assertEquals(
-            BolusOutcome.Failed(BolusError.NACK, statusId = 1, reasonId = 2),
+            BolusOutcome.Failed(
+                BolusError.NACK,
+                statusId = 1,
+                reasonId = 2,
+                fromCancel = true,
+            ),
             controller.outcome,
         )
     }

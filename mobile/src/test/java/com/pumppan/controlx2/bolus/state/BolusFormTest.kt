@@ -30,6 +30,30 @@ class BolusFormTest {
     }
 
     @Test
+    fun percentOf_isTheInverseSideOfSplit() {
+        // 绝对值 → 派生百分比（只显示用）。
+        assertEquals(100, BolusForm.percentOf(400, 400))
+        assertEquals(50, BolusForm.percentOf(200, 400))
+        assertEquals(70, BolusForm.percentOf(700, 1000))
+        assertEquals(100, BolusForm.percentOf(0, 0))
+        // 非整数比例就近取整。
+        assertEquals(33, BolusForm.percentOf(330, 1000))
+        assertEquals(67, BolusForm.percentOf(670, 1000))
+    }
+
+    @Test
+    fun percentRoundTrip_approximatesWithinIncrement() {
+        // 百分比 → 绝对值（步进量化）→ 派生百分比，允许一个步进带来的取整偏差。
+        for (total in listOf(1_000, 10_000)) {
+            for (percent in 0..100) {
+                val split = BolusForm.splitByPercent(total, percent)
+                val derived = BolusForm.percentOf(split.nowMilliunits, total)
+                assertTrue("percent=$percent derived=$derived", kotlin.math.abs(derived - percent) <= 3)
+            }
+        }
+    }
+
+    @Test
     fun splitByPercent_alwaysOnIncrementGrid() {
         val increment = BolusLimits.BOLUS_INCREMENT_MILLIUNITS
         for (total in listOf(50, 100, 400, 1_000, 24_975, 25_000)) {

@@ -9,8 +9,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -24,9 +26,11 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
 import com.pumppan.controlx2.bolus.state.CancelDecision
 import com.pumppan.controlx2.bolus.state.CancelRowState
+import com.pumppan.controlx2.bolus.state.CancelStatus
 import com.pumppan.controlx2.bolus.state.SessionPhase
 import com.pumppan.controlx2.ui.ActionRow
 import com.pumppan.controlx2.ui.NavigationRow
+import kotlinx.coroutines.delay
 
 /**
  * S3 动作表：取消行（五态判定）+「新的大剂量」入口。
@@ -45,6 +49,8 @@ fun BolusActionMenu(
     /** 二选一页的第二项文案；null 时用「新的大剂量」。 */
     newBolusTitle: String? = null,
     newBolusSubtitle: String? = null,
+    /** 取消行隐藏时（如等权限/等状态）的中性说明；null 时用「当前没有进行中的大剂量」。 */
+    hiddenText: String? = null,
 ) {
     val connected by LocalDataStore.current.pumpConnected.observeAsState()
     val coordinator = BolusRuntime.coordinator
@@ -52,9 +58,19 @@ fun BolusActionMenu(
     val session = coordinator?.sessionState?.value
     val isConnected = connected == true
     val rowState = coordinator?.holder?.cancelRowState(connected = isConnected) ?: CancelRowState.HIDDEN
+    // 取消三态需要时间推进（10s 窗口 / 5s 兜底），报文不来时靠本地 ticker 刷新。
+    var tick by remember { mutableStateOf(System.currentTimeMillis()) }
+    val cancelStatus = coordinator?.holder?.cancelStatus(tick) ?: CancelStatus.IDLE
+    LaunchedEffect(cancelStatus) {
+        if (cancelStatus == CancelStatus.SENDING) {
+            while (true) {
+                delay(CANCEL_TICK_MS)
+                tick = System.currentTimeMillis()
+            }
+        }
+    }
     var notice by rememberSaveable { mutableStateOf<String?>(null) }
-    val cancelSentText = stringResource(R.string.bolus_v2_cancel_sent)
-    val cancelThrottledText = stringResource(R.string.bolus_v2_cancel_not_stopped)
+    val cancelThrottledText = stringResource(R.string.bolus_v2_cancel_reason_throttled)
     val cancelDisconnectedText = stringResource(R.string.bolus_v2_cancel_reason_disconnected)
     val cancelNeedsIdText = stringResource(R.string.bolus_v2_cancel_reason_needs_id)
     val cancelReconcilingText = stringResource(R.string.bolus_v2_cancel_reason_reconciling)
@@ -71,7 +87,7 @@ fun BolusActionMenu(
 
     if (rowState == CancelRowState.HIDDEN) {
         Text(
-            text = stringResource(R.string.bolus_v2_status_idle),
+            text = hiddenText ?: stringResource(R.string.bolus_v2_status_idle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -89,12 +105,13 @@ fun BolusActionMenu(
         ActionRow(
             title = stringResource(R.string.bolus_v2_cancel_row),
             subtitle = subtitle,
-            readOnly = rowState != CancelRowState.READY,
+            // 取消中（10s 窗口内）不允许重复发 -96；5s 未停才回到可重试。
+            readOnly = rowState != CancelRowState.READY || cancelStatus == CancelStatus.SENDING,
             onClick = {
                 notice = when (val decision = coordinator?.holder?.requestCancel(connected = isConnected)) {
                     is CancelDecision.Send -> {
                         sendPumpCommands(SendType.BUST_CACHE, listOf(CancelBolusRequest(decision.bolusId)))
-                        cancelSentText
+                        null // 状态行由 cancelStatus 统一渲染，避免重复文案
                     }
 
                     CancelDecision.MissingBolusId -> cancelNeedsIdText
@@ -104,13 +121,24 @@ fun BolusActionMenu(
                     CancelDecision.NotActive, null -> cancelIdleText
                 }
             },
-            emphasized = rowState == CancelRowState.READY,
+            emphasized = rowState == CancelRowState.READY && cancelStatus != CancelStatus.SENDING,
         )
-        if (!notice.isNullOrBlank()) {
+        // 三态：取消中（10s 窗口）/ 已停止 / 未停止（5s 兜底 → Bolus Not Stopped 断管提示）。
+        val statusText = when (cancelStatus) {
+            CancelStatus.SENDING -> stringResource(R.string.bolus_v2_cancel_pending)
+            CancelStatus.FAILED -> stringResource(R.string.bolus_v2_cancel_not_stopped)
+            CancelStatus.CONFIRMED -> stringResource(R.string.bolus_v2_outcome_cancelled)
+            CancelStatus.IDLE -> notice
+        }
+        if (!statusText.isNullOrBlank()) {
             Text(
-                text = notice.orEmpty(),
+                text = statusText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
+                color = if (cancelStatus == CancelStatus.FAILED || notice != null) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
             )
         }
     }
@@ -134,3 +162,6 @@ fun BolusActionMenu(
         Text(stringResource(R.string.profile_back))
     }
 }
+
+/** 取消三态的时间推进：报文不来时每秒刷新一次，驱动 SENDING → FAILED。 */
+private const val CANCEL_TICK_MS = 1_000L

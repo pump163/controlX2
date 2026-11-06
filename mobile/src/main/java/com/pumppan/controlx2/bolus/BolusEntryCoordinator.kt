@@ -2,6 +2,7 @@ package com.pumppan.controlx2.bolus
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import android.content.Context
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
@@ -34,8 +35,21 @@ class BolusEntryCoordinator(
     private val scope: CoroutineScope,
     private val mode: () -> BolusControllerMode = { BolusControllerMode.LEGACY },
     private val tickMillis: Long = RECONCILE_TICK_MILLIS,
+    /** 非空时启用大剂量 v2 常驻进度通知（预览/单测传 null 即可关闭）。 */
+    private val notificationContext: Context? = null,
 ) {
     private val controller = BolusSessionController(mode = mode)
+
+    private val notifications: BolusNotifications? = notificationContext?.let { ctx ->
+        BolusNotifications(
+            context = ctx,
+            enabled = { mode() == BolusControllerMode.V2 },
+            session = { controller.session },
+            outcome = { controller.outcome },
+            connected = { isPumpConnected() },
+            cancelStatus = { controller.holder.cancelStatus() },
+        )
+    }
 
     private val reconciler = BolusReconciler(
         sender = object : BolusStatusRequestSender {
@@ -86,10 +100,12 @@ class BolusEntryCoordinator(
         reconciler.onMessage(message)
         sessionState.value = controller.session
         outcomeState.value = controller.outcome
+        notifications?.onMessage(message)
     }
 
     /** 连上/重连时做一次只读对账；对账进行中由内部 500ms ticker 推进。 */
     fun onPumpConnected() {
+        notifications?.refresh()
         if (mode() != BolusControllerMode.V2) return
         if (reconciler.running) return
         if (!isPumpConnected()) return
@@ -101,6 +117,21 @@ class BolusEntryCoordinator(
                 sessionState.value = controller.session
             }
         }
+    }
+
+    /** 断连：通知正文改为「已断开」，停止每秒刷新。 */
+    fun onPumpDisconnected() {
+        notifications?.refresh()
+    }
+
+    /** 通知上的取消动作发出 `-96` 后刷新为「取消中」。 */
+    fun refreshNotifications() {
+        notifications?.refresh()
+    }
+
+    /** 用户关闭终结态通知，避免同一 bolusId 再次弹出。 */
+    fun dismissNotification() {
+        notifications?.dismiss()
     }
 
     private companion object {

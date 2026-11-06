@@ -2,6 +2,7 @@ package com.pumppan.controlx2.bolus
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -42,27 +42,31 @@ import com.jwoglom.controlx2.R
 import com.pumppan.controlx2.bolus.preset.BolusPreset
 import com.pumppan.controlx2.bolus.preset.BolusPresetMove
 import com.pumppan.controlx2.bolus.state.BolusLimits
-import java.util.Locale
 
 /**
  * 第 1 步的预设区：最多 12 条、双列紧凑格，全部条目一次渲染完（列表自身不滚动）。
- * 点格 = 预填进入第 2 步；长按或右侧菜单 = 编辑 / 上移 / 下移 / 删除。
+ * 短按 = 选中（单选，再点取消）；长按或右侧菜单 = 修改 / 上移 / 下移。
+ * 删除与应用由页面底部的三按钮触发。
  */
 @Composable
 fun BolusPresetSection(
     presets: List<BolusPreset>,
     limits: BolusLimits,
+    selectedId: Long?,
     onSelect: (BolusPreset) -> Unit,
     onEdit: (BolusPreset) -> Unit,
-    onDelete: (BolusPreset) -> Unit,
     onMove: (BolusPreset, BolusPresetMove) -> Unit,
+    /** 「预设」独立标签里标签栏已给出页名，不再重复渲染小标题。 */
+    showHeader: Boolean = true,
 ) {
-    Text(
-        text = stringResource(R.string.bolus_v2_entry_preset),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
-    Spacer(Modifier.height(4.dp))
+    if (showHeader) {
+        Text(
+            text = stringResource(R.string.bolus_v2_entry_preset),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(4.dp))
+    }
     if (presets.isEmpty()) {
         Text(
             text = stringResource(R.string.bolus_v2_entry_preset_sub),
@@ -84,11 +88,11 @@ fun BolusPresetSection(
                     index = index,
                     preset = preset,
                     limits = limits,
+                    selected = preset.id == selectedId,
                     canMoveUp = index > 0,
                     canMoveDown = index < presets.lastIndex,
                     onSelect = onSelect,
                     onEdit = onEdit,
-                    onDelete = onDelete,
                     onMove = onMove,
                     modifier = Modifier.weight(1f),
                 )
@@ -104,23 +108,35 @@ private fun PresetCell(
     index: Int,
     preset: BolusPreset,
     limits: BolusLimits,
+    selected: Boolean,
     canMoveUp: Boolean,
     canMoveDown: Boolean,
     onSelect: (BolusPreset) -> Unit,
     onEdit: (BolusPreset) -> Unit,
-    onDelete: (BolusPreset) -> Unit,
     onMove: (BolusPreset, BolusPresetMove) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(8.dp)
+    val background = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    }
+    val border = if (selected) {
+        Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape)
+    } else {
+        Modifier
+    }
 
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 44.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                .clip(shape)
+                .background(background)
+                .then(border)
                 .combinedClickable(
                     onClick = { onSelect(preset) },
                     onLongClick = { menuOpen = true },
@@ -186,28 +202,24 @@ private fun PresetCell(
                     onMove(preset, BolusPresetMove.DOWN)
                 },
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.bolus_v2_preset_delete)) },
-                leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) },
-                onClick = {
-                    menuOpen = false
-                    onDelete(preset)
-                },
-            )
         }
     }
 }
 
-/** 格内摘要：普通只显示剂量；扩展显示「剂量 · 立即:延后 · 时长」。 */
+/** 格内摘要：未设置数值的空条目直接标「未设置」；延展以绝对值为主、百分比只做次要显示。 */
 @Composable
 private fun presetMeta(preset: BolusPreset, limits: BolusLimits): String {
-    val dose = formatDose(preset.totalMilliunits, limits.bolusIncrementMilliunits)
-    if (!preset.extendedEnabled) return "$dose U"
-    val hours = stringResource(
-        R.string.bolus_v2_duration_value,
-        String.format(Locale.US, "%.1f", preset.extendedSeconds / 3600.0),
+    if (!preset.isConfigured) return stringResource(R.string.bolus_v2_preset_unset)
+    val increment = limits.bolusIncrementMilliunits
+    if (!preset.extendedEnabled) return "${formatDose(preset.totalMilliunits, increment)} U"
+    return stringResource(
+        R.string.bolus_v2_preset_summary_split,
+        formatDose(preset.immediateMilliunits, increment),
+        formatDose(preset.laterMilliunits, increment),
+        preset.percent,
+        100 - preset.percent,
+        preset.durationMinutes,
     )
-    return "$dose U · ${preset.nowPercent}:${100 - preset.nowPercent} · $hours"
 }
 
 private const val PRESET_COLUMNS = 2

@@ -224,6 +224,7 @@ class BolusSessionController(
                 error = BolusError.NACK,
                 statusId = message.statusId,
                 reasonId = message.reasonId,
+                fromCancel = true,
             )
         }
     }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -18,44 +20,49 @@ import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
-/** 第 3 步：校验与确认。Mobi 延展未真机验证时显示实验提示；发送失败原因就地展示。 */
+import com.pumppan.controlx2.bolus.state.BolusSource
+
+/**
+ * 第 3 步：校验与确认。
+ * - 来源类型行按 [BolusSource] 显示（手工 / 预设 / 碳水计算）。
+ * - 延展相关行只在能力允许远程延展时渲染（X2 不显示这些行）。
+ * - 超过泵的 Max Bolus 设置时**不硬拦**，只给「返回 / 继续」两个选择。
+ */
 @Composable
 fun BolusConfirmPanel(
     state: BolusFlowState,
     limits: BolusLimits = BolusLimits.Default,
-    justSaved: Boolean = false,
-    /** 该型号的延展能力未验证（Mobi）：显示「实验特性」说明。 */
     experimental: Boolean = false,
-    /** 发送前二次校验 / 权限失败的文案；仅在确认页展示，不禁止按钮（按钮内仍会二次校验）。 */
+    overMaxBolus: Boolean = false,
+    maxBolusText: String? = null,
     errorText: String? = null,
-    /** -94 取权限进行中时置灰，避免重复发送。 */
     deliverEnabled: Boolean = true,
     onDeliver: () -> Unit,
-    onSaveAsPreset: () -> Unit,
     onBack: () -> Unit,
+    /** false = 按钮由页面底部的共享底栏渲染（固定在屏幕底部，键盘弹出时不遮挡）。 */
+    showActions: Boolean = true,
 ) {
     Column(Modifier) {
-        SummaryRow(stringResource(R.string.bolus_v2_confirm_mode), modeName(state.shape != BolusShape.NORMAL))
+        SummaryRow(stringResource(R.string.bolus_v2_confirm_mode), modeName(state))
+        SummaryRow(stringResource(R.string.bolus_v2_confirm_source), sourceName(state.source))
         SummaryRow(stringResource(R.string.bolus_v2_confirm_total), units(state.totalMilliunits, limits))
-        if (state.shape != BolusShape.NORMAL) {
-            SummaryRow(stringResource(R.string.bolus_v2_confirm_immediate), units(state.nowMilliunits, limits))
+
+        if (limits.remoteExtendedBolusStart && state.shape != BolusShape.NORMAL) {
+            // 绝对值为主；百分比只作次要信息（派生显示，不进协议）。
+            val percent = BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits)
+            SummaryRow(
+                stringResource(R.string.bolus_v2_confirm_immediate),
+                stringResource(R.string.bolus_v2_units_with_percent, units(state.nowMilliunits, limits), percent),
+            )
             SummaryRow(stringResource(R.string.bolus_v2_confirm_extended), units(state.laterMilliunits, limits))
             SummaryRow(
                 stringResource(R.string.bolus_v2_confirm_duration),
                 stringResource(R.string.bolus_v2_duration_value, state.extendedSeconds / 60),
             )
-            if (BolusForm.isImmediatePartUnverified(state.draft(), limits)) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.bolus_v2_confirm_now_small_warning),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
         }
 
         if (experimental) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.bolus_v2_extended_experimental),
                 style = MaterialTheme.typography.bodySmall,
@@ -63,45 +70,70 @@ fun BolusConfirmPanel(
             )
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        if (errorText != null) {
+        if (!errorText.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = errorText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        if (overMaxBolus) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(
+                    R.string.bolus_v2_confirm_over_max,
+                    maxBolusText ?: units(limits.maxBolusMilliunits, limits),
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
-            Spacer(Modifier.height(6.dp))
-        }
-        Button(onClick = onDeliver, enabled = deliverEnabled, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.bolus_v2_send))
         }
 
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(onClick = onSaveAsPreset, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.bolus_v2_preset_save_as))
-        }
-        if (justSaved) {
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = stringResource(R.string.bolus_v2_preset_saved),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.profile_back))
+        Spacer(Modifier.height(16.dp))
+        if (showActions) {
+            Row(Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.profile_back))
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onDeliver,
+                    enabled = deliverEnabled,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        stringResource(
+                            if (overMaxBolus) R.string.bolus_v2_confirm_continue else R.string.bolus_v2_send,
+                        ),
+                    )
+                }
+            }
         }
     }
 }
 
+/** 模式：立即 / 延长 / 双波。 */
+@Composable
+private fun modeName(state: BolusFlowState): String = when (state.shape) {
+    BolusShape.NORMAL -> stringResource(R.string.bolus_v2_mode_standard)
+    BolusShape.SQUARE -> stringResource(R.string.bolus_v2_mode_extended)
+    BolusShape.DUAL -> stringResource(R.string.bolus_v2_mode_dual)
+}
+
+/** 剂量显示：与输入页一致的步进格式 + U 单位。 */
+@Composable
+private fun units(milliunits: Int, limits: BolusLimits): String =
+    stringResource(
+        R.string.bolus_v2_units_value,
+        formatDose(milliunits, limits.bolusIncrementMilliunits),
+    )
+
+/** 标签 / 值两列摘要行。 */
 @Composable
 private fun SummaryRow(label: String, value: String) {
-    Row(Modifier.fillMaxWidth()) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
@@ -114,13 +146,12 @@ private fun SummaryRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
-    Spacer(Modifier.height(4.dp))
 }
 
+/** 来源类型：手工 / 预设 / 碳水计算。 */
 @Composable
-private fun modeName(extended: Boolean): String = stringResource(
-    if (extended) R.string.bolus_v2_mode_extended else R.string.bolus_v2_mode_standard,
-)
-
-private fun units(milliunits: Int, limits: BolusLimits): String =
-    "${formatDose(milliunits, limits.bolusIncrementMilliunits)} U"
+private fun sourceName(source: BolusSource): String = when (source) {
+    BolusSource.MANUAL -> stringResource(R.string.bolus_v2_source_manual)
+    BolusSource.PRESET -> stringResource(R.string.bolus_v2_source_preset)
+    BolusSource.CALC -> stringResource(R.string.bolus_v2_source_calc)
+}

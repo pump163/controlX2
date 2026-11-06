@@ -6,6 +6,7 @@ import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusValidationError
+import com.pumppan.controlx2.bolus.state.CiqVersion
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 
 /**
@@ -60,12 +61,13 @@ object BolusSender {
         ciqEnabled: Boolean?,
         limits: BolusLimits,
         profile: PumpCapabilityProfile,
+        ciqVersion: CiqVersion? = null,
     ): BolusPrepareResult {
         // 发送前的二次能力校验：延展形状必须有配置授权。
         if (draft.shape != BolusShape.NORMAL && !profile.remoteExtendedBolusStart) {
             return BolusPrepareResult.Blocked(listOf(BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED))
         }
-        val errors = BolusForm.validate(draft, ciqEnabled, limits)
+        val errors = BolusForm.validate(draft, ciqEnabled, limits, ciqVersion)
         if (errors.isNotEmpty()) return BolusPrepareResult.Blocked(errors)
 
         val extended = draft.shape != BolusShape.NORMAL

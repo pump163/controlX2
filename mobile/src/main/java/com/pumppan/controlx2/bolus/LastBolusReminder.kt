@@ -8,21 +8,28 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
 import com.jwoglom.controlx2.shared.util.shortTime
+import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.pumppan.controlx2.bolus.state.BolusLimits
-import com.pumppan.controlx2.bolus.state.LastBolusSummary
-import com.pumppan.controlx2.bolus.state.summarizeLastBolus
+import com.pumppan.controlx2.bolus.state.BolusReminderStrength
+import com.pumppan.controlx2.bolus.state.buildBolusReminder
+import java.time.Instant
 
 /**
- * 大剂量页顶部一行「上次大剂量」静态提醒。
+ * 「上次大剂量」提示行：**纯文字，不可点击、不带箭头、不跳转**。
  *
- * 数据同源首页「上次大剂量」窗口：`DataStore.lastBolusStatusResponse`（48 号响应），
- * 由 MainActivity 在收到 `LastBolusStatusAbstractResponse` 时写入；这里不新造数据通路、不发请求。
- * 只提示，不弹窗、不做重复剂量拦截。
+ * 数据同源首页「上次大剂量」窗口：`DataStore.lastBolusStatusResponse`（48/49 号响应）的
+ * `deliveredVolume` + `timestamp`，由 `MainActivity` 收到报文时写入；这里不新造通路、不发请求。
+ * 该值是泵实际执行过的交付量，**包含被取消或只打了部分的量**（那也是真实发生过的事）。
+ *
+ * 剂量缺失或已超过 24 小时 → 整行不渲染，不留占位。
+ * 展示强度：2 小时内警示色 + 加粗；2–24 小时弱化；更早不显示。
+ * 时间用绝对时间（`pumpTimeToLocalTz` + `shortTime`），不做相对时间刷新。
  */
 @Composable
 fun LastBolusReminder(modifier: Modifier = Modifier) {
@@ -31,34 +38,44 @@ fun LastBolusReminder(modifier: Modifier = Modifier) {
     val deviceName by dataStore.setupDeviceName.observeAsState()
     val model = remember(deviceName) { determinePumpModel(deviceName.orEmpty()) }
     val increment = remember(model) { BolusLimits.forModel(model).bolusIncrementMilliunits }
-    val summary = remember(response) {
-        summarizeLastBolus(response?.deliveredVolume, response?.timestamp)
+
+    val volume = response?.deliveredVolume ?: 0L
+    if (volume <= 0L) return
+
+    val dose = formatDose(volume.toInt(), increment)
+    val timestamp = response?.timestamp ?: 0L
+    if (timestamp <= 0L) {
+        // 有剂量但时间戳缺失：只显示剂量，不显示 1970。
+        Text(
+            text = stringResource(R.string.bolus_v2_last_bolus_unknown_time, dose),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
+        return
     }
 
-    val text = when (summary) {
-        LastBolusSummary.None -> stringResource(R.string.bolus_v2_last_bolus_none)
+    val localTimestamp = pumpTimeToLocalTz(Dates.fromJan12008EpochSecondsToDate(timestamp))
+    val reminder = remember(localTimestamp, volume) {
+        buildBolusReminder(volume, localTimestamp, Instant.now())
+    } ?: return
 
-        is LastBolusSummary.UnknownTime -> stringResource(
-            R.string.bolus_v2_last_bolus_unknown_time,
-            formatDose(summary.doseMilliunits.toInt(), increment),
-        )
-
-        is LastBolusSummary.Record -> stringResource(
-            R.string.bolus_v2_last_bolus,
-            formatDose(summary.doseMilliunits.toInt(), increment),
-            shortTime(
-                pumpTimeToLocalTz(summary.timestamp),
-                stringResource(R.string.units_m),
-                stringResource(R.string.units_am),
-                stringResource(R.string.units_pm),
-            ),
-        )
-    }
+    val timeText = shortTime(
+        localTimestamp,
+        stringResource(R.string.units_m),
+        stringResource(R.string.units_am),
+        stringResource(R.string.units_pm),
+    )
+    val strong = reminder.strength == BolusReminderStrength.STRONG
 
     Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        text = stringResource(R.string.bolus_v2_last_bolus, dose, timeText),
+        style = if (strong) {
+            MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+        } else {
+            MaterialTheme.typography.bodySmall
+        },
+        color = if (strong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
 }

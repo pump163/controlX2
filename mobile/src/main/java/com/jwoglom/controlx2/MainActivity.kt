@@ -168,6 +168,7 @@ class MainActivity : ComponentActivity() {
         isPumpConnected = { dataStore.pumpConnected.value == true },
         scope = applicationScope,
         mode = { BolusRouter.controllerMode(this) },
+        notificationContext = this,
     ).also { BolusRuntime.coordinator = it }
     private val historyLogDb by lazy { HistoryLogDatabase.getDatabase(this) }
     private val historyLogRepo by lazy { HistoryLogRepo(historyLogDb.historyLogDao()) }
@@ -776,6 +777,7 @@ class MainActivity : ComponentActivity() {
                 dataStore.pumpSetupStage.value = dataStore.pumpSetupStage.value?.nextStage(PumpSetupStage.PUMPX2_PUMP_DISCONNECTED)
                 dataStore.setupDeviceModel.value = String(data)
                 dataStore.pumpConnected.value = false
+                bolusEntry.onPumpDisconnected()
             }
 
             // on implicit disconnection (i.e. we didn't get the explicit disconnect)
@@ -784,6 +786,7 @@ class MainActivity : ComponentActivity() {
                     Timber.i("tracked implicit disconnection (before pump-disconnected)")
                     dataStore.pumpSetupStage.value = dataStore.pumpSetupStage.value?.nextStage(PumpSetupStage.PUMPX2_PUMP_DISCONNECTED)
                     dataStore.pumpConnected.value = false
+                    bolusEntry.onPumpDisconnected()
                 }
             }
 

@@ -208,11 +208,18 @@ fun Landing(
         Timber.i("Landing: handling sheet launch request id=%s target=%s", request.requestId, request.target)
         when (val target = request.target) {
             is SheetLaunchTarget.Bolus -> {
-                selectedItem = LandingSection.DASHBOARD
-                bolusPrefill = target.prefill
-                tempRatePrefill = null
-                bottomScaffoldState = BottomScaffoldState.BOLUS_WINDOW
-                expandSheetWithRetry()
+                if (BolusRouter.showNavEntry(bolusUiMode)) {
+                    // 通知点击进入：落到同一个导航页，不新建第二份草稿。
+                    selectedItem = LandingSection.BOLUS_V2
+                    bolusPrefill = null
+                    tempRatePrefill = null
+                } else {
+                    selectedItem = LandingSection.DASHBOARD
+                    bolusPrefill = target.prefill
+                    tempRatePrefill = null
+                    bottomScaffoldState = BottomScaffoldState.BOLUS_WINDOW
+                    expandSheetWithRetry()
+                }
             }
             is SheetLaunchTarget.TempRate -> {
                 selectedItem = LandingSection.ACTIONS

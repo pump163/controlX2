@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.jwoglom.controlx2.pump.confirmBolusRequestBaseNotification
 import com.jwoglom.controlx2.messaging.MessageBusFactory
@@ -19,6 +20,12 @@ import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces
+import com.pumppan.controlx2.bolus.BolusNotifications
+import com.pumppan.controlx2.bolus.BolusRouter
+import com.pumppan.controlx2.bolus.BolusRuntime
+import com.pumppan.controlx2.bolus.state.BolusControllerMode
+import com.pumppan.controlx2.bolus.state.CancelDecision
+import com.pumppan.controlx2.bolus.state.SessionPhase
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
@@ -42,6 +49,18 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
         val action = intent?.getStringExtra("action")
         val notifId = getCurrentNotificationId(context)
         when (action) {
+            ACTION_V2_CANCEL -> {
+                // 与 App 内取消走同一条链路：BolusSessionHolder.requestCancel（节流 + 断连 fail-fast）。
+                cancelV2Bolus(context, messageBus)
+            }
+            ACTION_V2_DISMISS -> {
+                val coordinator = BolusRuntime.coordinator
+                if (coordinator != null) {
+                    coordinator.dismissNotification()
+                } else {
+                    cancelNotif(context, BolusNotifications.NOTIFICATION_ID)
+                }
+            }
             "INITIATE" -> {
                 CommService.cancelAutoApproveStatic(context)
                 validateBolusInfo(intent, context)?.let { intentRequest ->
@@ -135,6 +154,14 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                             return
                         }
 
+                        if (BolusRouter.controllerMode(context) == BolusControllerMode.V2) {
+                            // v2：进度通知由 BolusNotifications 按会话相位统一渲染，旧链让位，避免双通知。
+                            cancelNotif(context, notifId)
+                            resetBolusPrefs(context)
+                            Timber.i("v2 bolus: legacy progress notification replaced by BolusNotifications")
+                            return
+                        }
+
                         val cancelIntent =
                             Intent(context, BolusNotificationBroadcastReceiver::class.java).apply {
                                 putExtra("action", "CANCEL")
@@ -167,6 +194,10 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 }
             }
             "STATUS_UPDATE" -> {
+                if (BolusRouter.controllerMode(context) == BolusControllerMode.V2) {
+                    // v2 模式不消费旧进度通知；会话由 BolusEntryCoordinator 统一处理。
+                    return
+                }
                 getCurrentBolusToConfirm(context)?.let { initiateRequest ->
                     getCurrentBolusStatusResponse(intent)?.let { statusResponse ->
                         // Only update notification if status has changed
@@ -305,6 +336,48 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                 resetBolusPrefs(context)
             }
         }
+    }
+
+    /**
+     * v2 通知的取消按钮：先走 `BolusSessionHolder.requestCancel`（3 次节流 / 断连 fail-fast / 禁盲取消），
+     * 只有返回 [CancelDecision.Send] 才真正发出 `-96`，与 App 内取消共用同一条决策链路。
+     */
+    private fun cancelV2Bolus(context: Context, messageBus: MessageBus) {
+        val coordinator = BolusRuntime.coordinator
+        val holder = coordinator?.holder
+        if (coordinator == null || holder == null) {
+            toast(context, R.string.bolus_v2_status_idle)
+            return
+        }
+
+        // 取消中（等待泵确认停止）不允许重复点击。
+        if (holder.session?.phase == SessionPhase.CANCELLING) {
+            coordinator.refreshNotifications()
+            return
+        }
+
+        val connected = dataStore.pumpConnected.value == true
+        when (val decision = holder.requestCancel(connected = connected)) {
+            is CancelDecision.Send -> {
+                sendMessageWhenReady(
+                    messageBus,
+                    MessagePaths.TO_PUMP_COMMAND,
+                    PumpMessageSerializer.toBytes(CancelBolusRequest(decision.bolusId)),
+                    context,
+                )
+            }
+
+            CancelDecision.Disconnected -> toast(context, R.string.bolus_v2_cancel_reason_disconnected)
+            CancelDecision.MissingBolusId -> toast(context, R.string.bolus_v2_cancel_reason_needs_id)
+            CancelDecision.Reconciling -> toast(context, R.string.bolus_v2_cancel_reason_reconciling)
+            CancelDecision.Throttled -> toast(context, R.string.bolus_v2_cancel_reason_throttled)
+            CancelDecision.NotActive -> toast(context, R.string.bolus_v2_status_idle)
+        }
+        coordinator.refreshNotifications()
+    }
+
+    private fun toast(context: Context, messageRes: Int) {
+        Toast.makeText(context, messageRes, Toast.LENGTH_SHORT).show()
     }
 
     private fun validateBolusInfo(intent: Intent?, context: Context?): InitiateBolusRequest? {
@@ -554,4 +627,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
         }, totalDelay)
     }
 
+    companion object {
+        const val ACTION_V2_CANCEL = "BOLUS_V2_CANCEL"
+        const val ACTION_V2_DISMISS = "BOLUS_V2_DISMISS"
+    }
 }

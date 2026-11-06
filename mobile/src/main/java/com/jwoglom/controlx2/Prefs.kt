@@ -271,6 +271,18 @@ class Prefs(val context: Context) {
     }
 
     /**
+     * 大剂量 v2 页面的高度档位：`full` / `half`（见 BolusPanelMode）。
+     * 首次进入读不到 → null，由调用方回默认全屏。
+     */
+    fun bolusPanelMode(): String? {
+        return prefs().getString("bolus-panel-mode", null)
+    }
+
+    fun setBolusPanelMode(mode: String) {
+        prefs().edit().putString("bolus-panel-mode", mode).commit()
+    }
+
+    /**
      * Pump model name for Nightscout device identification
      */
     fun pumpModelName(): String? {

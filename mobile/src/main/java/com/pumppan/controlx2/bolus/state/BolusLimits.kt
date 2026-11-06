@@ -3,6 +3,12 @@ package com.pumppan.controlx2.bolus.state
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 
 /**
+ * Control-IQ 版本信号（来自 `ControlIQInfoV1Response` / `ControlIQInfoV2Response`）。
+ * 取不到时由调用方传 null，时长上限按 2h 保守处理，不猜 8h。
+ */
+enum class CiqVersion { V1, V2 }
+
+/**
  * 大剂量相关阈值的统一视图。数值实际来自 `assets/pump-capabilities.json`
  * （经 [PumpCapabilities] 加载），本文件的常量只作兜底与默认值。
  */
@@ -63,9 +69,17 @@ data class BolusLimits(
 
     val cancelAttemptWindowMillis: Long get() = cancelAttemptWindowSeconds * 1000L
 
-    /** CIQ 开启或状态未知时取 2h（fail-closed），明确关闭时才取 8h。 */
-    fun maxExtendedSeconds(ciqEnabled: Boolean?): Int =
-        if (ciqEnabled == false) maxExtendedSecondsNonCiq else maxExtendedSecondsCiq
+    /**
+     * 延展时长上限（秒），按 Control-IQ 版本分叉：
+     * - [CiqVersion.V1]（Control-IQ 1.0）→ 2h（7200s）；
+     * - [CiqVersion.V2]（Control-IQ+ 1.5）→ 8h（28800s）；
+     * - 版本取不到（null）→ **保守按 2h**；仅当明确知道「CIQ 关闭」时才允许 8h（沿用旧配置口径）。
+     */
+    fun maxExtendedSeconds(ciqEnabled: Boolean?, ciqVersion: CiqVersion? = null): Int = when (ciqVersion) {
+        CiqVersion.V1 -> maxExtendedSecondsCiq
+        CiqVersion.V2 -> maxExtendedSecondsNonCiq
+        null -> if (ciqEnabled == false) maxExtendedSecondsNonCiq else maxExtendedSecondsCiq
+    }
 
     companion object {
         const val MIN_BOLUS_MILLIUNITS = 50

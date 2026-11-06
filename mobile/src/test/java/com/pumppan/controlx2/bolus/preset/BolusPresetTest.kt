@@ -5,6 +5,8 @@ import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusSource
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BolusPresetTest {
@@ -15,20 +17,18 @@ class BolusPresetTest {
         id = 1L,
         name = "早餐",
         sortOrder = 0,
-        totalMilliunits = 1000,
-        extendedEnabled = false,
-        nowPercent = 100,
-        extendedSeconds = 0,
+        immediateMilliunits = 1000,
+        laterMilliunits = 0,
+        durationMinutes = 0,
     )
 
     private val extendedPreset = BolusPreset(
         id = 2L,
         name = "晚餐",
         sortOrder = 1,
-        totalMilliunits = 1000,
-        extendedEnabled = true,
-        nowPercent = 70,
-        extendedSeconds = 3600,
+        immediateMilliunits = 700,
+        laterMilliunits = 300,
+        durationMinutes = 60,
     )
 
     @Test
@@ -56,12 +56,43 @@ class BolusPresetTest {
     @Test
     fun specFromDraft_dropsExtendedFieldsForNormalShape() {
         val state = normalPreset.prefilledState(x2Limits)
-        assertEquals(BolusPresetSpec(1000, false, 100, 0), BolusPresetSpec.from(state))
+        assertEquals(BolusPresetSpec(1000, 0, 0), BolusPresetSpec.from(state))
     }
 
     @Test
     fun specFromDraft_keepsExtendedFields() {
         val state = extendedPreset.prefilledState(x2Limits)
         assertEquals(extendedPreset.spec(), BolusPresetSpec.from(state))
+    }
+
+    @Test
+    fun apply_jumpsStraightToConfirmWithSameValues() {
+        val state = extendedPreset.appliedState(x2Limits)
+        assertEquals(BolusFlowStep.CONFIRM, state.step)
+        assertEquals(BolusSource.PRESET, state.source)
+        assertEquals(1000, state.totalMilliunits)
+        assertEquals(700, state.nowMilliunits)
+        assertEquals(3600, state.extendedSeconds)
+    }
+
+    @Test
+    fun selection_isSingleChoiceAndTogglesOff() {
+        assertEquals(1L, toggleSelection(null, 1L))
+        assertEquals(2L, toggleSelection(1L, 2L))
+        assertEquals(null, toggleSelection(1L, 1L))
+    }
+
+    @Test
+    fun emptyPreset_isNotConfigured_andBlocksApply() {
+        val empty = BolusPreset(
+            id = 3L,
+            name = "3",
+            sortOrder = 2,
+            immediateMilliunits = 0,
+            laterMilliunits = 0,
+            durationMinutes = 0,
+        )
+        assertFalse(empty.isConfigured)
+        assertTrue(normalPreset.isConfigured)
     }
 }

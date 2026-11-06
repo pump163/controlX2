@@ -48,10 +48,20 @@ object BolusForm {
         return ((milliunits + increment / 2) / increment) * increment
     }
 
+    /**
+     * 由绝对值反推立即段占比（half-up 到整数，**只用于显示**，不参与校验/存储）。
+     * 与 [splitByPercent] 构成百分比 ↔ 绝对值的双向换算。
+     */
+    fun percentOf(nowMilliunits: Int, totalMilliunits: Int): Int {
+        if (totalMilliunits <= 0) return 100
+        return ((nowMilliunits.toLong() * 100 + totalMilliunits / 2) / totalMilliunits).toInt()
+    }
+
     fun validate(
         draft: BolusDraft,
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
+        ciqVersion: CiqVersion? = null,
     ): List<BolusValidationError> {
         val errors = mutableListOf<BolusValidationError>()
 
@@ -100,7 +110,7 @@ object BolusForm {
                 if (draft.laterMilliunits <= 0) {
                     errors += BolusValidationError.LATER_REQUIRED
                 }
-                val maxSeconds = limits.maxExtendedSeconds(ciqEnabled)
+                val maxSeconds = limits.maxExtendedSeconds(ciqEnabled, ciqVersion)
                 if (draft.extendedSeconds !in limits.minExtendedSeconds..maxSeconds) {
                     errors += BolusValidationError.DURATION_OUT_OF_RANGE
                 }
@@ -114,7 +124,8 @@ object BolusForm {
         draft: BolusDraft,
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
-    ): Boolean = validate(draft, ciqEnabled, limits).isEmpty()
+        ciqVersion: CiqVersion? = null,
+    ): Boolean = validate(draft, ciqEnabled, limits, ciqVersion).isEmpty()
 
     /** 立即段非零但低于该型号下限：X2 为 <0.05U；Mobi 下限 0，恒为 false。 */
     fun isImmediatePartUnverified(
@@ -125,5 +136,6 @@ object BolusForm {
     fun maxExtendedSeconds(
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
-    ): Int = limits.maxExtendedSeconds(ciqEnabled)
+        ciqVersion: CiqVersion? = null,
+    ): Int = limits.maxExtendedSeconds(ciqEnabled, ciqVersion)
 }

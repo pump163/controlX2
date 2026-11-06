@@ -10,17 +10,18 @@ import org.junit.Test
 class BolusFlowStateTest {
 
     @Test
-    fun selectSource_movesFromEntryToShape() {
+    fun defaultStepIsShape_flowStartsAtInput() {
+        // 原「入口选择」步已取消：草稿一建立就停在输入页。
         val entry = BolusFlowState()
-        assertEquals(BolusFlowStep.ENTRY, entry.step)
+        assertEquals(BolusFlowStep.SHAPE, entry.step)
 
-        val shape = entry.selectSource(BolusSource.MANUAL)
-        assertEquals(BolusFlowStep.SHAPE, shape.step)
-        assertEquals(BolusSource.MANUAL, shape.source)
+        val preset = entry.withSource(BolusSource.PRESET)
+        assertEquals(BolusFlowStep.SHAPE, preset.step)
+        assertEquals(BolusSource.PRESET, preset.source)
     }
 
     @Test
-    fun advance_walksFourStepsInOrder() {
+    fun advance_walksThreeStepsInOrder() {
         val shape = BolusFlowState(step = BolusFlowStep.SHAPE, nowMilliunits = 400)
 
         val confirm = shape.advance(ciqEnabled = null) as BolusAdvance.Ok
@@ -252,13 +253,12 @@ class BolusFlowStateTest {
         assertEquals(250, shape.laterMilliunits)
         assertEquals(3_600, shape.extendedSeconds)
 
-        val entry = shape.back()
-        assertEquals(BolusFlowStep.ENTRY, entry.step)
-        assertEquals(150, entry.nowMilliunits)
-
-        // 返回入口再选「直接输入」时，草稿值原样保留。
-        val again = entry.selectSource(BolusSource.MANUAL)
-        assertEquals(confirm.copy(step = BolusFlowStep.SHAPE), again)
+        // 输入页没有上一步：back() 原地不动，退出流程由页面负责（回到来源标签）。
+        val atShape = shape.back()
+        assertEquals(BolusFlowStep.SHAPE, atShape.step)
+        assertEquals(150, atShape.nowMilliunits)
+        assertEquals(250, atShape.laterMilliunits)
+        assertEquals(3_600, atShape.extendedSeconds)
     }
 
     @Test

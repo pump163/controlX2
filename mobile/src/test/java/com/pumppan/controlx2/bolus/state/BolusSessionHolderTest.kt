@@ -1,6 +1,7 @@
 package com.pumppan.controlx2.bolus.state
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BolusSessionHolderTest {
@@ -93,6 +94,20 @@ class BolusSessionHolderTest {
             assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))
             assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
         }
+    }
+
+    @Test
+    fun cancelThrottle_threeAttemptsInFifteenSecondWindow() {
+        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now))
+        assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now + 1_000))
+        assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now + 2_000))
+
+        // 第 4 次仍在 15s 窗口内 → 节流（旧实现 5s 窗口会在这里放行）。
+        assertTrue(holder.requestCancel(connected = true, now = now + 14_999) is CancelDecision.Throttled)
+
+        // 第 1 次尝试滑出 15s 窗口 → 允许再发。
+        assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now + 15_000))
     }
 
     @Test

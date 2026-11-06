@@ -32,8 +32,23 @@ sealed interface CancelDecision {
     data object MissingBolusId : CancelDecision
     data object Disconnected : CancelDecision
     data object Reconciling : CancelDecision
-    /** 15s 内已尝试 3 次，节流。 */
+    /** 短时间内已尝试 3 次，节流。 */
     data object Throttled : CancelDecision
+}
+
+/** S8a 取消三态：取消中（10 秒窗口）/ 已停止 / 未停止（5 秒最坏兜底）。 */
+enum class CancelStatus {
+    /** 本次会话没有发过 `-96`。 */
+    IDLE,
+
+    /** 已发 `-96`，泵尚未给出停止证据（10 秒窗口内）。 */
+    SENDING,
+
+    /** 泵已给出停止证据（`-95` wasCancelled / 48 STOPPED）。 */
+    CONFIRMED,
+
+    /** 5 秒内仍未确认停止 → 提示 Bolus Not Stopped、断开管路。 */
+    FAILED,
 }
 
 class BolusSessionHolder(
@@ -46,8 +61,11 @@ class BolusSessionHolder(
     var reconciling: Boolean = false
         private set
 
-    /** `-96` 尝试时间戳（用于 15s / 3 次节流）。 */
+    /** `-96` 尝试时间戳（用于 15s 内最多 3 次的节流）。 */
     private val cancelAttempts = mutableListOf<Long>()
+
+    /** 最近一次真正发出 `-96` 的时间；0 表示本次会话未取消过。 */
+    private var lastCancelAtMillis = 0L
 
     fun begin(
         phase: SessionPhase,
@@ -82,6 +100,7 @@ class BolusSessionHolder(
         session = null
         reconciling = false
         cancelAttempts.clear()
+        lastCancelAtMillis = 0L
     }
 
     /** 只清会话，保留对账标记：对账期间的消息不能把「对账中」提前结束。 */
@@ -140,8 +159,27 @@ class BolusSessionHolder(
         cancelAttempts.removeAll { now - it >= CANCEL_THROTTLE_WINDOW_MS }
         if (cancelAttempts.size >= MAX_CANCEL_ATTEMPTS) return CancelDecision.Throttled
         cancelAttempts.add(now)
+        lastCancelAtMillis = now
         onEvidence(phase = SessionPhase.CANCELLING, bolusId = bolusId, now = now)
         return CancelDecision.Send(bolusId)
+    }
+
+    /**
+     * S8a 取消三态（供取消页文案）：
+     * - 泵已给出停止证据（DONE / ABORTED）→ [CancelStatus.CONFIRMED]；
+     * - FAILED 或发出 `-96` 后满 [CANCEL_STOPPED_WORST_CASE_MS] 仍未停 → [CancelStatus.FAILED]；
+     * - 否则 [CancelStatus.SENDING]（手册 §9.9 的 10 秒确认窗口）。
+     */
+    fun cancelStatus(now: Long = clock()): CancelStatus {
+        if (lastCancelAtMillis <= 0L) return CancelStatus.IDLE
+        val current = session ?: return CancelStatus.IDLE
+        return when (current.phase) {
+            SessionPhase.DONE, SessionPhase.ABORTED -> CancelStatus.CONFIRMED
+            SessionPhase.FAILED -> CancelStatus.FAILED
+            else ->
+                if (now - lastCancelAtMillis >= CANCEL_STOPPED_WORST_CASE_MS) CancelStatus.FAILED
+                else CancelStatus.SENDING
+        }
     }
 
     private fun isActivePhase(phase: SessionPhase): Boolean = when (phase) {
@@ -162,7 +200,9 @@ class BolusSessionHolder(
 
     private companion object {
         const val MAX_CANCEL_ATTEMPTS = 3
-        /** 手册写 10 秒窗口；技术参数表按 5 秒做最坏兜底。 */
-        const val CANCEL_THROTTLE_WINDOW_MS = 5_000L
+        /** 设计文档 §S8a：15 秒窗口内最多 3 次；与下方 5 秒「停止兜底」不是同一个窗口。 */
+        const val CANCEL_THROTTLE_WINDOW_MS = 15_000L
+        /** 5 秒内仍拿不到停止证据就按「未停止」提示断开管路。 */
+        const val CANCEL_STOPPED_WORST_CASE_MS = 5_000L
     }
 }
