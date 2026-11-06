@@ -330,7 +330,9 @@ fun ApprovedDialogRegion(
                             }
                         }"
                         else -> "The bolus could not be delivered: ${
-                            bolusInitiateResponse.value?.let { snakeCaseToSpace(it.statusType.toString()) }
+                            bolusInitiateResponse.value?.let {
+                                snakeCaseToSpace(it.statusType?.toString() ?: "UNKNOWN(${it.statusTypeId})")
+                            }
                         }"
                     }
                     else -> stringResource(R.string.bolus_status_is_unknown_please_check)

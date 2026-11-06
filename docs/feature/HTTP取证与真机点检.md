@@ -387,7 +387,19 @@ curl -s -u user:pass -H 'Content-Type: application/json' \
 2. **44/46 的 `bolusId` 同源性未验证**：实测两次都是 `0`（当时无进行中的大剂量），只能确认两命令都能回包，不能确认「同一笔」。
 3. **`-98` 确认为 App 发送层静默丢弃**：同一 CONTROL 通道下 `-96` 0.47 s 就回包，而 `-98` 永远无响应（65 s 零字节）——泵未收到该请求；与 §9.1 的 `isBolusCommand` 代码结论一致。
 
-> 本记录仅为 HTTP 取证，未发送任何带剂量的大剂量命令；`-98` 仍未在真机被泵接受，不得写成"已验证"。
+> 本记录仅为 HTTP 取证，未发送任何带剂量的大剂量命令。**该日的「发送层静默丢弃」结论已被 §9.8 推翻**（生产通道已真机送达并收到 `-97` 拒绝）；HTTP 路径本身仍不可用于 `-98`。
 
 > **例外说明（2026-11-06）**：`mobile-release_pumppan_probe.apk` 是按用户明确请求出的正式签名包（`:mobile:assembleRelease`，沿用仓库 `debug.keystore`，`applicationId` 与 `versionCode` 均未改），仅用于 S6-prep 探针取证。**这是用户明确的一次例外，不是惯例**；后续出包仍按常规命名与流程执行。
+
+#### 9.8 2026-11-06 生产通道真机结果（`-98` 已送达 + `-97` 拒绝）
+
+| 步骤 | 结果 |
+|---|---|
+| `-94` 许可 | `BolusPermissionResponse`：`bolusId=6817`、`status=0`、`nackReasonId=0`（`PERMISSION_GRANTED`） |
+| `-98` 探针（Debug 页，生产通道） | **泵已收到并回应**：`InitiateBolusResponse` 为拒绝，`statusTypeId` 落在 pumpx2 枚举 `BolusResponseStatus`（仅 `0=SUCCESS`、`2=REVOKED_PRIORITY`）之外 → `getStatusType()` 返回 `null` |
+| 通知展示 | 标题「大剂量被泵拒绝」，正文「泵报告无法启动大剂量: null」——`null` 即上述空枚举；已改为显示 `UNKNOWN(<statusTypeId>)` |
+| 闪退 | `NullPointerException`：`XdripMessageDispatcher.toDispatchEvent` 对空枚举调 `toString()`（`XdripMessageDispatcher.kt:174` 附近）。已修：`InitiateBolusResponse` / `CurrentBolusStatusResponse` 两处改为 `UNKNOWN(id)` 兜底；`BolusDialogs.kt` 同步空安全 |
+| 恢复 | 09:39 进程重启后状态正常（电池 35%、IOB 20.962u、储药器 180u） |
+
+结论：**`-98` 的「发送层静默丢弃」结论作废**——生产通道确实把请求送到了泵；当前阻塞从「发不出去」变成「泵拒绝」，且拒绝码不在 pumpx2 枚举内。该笔为 `0/0/0` 干跑，**「0 剂量不被接受」与「许可消费方式不对」两种解释都还不能排除**，下一笔用 `0.05U` 立即段（同流程、同一 `-94` 许可）即可定论；`-97` 原始 `statusTypeId` 请从 `bolusProbe:` 日志与通知正文一并记录。
 

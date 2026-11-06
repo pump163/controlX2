@@ -112,7 +112,8 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                                 confirmBolusRequestBaseNotification(
                                     context,
                                     context?.getString(R.string.bolus_rejected_by_pump) ?: "",
-                                    context?.getString(R.string.bolus_pump_reported_could_not_initiate_bolus, initiateResponse.statusType) ?: ""
+                                    context?.getString(R.string.bolus_pump_reported_could_not_initiate_bolus,
+                                        "${initiateResponse.statusType ?: "UNKNOWN"}(${initiateResponse.statusTypeId})") ?: ""
                                 )
                             )
                             resetBolusPrefs(context)

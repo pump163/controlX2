@@ -169,6 +169,10 @@ class XdripMessageDispatcher(
         }
     }
 
+    /** Java enums from pumpx2 return null for pump codes outside their enum; never call toString() on them directly. */
+    private fun describeEnum(value: Any?, rawId: Int): String =
+        value?.toString() ?: "UNKNOWN($rawId)"
+
     private fun Message.toDispatchEvent(): DispatchEvent {
         return when (this) {
             is CurrentBatteryAbstractResponse -> DispatchEvent.PumpBattery(batteryPercent)
@@ -176,11 +180,11 @@ class XdripMessageDispatcher(
             is InsulinStatusResponse -> DispatchEvent.PumpReservoir(currentInsulinAmount)
             is CurrentBasalStatusResponse -> DispatchEvent.BasalTreatment(InsulinUnit.from1000To1(currentBasalRate))
             is CurrentEGVGuiDataResponse -> DispatchEvent.CgmSgv(cgmReading, trendRate)
-            is InitiateBolusResponse -> DispatchEvent.TreatmentInitiated(bolusId, statusType.toString())
+            is InitiateBolusResponse -> DispatchEvent.TreatmentInitiated(bolusId, describeEnum(statusType, statusTypeId))
             is CurrentBolusStatusResponse -> DispatchEvent.TreatmentStatus(
                 bolusId = bolusId,
                 requestedVolumeMilli = requestedVolume,
-                status = status.toString(),
+                status = describeEnum(status, statusId),
                 // timestampInstant is the pump's wall-clock reading encoded as if it were UTC
                 // (same "fake epoch" convention as HistoryLogItem.pumpTimeSec); correct it here
                 // or the xDrip treatment ends up shifted by the local UTC offset.
