@@ -190,31 +190,36 @@ class BolusFlowStateTest {
         assertEquals(0, zero.nowMilliunits)
         assertEquals(400, zero.laterMilliunits)
 
-        val confirm = zero.advance(ciqEnabled = null)
+        // 立即段 0 属 Mobi 口径（X2 要求 ≥50 mIU），用 minImmediate=0 的副本验证推进。
+        val confirm = zero.advance(ciqEnabled = null, BolusLimits.Default.copy(minImmediateMilliunits = 0))
         assertTrue(confirm is BolusAdvance.Ok)
         assertEquals(BolusFlowStep.CONFIRM, (confirm as BolusAdvance.Ok).state.step)
     }
 
     @Test
     fun advance_extendedTotalBoundary() {
+        // 立即段 0 属 Mobi 口径；用 minImmediate=0 的副本隔离该分叉。
+        val mobi = BolusLimits.Default.copy(minImmediateMilliunits = 0)
         val atMinimum = BolusFlowState(step = BolusFlowStep.SHAPE, shape = BolusShape.DUAL)
-            .withPercent(0)
-            .withTotal(400)
+            .withPercent(0, mobi)
+            .withTotal(400, mobi)
             .withDurationSeconds(3_600)
         assertEquals(400, atMinimum.totalMilliunits)
         assertEquals(0, atMinimum.nowMilliunits)
-        assertTrue(atMinimum.advance(ciqEnabled = null) is BolusAdvance.Ok)
+        assertTrue(atMinimum.advance(ciqEnabled = null, mobi) is BolusAdvance.Ok)
 
-        val below = atMinimum.withTotal(375)
-        val result = below.advance(ciqEnabled = null)
+        val below = atMinimum.withTotal(375, mobi)
+        val result = below.advance(ciqEnabled = null, mobi)
         assertTrue(result is BolusAdvance.Invalid)
         assertTrue(
             (result as BolusAdvance.Invalid).errors
                 .contains(BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM),
         )
 
-        // X2 是 50 网格：400 有效；350 在网格上但不足 0.4U。
-        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
+        // 50 网格（X2 精度）。X2 本身不允许远程发起扩展（能力由配置声明），
+        // 这里只验证 50 网格下的总量下限，故显式副本保留 remoteExtendedBolusStart = true、
+        // 并把 minImmediate 置 0 以隔离立即段下限（该分叉由 BolusFormTest 覆盖）。
+        val x2 = BolusLimits.Default.copy(bolusIncrementMilliunits = 50, minImmediateMilliunits = 0)
         val x2AtMinimum = BolusFlowState(step = BolusFlowStep.SHAPE, shape = BolusShape.DUAL)
             .withPercent(0, x2)
             .withTotal(400, x2)

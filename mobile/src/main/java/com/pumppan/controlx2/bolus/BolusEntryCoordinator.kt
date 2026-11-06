@@ -8,6 +8,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatus
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusV2Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusV2Request
+import com.pumppan.controlx2.bolus.send.BolusEvidenceLog
 import com.pumppan.controlx2.bolus.state.BolusControllerMode
 import com.pumppan.controlx2.bolus.state.BolusReconciler
 import com.pumppan.controlx2.bolus.state.BolusSession
@@ -69,8 +70,14 @@ class BolusEntryCoordinator(
      */
     val sessionState: MutableState<BolusSession?> = mutableStateOf(controller.session)
 
+    /** 结局页读取源：NACK / ALARM / TIMEOUT / DISCONNECTED 等分类由 UI 映射。 */
+    val outcomeState: MutableState<com.pumppan.controlx2.bolus.state.BolusOutcome> =
+        mutableStateOf(controller.outcome)
+
     /** 一条泵侧报文：先更新会话，首条消息触发冷启动对账，再喂给对账器。 */
     fun onPumpMessage(message: Message) {
+        // Mobi 延展的本地取证日志（未 armed 时直接返回）。
+        BolusEvidenceLog.onMessage(message)
         controller.applyMessage(message)
         if (!coldStartReconciled) {
             coldStartReconciled = true
@@ -78,6 +85,7 @@ class BolusEntryCoordinator(
         }
         reconciler.onMessage(message)
         sessionState.value = controller.session
+        outcomeState.value = controller.outcome
     }
 
     /** 连上/重连时做一次只读对账；对账进行中由内部 500ms ticker 推进。 */

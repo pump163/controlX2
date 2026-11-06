@@ -71,6 +71,7 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRe
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQIOBResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.welie.blessed.BluetoothPeripheral
 import kotlinx.coroutines.CoroutineScope
@@ -262,6 +263,8 @@ class CommService : Service(), CommServiceCallbacks {
         httpDebugApiService?.getCurrentPumpDataCallback = { getCurrentPumpDataJson() }
         httpDebugApiService?.getCurrentPumpSidCallback = { pumpCommHandler?.getPumpSid() ?: Prefs(applicationContext).currentPumpSid() }
         httpDebugApiService?.sendPumpMessagesCallback = { data -> sendPumpCommMessages(data) }
+        httpDebugApiService?.sendRawPumpCommandCallback = { message -> sendPumpCommRawCommand(message) }
+        httpDebugApiService?.sendBolusCommandCallback = { message -> sendSignedBolusCommand(message) }
         httpDebugApiService?.sendMessagingCallback = { path, data -> sendWearCommMessage(path, data) }
         httpDebugApiService?.onHistoryLogInsertedCallback = { item -> httpDebugApiService?.onHistoryLogInserted(item) }
         httpDebugApiService?.start()
@@ -644,6 +647,7 @@ class CommService : Service(), CommServiceCallbacks {
         var connectionTime: Instant? = null,
         var lastMessageTime: Instant? = null,
         var batteryPercent: Int? = null,
+        var batteryCharging: Boolean? = null,
         var iobUnits: Double? = null,
         var cartridgeRemainingUnits: Int? = null,
     )
@@ -651,7 +655,7 @@ class CommService : Service(), CommServiceCallbacks {
     private val currentPumpData: DisplayablePumpData = DisplayablePumpData()
 
     private fun getCurrentPumpDataJson(): String {
-        return """{"statusText":"${currentPumpData.statusText}","connectionTime":"${currentPumpData.connectionTime}","lastMessageTime":"${currentPumpData.lastMessageTime}","batteryPercent":${currentPumpData.batteryPercent},"iobUnits":${currentPumpData.iobUnits},"cartridgeRemainingUnits":${currentPumpData.cartridgeRemainingUnits}}"""
+        return """{"statusText":"${currentPumpData.statusText}","connectionTime":"${currentPumpData.connectionTime}","lastMessageTime":"${currentPumpData.lastMessageTime}","batteryPercent":${currentPumpData.batteryPercent},"batteryCharging":${currentPumpData.batteryCharging},"iobUnits":${currentPumpData.iobUnits},"cartridgeRemainingUnits":${currentPumpData.cartridgeRemainingUnits}}"""
     }
 
     override fun updateNotificationWithPumpData(message: com.jwoglom.pumpx2.pump.messages.Message) {
@@ -660,6 +664,10 @@ class CommService : Service(), CommServiceCallbacks {
             is CurrentBatteryAbstractResponse -> {
                 changed = currentPumpData.batteryPercent != message.batteryPercent
                 currentPumpData.batteryPercent = message.batteryPercent
+                if (message is CurrentBatteryV2Response) {
+                    changed = currentPumpData.batteryCharging != message.isCharging || changed
+                    currentPumpData.batteryCharging = message.isCharging
+                }
             }
             is ControlIQIOBResponse -> {
                 changed = currentPumpData.iobUnits != InsulinUnit.from1000To1(message.pumpDisplayedIOB)
@@ -776,6 +784,35 @@ class CommService : Service(), CommServiceCallbacks {
             msg.obj = initiateConfirmedBolusBytes
             pumpCommHandler?.sendMessage(msg)
         }
+    }
+
+    /**
+     * Debug-only raw delivery used by POST /api/pump/raw-command. Delivers the
+     * already-constructed Message object (so classes that PumpMessageSerializer
+     * cannot round-trip still work) through a code that skips isBolusCommand
+     * filtering but keeps Pump.command()'s signature/encryption/connection checks.
+     */
+    private fun sendPumpCommRawCommand(message: com.jwoglom.pumpx2.pump.messages.Message) {
+        pumpCommHandler?.obtainMessage()?.also { msg ->
+            msg.what = CommServiceCodes.SEND_PUMP_COMMAND_RAW_UNSAFE.ordinal
+            msg.obj = message
+            pumpCommHandler?.sendMessage(msg)
+        } ?: Timber.w("sendPumpCommRawCommand: pumpCommHandler not initialized")
+    }
+
+    /**
+     * Signs the message with the same HMAC secret BolusManager uses and delivers it
+     * via SEND_PUMP_COMMAND_BOLUS, i.e. the production bolus channel including
+     * the prefInsulinDeliveryActions check in PumpCommHandler.
+     */
+    private fun sendSignedBolusCommand(message: com.jwoglom.pumpx2.pump.messages.Message) {
+        val secretKey = getWearPrefs()?.getString("initiateBolusSecret", "") ?: ""
+        val signed = InitiateConfirmedBolusSerializer.toBytes(secretKey, message)
+        if (signed == null) {
+            Timber.e("sendSignedBolusCommand: failed to serialize/sign $message")
+            return
+        }
+        sendPumpCommBolusMessage(signed)
     }
 
     private val handleWriteCharacteristicFailedCallback: (String) -> Unit = { uuid ->

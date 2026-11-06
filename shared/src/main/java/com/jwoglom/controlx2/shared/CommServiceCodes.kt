@@ -22,4 +22,10 @@ enum class CommServiceCodes {
     // Appended at the end: phone/watch builds exchange these by ordinal,
     // so new entries must not be inserted above existing ones.
     DEBUG_CLEAR_HISTORYLOG_CACHE,
+
+    // Debug-only raw command delivery: bypasses the isBolusCommand send-layer
+    // filter. Signature, encryption and connection checks are still enforced
+    // inside PumpSession/Pump.command(). Gate this at the HTTP layer with the
+    // `unsafe-raw-commands` preference.
+    SEND_PUMP_COMMAND_RAW_UNSAFE,
 }

@@ -28,5 +28,11 @@ sealed interface BolusOutcome {
 
     data object Cancelled : BolusOutcome
 
-    data class Failed(val error: BolusError) : BolusOutcome
+    data class Failed(
+        val error: BolusError,
+        /** `-95` 的原始状态码（取消失败时可用于诊断）。 */
+        val statusId: Int? = null,
+        /** `-95` 的原始原因码。 */
+        val reasonId: Int? = null,
+    ) : BolusOutcome
 }

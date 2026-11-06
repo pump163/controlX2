@@ -219,7 +219,12 @@ class BolusSessionController(
         } else {
             Timber.w("bolus: 取消失败 status=%s reason=%s", message.status, message.reason)
             holder.onEvidence(phase = SessionPhase.FAILED, bolusId = bolusId)
-            outcome = BolusOutcome.Failed(BolusError.NACK)
+            // -95 的原始 statusId / reasonId 一并落进结局，供结局页展示与排查。
+            outcome = BolusOutcome.Failed(
+                error = BolusError.NACK,
+                statusId = message.statusId,
+                reasonId = message.reasonId,
+            )
         }
     }
 

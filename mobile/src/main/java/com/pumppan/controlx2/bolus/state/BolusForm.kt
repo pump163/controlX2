@@ -5,6 +5,8 @@ enum class BolusValidationError {
     AMOUNT_BELOW_MINIMUM,
     AMOUNT_ABOVE_MAXIMUM,
     EXTENDED_TOTAL_BELOW_MINIMUM,
+    IMMEDIATE_BELOW_MINIMUM,
+    REMOTE_EXTENDED_NOT_SUPPORTED,
     INCREMENT_NOT_ALIGNED,
     LATER_REQUIRED,
     DURATION_OUT_OF_RANGE,
@@ -79,16 +81,27 @@ object BolusForm {
             }
 
             BolusShape.SQUARE, BolusShape.DUAL -> {
-                // 已真机确认：扩展总量须 ≥0.4U（与 pumpx2 的 MIN_EXTENDED_BOLUS_MILLIUNITS=400 一致）。
-                if (draft.totalMilliunits < limits.minExtendedTotalMilliunits) {
+                // X2 固件忽略 -98 的延展字段（真机 6851/6852 定论），能力由配置声明；
+                // 不支持时直接报错并跳过后续延展校验，避免叠加噪音错误。
+                if (!limits.remoteExtendedBolusStart) {
+                    errors += BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED
+                    return errors
+                }
+                // 延展段下限只是**客户端**兜底（pumpx2 MIN_EXTENDED_BOLUS_MILLIUNITS=400），
+                // 不是泵的下限：Mobi 手册无延展段最小剂量，501 的 0.25U 也被接受。
+                // 与 wire 的 totalVolume 分叉：wire totalVolume = 立即段，extendedVolume = 延后段。
+                if (draft.laterMilliunits < limits.clientMinExtendedCheckMilliunits) {
                     errors += BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM
                 }
-                // 立即段 0（0:100）已真机确认可接受；非零但 <0.05U 未验，不硬拦，改在确认页提示。
+                // 立即段下限按型号分叉：X2=50 mIU（total=0 必被 statusTypeId=1 拒），Mobi=0（纯方波）。
+                if (draft.nowMilliunits < limits.minImmediateMilliunits) {
+                    errors += BolusValidationError.IMMEDIATE_BELOW_MINIMUM
+                }
                 if (draft.laterMilliunits <= 0) {
                     errors += BolusValidationError.LATER_REQUIRED
                 }
                 val maxSeconds = limits.maxExtendedSeconds(ciqEnabled)
-                if (draft.extendedSeconds !in 1..maxSeconds) {
+                if (draft.extendedSeconds !in limits.minExtendedSeconds..maxSeconds) {
                     errors += BolusValidationError.DURATION_OUT_OF_RANGE
                 }
             }
@@ -103,11 +116,11 @@ object BolusForm {
         limits: BolusLimits = BolusLimits.Default,
     ): Boolean = validate(draft, ciqEnabled, limits).isEmpty()
 
-    /** 立即段非零但 <0.05U：未验，允许提交但确认页提示泵可能拒绝。 */
+    /** 立即段非零但低于该型号下限：X2 为 <0.05U；Mobi 下限 0，恒为 false。 */
     fun isImmediatePartUnverified(
         draft: BolusDraft,
         limits: BolusLimits = BolusLimits.Default,
-    ): Boolean = draft.nowMilliunits in 1 until limits.minBolusMilliunits
+    ): Boolean = draft.nowMilliunits in 1 until limits.minImmediateMilliunits
 
     fun maxExtendedSeconds(
         ciqEnabled: Boolean?,

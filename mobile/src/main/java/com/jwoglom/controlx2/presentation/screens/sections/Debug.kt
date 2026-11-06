@@ -223,6 +223,7 @@ fun Debug(
     sendPumpCommands: (SendType, List<Message>) -> Unit,
     historyLogViewModel: HistoryLogViewModel? = null,
     navigateToFeatureFlags: () -> Unit = {},
+    navigateToDangerousCommands: () -> Unit = {},
     navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -1140,7 +1141,17 @@ fun Debug(
             }
 
             item {
-                com.pumppan.controlx2.PumppanPumpModelRow()
+                ActionRow(
+                    title = context.getString(R.string.settings_dangerous_commands),
+                    subtitle = context.getString(R.string.settings_dangerous_commands_subtitle),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Build,
+                            contentDescription = context.getString(R.string.settings_dangerous_commands),
+                        )
+                    },
+                    onClick = { navigateToDangerousCommands() },
+                )
                 DebugDivider()
             }
 
@@ -1454,6 +1465,24 @@ fun triggerBolusProbeDialog(
         setText("0")
     }
     val extendedConversion = label("")
+    val foodInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        hint = context.getString(R.string.debug_bolus_probe_food_hint)
+        setText("0")
+    }
+    val foodConversion = label("")
+    val correctionInput = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        hint = context.getString(R.string.debug_bolus_probe_correction_hint)
+        setText("0")
+    }
+    val correctionConversion = label("")
+    val extended3Input = EditText(context).apply {
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        hint = context.getString(R.string.debug_bolus_probe_extended3_hint)
+        setText("0")
+    }
+    val extended3Conversion = label("")
     val durationInput = EditText(context).apply {
         inputType = InputType.TYPE_CLASS_NUMBER
         hint = context.getString(R.string.debug_bolus_probe_duration_hint)
@@ -1485,6 +1514,12 @@ fun triggerBolusProbeDialog(
             bolusProbeConversionLabel(bolusProbeParseMilliunits(immediateInput.text.toString()))
         extendedConversion.text =
             bolusProbeConversionLabel(bolusProbeParseMilliunits(extendedInput.text.toString()))
+        foodConversion.text =
+            bolusProbeConversionLabel(bolusProbeParseMilliunits(foodInput.text.toString()))
+        correctionConversion.text =
+            bolusProbeConversionLabel(bolusProbeParseMilliunits(correctionInput.text.toString()))
+        extended3Conversion.text =
+            bolusProbeConversionLabel(bolusProbeParseMilliunits(extended3Input.text.toString()))
         if (!userPickedBitmask) {
             val extended = bolusProbeParseMilliunits(extendedInput.text.toString()) ?: 0L
             val recommended = if (extended > 0L) BOLUS_PROBE_INDEX_12 else BOLUS_PROBE_INDEX_8
@@ -1505,6 +1540,9 @@ fun triggerBolusProbeDialog(
     }
     immediateInput.addTextChangedListener(watcher)
     extendedInput.addTextChangedListener(watcher)
+    foodInput.addTextChangedListener(watcher)
+    correctionInput.addTextChangedListener(watcher)
+    extended3Input.addTextChangedListener(watcher)
 
     layout.addView(label(context.getString(R.string.debug_bolus_probe_immediate)))
     layout.addView(immediateInput)
@@ -1512,6 +1550,15 @@ fun triggerBolusProbeDialog(
     layout.addView(label(context.getString(R.string.debug_bolus_probe_extended)))
     layout.addView(extendedInput)
     layout.addView(extendedConversion)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_food)))
+    layout.addView(foodInput)
+    layout.addView(foodConversion)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_correction)))
+    layout.addView(correctionInput)
+    layout.addView(correctionConversion)
+    layout.addView(label(context.getString(R.string.debug_bolus_probe_extended3)))
+    layout.addView(extended3Input)
+    layout.addView(extended3Conversion)
     layout.addView(label(context.getString(R.string.debug_bolus_probe_duration)))
     layout.addView(durationInput)
     layout.addView(label(context.getString(R.string.debug_bolus_probe_bitmask)))
@@ -1533,23 +1580,26 @@ fun triggerBolusProbeDialog(
         .create()
     dialog.setOnShowListener {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val immediate = bolusProbeParseMilliunits(immediateInput.text.toString())
+            val total = bolusProbeParseMilliunits(immediateInput.text.toString())
             val extended = bolusProbeParseMilliunits(extendedInput.text.toString())
+            val food = bolusProbeParseMilliunits(foodInput.text.toString())
+            val correction = bolusProbeParseMilliunits(correctionInput.text.toString())
+            val extended3 = bolusProbeParseMilliunits(extended3Input.text.toString())
             val minutes = durationInput.text.toString().trim().toLongOrNull()
             val bolusId = bolusIdInput.text.toString().trim().toIntOrNull() ?: 0
             val bitmask = BOLUS_PROBE_BITMASKS[bitmaskSpinner.selectedItemPosition]
 
             when {
-                immediate == null || extended == null ->
+                total == null || extended == null || food == null || correction == null || extended3 == null ->
                     reject(context.getString(R.string.debug_bolus_probe_reject_negative))
 
-                immediate + extended > BOLUS_PROBE_MAX_MILLIUNITS ->
+                total + extended > BOLUS_PROBE_MAX_MILLIUNITS ->
                     reject(context.getString(R.string.debug_bolus_probe_reject_total, BOLUS_PROBE_MAX_MILLIUNITS))
 
                 minutes == null || minutes < 0 ->
                     reject(context.getString(R.string.debug_bolus_probe_reject_duration))
 
-                !(immediate == 0L && extended == 0L) && immediate < 50L && immediate + extended < 400L ->
+                !(total == 0L && extended == 0L) && total < 50L && total + extended < 400L ->
                     reject(context.getString(R.string.debug_bolus_probe_reject_minimum))
 
                 extended > 0L && minutes <= 0 ->
@@ -1565,29 +1615,27 @@ fun triggerBolusProbeDialog(
                         .setMessage(
                             context.getString(
                                 R.string.debug_bolus_probe_confirm_message,
-                                immediate / 1000.0,
+                                total / 1000.0,
                                 extended / 1000.0,
                                 minutes,
                                 bitmask,
+                                food / 1000.0,
+                                correction / 1000.0,
+                                extended3 / 1000.0,
                             )
                         )
                         .setNegativeButton(context.getString(R.string.debug_cancel)) { d, _ -> d.dismiss() }
                         .setPositiveButton(context.getString(R.string.debug_ok)) { d, _ ->
                             d.dismiss()
-                            val request = if (immediate == 0L && extended == 0L) {
-                                InitiateBolusRequest(
-                                    InitiateBolusRequest.buildCargo(
-                                        0L, bolusId, bitmask, 0L, 0L, 0, 0, 0L, extended, durationSeconds, 0L
-                                    )
+                            val request = InitiateBolusRequest(
+                                InitiateBolusRequest.buildCargo(
+                                    total, bolusId, bitmask, food, correction, 0, 0, 0L,
+                                    extended, durationSeconds, extended3
                                 )
-                            } else {
-                                InitiateBolusRequest(
-                                    immediate, bolusId, bitmask, 0L, 0L, 0, 0, 0L, extended, durationSeconds, 0L
-                                )
-                            }
+                            )
                             Timber.i(
-                                "bolusProbe: sending immediateMU=%s extendedMU=%s extendedSeconds=%s bitmask=%s bolusId=%s",
-                                immediate, extended, durationSeconds, bitmask, bolusId,
+                                "bolusProbe: sending totalMU=%s extendedMU=%s extendedSeconds=%s bitmask=%s bolusId=%s foodMU=%s correctionMU=%s extended3=%s",
+                                total, extended, durationSeconds, bitmask, bolusId, food, correction, extended3,
                             )
                             sendMessage(
                                 MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE,

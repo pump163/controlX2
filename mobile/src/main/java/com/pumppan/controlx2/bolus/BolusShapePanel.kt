@@ -59,6 +59,7 @@ fun BolusShapePanel(
 
         Spacer(Modifier.height(12.dp))
 
+        val extendedSupported = limits.remoteExtendedBolusStart
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
@@ -66,16 +67,33 @@ fun BolusShapePanel(
             Text(
                 text = stringResource(R.string.bolus_v2_extended_toggle),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (extendedSupported) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 modifier = Modifier.weight(1f),
             )
             Switch(
                 checked = state.shape != BolusShape.NORMAL,
-                onCheckedChange = { onChange(state.withExtended(it, limits)) },
+                enabled = extendedSupported,
+                onCheckedChange = { if (extendedSupported) onChange(state.withExtended(it, limits)) },
             )
         }
 
-        if (state.shape != BolusShape.NORMAL) {
+        // 提示文案来自能力配置且可空：X2 有值（请到泵本体操作）；Mobi 为 null（无屏，操作就在本应用内，
+        // 不加说明噪音）。为 null 时**不渲染任何提示行**，不要改成渲染空行。
+        val unsupportedHint = limits.unsupportedHint
+        if (!extendedSupported && unsupportedHint != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = unsupportedHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (state.shape != BolusShape.NORMAL && extendedSupported) {
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(
@@ -102,11 +120,12 @@ fun BolusShapePanel(
             PercentField(value = state.percent, onCommit = { onChange(state.withPercent(it, limits)) })
 
             Spacer(Modifier.height(8.dp))
-            val maxHours = limits.maxExtendedSeconds(ciqEnabled) / 3600
-            DecimalField(
-                label = stringResource(R.string.bolus_v2_field_duration, maxHours),
-                value = state.extendedSeconds,
-                scale = 3600,
+            // UI 以分钟输入（15–480、1 分钟步进、默认 2 小时）；wire 仍传秒。
+            val maxMinutes = limits.maxExtendedSeconds(ciqEnabled) / 60
+            MinutesField(
+                label = stringResource(R.string.bolus_v2_field_duration, maxMinutes),
+                seconds = state.extendedSeconds,
+                maxMinutes = maxMinutes,
                 onCommit = { onChange(state.withDurationSeconds(it)) },
             )
         }
@@ -129,10 +148,14 @@ internal fun errorText(error: BolusValidationError, ciqEnabled: Boolean?): Strin
     BolusValidationError.AMOUNT_ABOVE_MAXIMUM -> stringResource(R.string.bolus_v2_error_above_max)
     BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM ->
         stringResource(R.string.bolus_v2_error_extended_total)
+    BolusValidationError.IMMEDIATE_BELOW_MINIMUM ->
+        stringResource(R.string.bolus_v2_error_immediate_min)
+    BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED ->
+        stringResource(R.string.bolus_v2_extended_remote_unsupported)
     BolusValidationError.INCREMENT_NOT_ALIGNED -> stringResource(R.string.bolus_v2_error_increment)
     BolusValidationError.LATER_REQUIRED -> stringResource(R.string.bolus_v2_error_later_required)
     BolusValidationError.DURATION_OUT_OF_RANGE ->
-        stringResource(R.string.bolus_v2_error_duration, BolusForm.maxExtendedSeconds(ciqEnabled) / 3600)
+        stringResource(R.string.bolus_v2_error_duration, BolusForm.maxExtendedSeconds(ciqEnabled) / 60)
     BolusValidationError.SHAPE_INCONSISTENT -> stringResource(R.string.bolus_v2_error_shape)
 }
 
@@ -171,6 +194,45 @@ internal fun DecimalField(
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { editing = it.isFocused },
+    )
+}
+
+/**
+ * 延展时长字段：按**分钟**输入（1 分钟步进、上限随 CIQ 版本取 [maxMinutes]），
+ * 模型仍存秒（协议字段是秒）。输入过程不打断，失焦后对齐到规范化分钟值。
+ */
+@Composable
+private fun MinutesField(
+    label: String,
+    seconds: Int,
+    maxMinutes: Int,
+    onCommit: (Int) -> Unit,
+) {
+    var text by rememberSaveable { mutableStateOf(if (seconds <= 0) "" else (seconds / 60).toString()) }
+    var editing by remember { mutableStateOf(false) }
+    LaunchedEffect(seconds, editing) {
+        if (!editing) {
+            val canonical = if (seconds <= 0) "" else (seconds / 60).toString()
+            if (text != canonical) text = canonical
+        }
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { raw ->
+            val filtered = raw.filter { it.isDigit() }.take(3)
+            text = filtered
+            if (filtered.isBlank()) {
+                onCommit(0)
+            } else {
+                filtered.toIntOrNull()?.let { onCommit(it.coerceIn(0, maxMinutes) * 60) }
+            }
+        },
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier
             .fillMaxWidth()
             .onFocusChanged { editing = it.isFocused },

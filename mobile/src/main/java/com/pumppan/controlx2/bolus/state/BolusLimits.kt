@@ -3,23 +3,49 @@ package com.pumppan.controlx2.bolus.state
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 
 /**
- * 大剂量相关阈值的唯一来源。S0 只提供可注入的数据类与默认值；
- * assets/prefs 加载属另一篇设计（阈值配置外置-设计.md），此处不做。
+ * 大剂量相关阈值的统一视图。数值实际来自 `assets/pump-capabilities.json`
+ * （经 [PumpCapabilities] 加载），本文件的常量只作兜底与默认值。
  */
 data class BolusLimits(
     val minBolusMilliunits: Int = MIN_BOLUS_MILLIUNITS,
     /**
+     * 延展/双波「立即段」下限：X2 为 50 mIU（`total=0` 必被 `statusTypeId=1` 拒），
+     * Mobi 允许 0（纯方波）。普通大剂量不走此字段。
+     */
+    val minImmediateMilliunits: Int = MIN_IMMEDIATE_MILLIUNITS,
+    /**
      * 输注步进（milliunits），按泵型号分档（[incrementFor] / [forModel]）。
      * t:slim X2 = 0.05U（50，用户已核实 2026-11-05）；
-     * Mobi 未经真机核实，暂按 0.05U（50）；若核实为 0.025U，只需改配置的 `models.MOBI` 一行；
-     * 未知型号走默认 25；美敦力 0.025U 仅作参考对照。
+     * Mobi 暂按 0.05U（50）；未知型号走默认 25；均以配置为准。
      */
     val bolusIncrementMilliunits: Int = BOLUS_INCREMENT_MILLIUNITS,
     val maxBolusMilliunits: Int = MAX_BOLUS_MILLIUNITS,
-    /** 扩展大剂量总量下限；已真机确认 0.4U，与 pumpx2 `MIN_EXTENDED_BOLUS_MILLIUNITS` 同值。 */
-    val minExtendedTotalMilliunits: Int = MIN_EXTENDED_TOTAL_MILLIUNITS,
+    /**
+     * 延展段的**客户端**兜底校验下限（毫单位），与 pumpx2 `MIN_EXTENDED_BOLUS_MILLIUNITS` 同值。
+     * 注意：这不是泵的下限——Mobi 手册没有延展段最小剂量（501 的 0.25U 也被接受），
+     * 唯一下限是整次大剂量 0.05U。仅作本地提示，不做协议裁决。
+     */
+    val clientMinExtendedCheckMilliunits: Int = CLIENT_MIN_EXTENDED_CHECK_MILLIUNITS,
+    /** 延展时长下限（秒）。UI 以分钟展示：15–480 分钟、1 分钟步进。 */
+    val minExtendedSeconds: Int = MIN_EXTENDED_SECONDS,
     val maxExtendedSecondsNonCiq: Int = MAX_EXTENDED_SECONDS_NON_CIQ,
     val maxExtendedSecondsCiq: Int = MAX_EXTENDED_SECONDS_CIQ,
+    /**
+     * 是否允许从 App 远程发起延展/双波。X2 = false（`-98` 延展字段被固件忽略，
+     * 真机 6851/6852 已定论）；Mobi = true（库内 `Mobi_Extended` 语义，未真机验证）。
+     * 校验、入口显隐都读这里，不写型号分支。
+     */
+    val remoteExtendedBolusStart: Boolean = true,
+    /**
+     * 延展发起能力是否已真机验证（配置 `commands.verified`）。Mobi 为 false：
+     * 确认页显示实验提示，发送时写本地取证日志。
+     */
+    val remoteExtendedBolusVerified: Boolean = true,
+    /**
+     * 「此处做不了」的提示文案（可空）：X2 =「请到泵本体操作」，Mobi = null（无屏，操作就在本应用内）。
+     * 为 null 时 UI **不渲染**提示行。
+     */
+    val unsupportedHint: String? = null,
     val staleActiveWindowSeconds: Long = STALE_ACTIVE_WINDOW_SECONDS,
     val bolusResponseTimeoutSeconds: Long = BOLUS_RESPONSE_TIMEOUT_SECONDS,
     val cancelMaxAttempts: Int = CANCEL_MAX_ATTEMPTS,
@@ -44,6 +70,9 @@ data class BolusLimits(
     companion object {
         const val MIN_BOLUS_MILLIUNITS = 50
 
+        /** 延展/双波立即段下限兜底值：X2 要求 ≥50 mIU；Mobi 由配置改为 0。 */
+        const val MIN_IMMEDIATE_MILLIUNITS = 50
+
         /**
          * 未知型号 / 外置配置 `default` 的步进：25。
          *
@@ -61,19 +90,36 @@ data class BolusLimits(
          */
         const val MOBI_INCREMENT_MILLIUNITS = 50
 
-        /** 型号 → 步进档位；未知型号（未解析出）取默认 25。 */
-        fun incrementFor(model: KnownDeviceModel?): Int = when (model) {
-            KnownDeviceModel.TSLIM_X2 -> TSLIM_X2_INCREMENT_MILLIUNITS
-            KnownDeviceModel.MOBI -> MOBI_INCREMENT_MILLIUNITS
-            else -> BOLUS_INCREMENT_MILLIUNITS
+        /** 型号 → 步进档位；单一来源是 `assets/pump-capabilities.json`（缺失时用兜底档案）。 */
+        fun incrementFor(model: KnownDeviceModel?): Int =
+            PumpCapabilities.forModel(model).bolusIncrementMilliunits
+
+        /**
+         * 按型号生成一份阈值：所有数值与 `remoteExtendedBolusStart` 都取自
+         * [PumpCapabilities.forModel]；本类常量只作兜底。
+         */
+        fun forModel(model: KnownDeviceModel?): BolusLimits {
+            val profile = PumpCapabilities.forModel(model)
+            return Default.copy(
+                bolusIncrementMilliunits = profile.bolusIncrementMilliunits,
+                minBolusMilliunits = profile.minBolusMilliunits,
+                minImmediateMilliunits = profile.minImmediateMilliunits,
+                clientMinExtendedCheckMilliunits = profile.clientMinExtendedCheckMilliunits,
+                minExtendedSeconds = profile.minExtendedSeconds,
+                maxBolusMilliunits = profile.maxBolusMilliunits,
+                maxExtendedSecondsCiq = profile.maxExtendedSecondsCiq,
+                maxExtendedSecondsNonCiq = profile.maxExtendedSecondsNonCiq,
+                remoteExtendedBolusStart = profile.remoteExtendedBolusStart,
+                remoteExtendedBolusVerified = profile.remoteExtendedBolusVerified,
+                unsupportedHint = profile.unsupportedHint,
+            )
         }
 
-        /** 按型号生成一份阈值（现只影响步进；外置配置落地后由这里合并文件值）。 */
-        fun forModel(model: KnownDeviceModel?): BolusLimits =
-            Default.copy(bolusIncrementMilliunits = incrementFor(model))
-
         const val MAX_BOLUS_MILLIUNITS = 25_000
-        const val MIN_EXTENDED_TOTAL_MILLIUNITS = 400
+        /** 客户端兜底：与 pumpx2 `MIN_EXTENDED_BOLUS_MILLIUNITS` 同值，**不是**泵的下限。 */
+        const val CLIENT_MIN_EXTENDED_CHECK_MILLIUNITS = 400
+        /** 15 分钟；Mobi 手册的 UI 可设下限（秒）。 */
+        const val MIN_EXTENDED_SECONDS = 900
         const val MAX_EXTENDED_SECONDS_NON_CIQ = 28_800
         const val MAX_EXTENDED_SECONDS_CIQ = 7_200
         const val STALE_ACTIVE_WINDOW_SECONDS = 600L

@@ -364,10 +364,16 @@
     <string name="debug_confirm_bolus">CONFIRM BOLUS!!</string>
     <string name="debug_enter_bolus_id_from_bolus_permission">Enter the bolus ID from BolusPermissionRequest. THIS WILL ACTUALLY DELIVER THE BOLUS. Enter a blank value to cancel.</string>
     <string name="debug_bolus_probe_title">InitiateBolusRequest (debug probe)</string>
-    <string name="debug_bolus_probe_immediate">Immediate amount (U)</string>
+    <string name="debug_bolus_probe_immediate">Total amount (U)</string>
     <string name="debug_bolus_probe_immediate_hint">0.05 = 0.05 U</string>
     <string name="debug_bolus_probe_extended">Extended amount (U)</string>
     <string name="debug_bolus_probe_extended_hint">0.4 = 0.4 U</string>
+    <string name="debug_bolus_probe_food">Food volume (U)</string>
+    <string name="debug_bolus_probe_food_hint">0.5 = 0.5 U</string>
+    <string name="debug_bolus_probe_correction">Correction volume (U)</string>
+    <string name="debug_bolus_probe_correction_hint">0.5 = 0.5 U</string>
+    <string name="debug_bolus_probe_extended3">extended3 (raw field)</string>
+    <string name="debug_bolus_probe_extended3_hint">0 = most pumps</string>
     <string name="debug_bolus_probe_duration">Extended duration (minutes)</string>
     <string name="debug_bolus_probe_duration_hint">120 = 2 hours</string>
     <string name="debug_bolus_probe_bitmask">bolusTypeBitmask</string>
@@ -375,11 +381,11 @@
     <string name="debug_bolus_probe_bolus_id_hint">0 means not obtained yet</string>
     <string name="debug_bolus_probe_warning">Debug use only via the production bolus channel. Default 0/0/0. Total capped at 25 U. Confirm the pump accepts 0 before trying any dose.</string>
     <string name="debug_bolus_probe_confirm_title">Confirm debug bolus</string>
-    <string name="debug_bolus_probe_confirm_message">Immediate %1$s U + extended %2$s U / %3$d min / bitmask %4$d\nThis uses the production signed bolus channel. Debug use only.</string>
+    <string name="debug_bolus_probe_confirm_message">Total %1$s U / extended %2$s U / %3$d min / bitmask %4$d\nFood %5$s U / correction %6$s U / extended3 %7$s\nThis uses the production signed bolus channel. Debug use only.</string>
     <string name="debug_bolus_probe_reject_negative">Amounts must be non-negative numbers.</string>
     <string name="debug_bolus_probe_reject_total">Total exceeds %1$d mU (25 U). Refusing to send.</string>
     <string name="debug_bolus_probe_reject_duration">Duration must be a non-negative whole number of minutes.</string>
-    <string name="debug_bolus_probe_reject_minimum">pumpx2 requires immediate ≥ 0.05 U, or immediate + extended ≥ 0.40 U (only the 0/0/0 dry run is exempt).</string>
+    <string name="debug_bolus_probe_reject_minimum">pumpx2 requires total ≥ 0.05 U, or total + extended ≥ 0.40 U (only the 0/0/0 dry run is exempt).</string>
     <string name="debug_bolus_probe_reject_extended">Extended amount is set but duration is 0. Refusing to send.</string>
     <string name="debug_bolus_probe_reject_bolus_id">bolusId must be &gt; 0. Request BolusPermissionRequest first, then enter its bolusId.</string>
     <string name="debug_bolus_probe_sent">Sent via the production bolus channel. Watch InitiateBolusResponse, then send 44 and 46 to compare bolusId.</string>
@@ -509,14 +515,30 @@
     <string name="bolus_v2_status_idle">No bolus in progress.</string>
     <string name="bolus_v2_cancel_row">Cancel bolus</string>
     <string name="bolus_v2_cancel_reason_reconciling">Reconciling status; cancel is unavailable right now.</string>
-    <string name="bolus_v2_cancel_reason_needs_id">Bolus ID unknown; a status check is required first (not wired yet).</string>
+    <string name="bolus_v2_cancel_reason_needs_id">Bolus ID unknown; a status check is required first.</string>
     <string name="bolus_v2_cancel_reason_disconnected">Pump not connected; state is read-only.</string>
     <string name="bolus_v2_cancel_reason_unknown">Bolus state unknown; cancel is unavailable.</string>
+    <string name="bolus_v2_cancel_reason_throttled">Too many cancel attempts; try again shortly.</string>
+    <string name="bolus_v2_cancel_not_stopped">Bolus Not Stopped: still running after 5 s — disconnect the tubing and check the pump.</string>
     <string name="bolus_v2_cancel_ready_sub">Bolus in progress.</string>
-    <string name="bolus_v2_cancel_not_wired">Cancel sending is not wired yet (pending S6).</string>
+    <string name="bolus_v2_cancel_sent">Sent -96 cancel request; waiting for pump confirmation.</string>
     <string name="bolus_v2_action_new">New bolus</string>
     <string name="bolus_v2_action_new_sub">Enter a dose; extended delivery is optional.</string>
-    <string name="bolus_v2_send_not_wired">Bolus sending is not wired yet (pending S6).</string>
+    <string name="bolus_v2_action_extra_now">Deliver a normal bolus</string>
+    <string name="bolus_v2_action_extra_now_sub">The extended part keeps running; add an immediate bolus.</string>
+    <string name="bolus_v2_page_delivering">Delivering</string>
+    <string name="bolus_v2_page_cancelling">Cancelling</string>
+    <string name="bolus_v2_page_extended_running">Extended part running</string>
+    <string name="bolus_v2_page_unknown">Delivering (connection lost)</string>
+    <string name="bolus_v2_page_pending">Requesting permission from the pump…</string>
+    <string name="bolus_v2_outcome_success">Bolus completed.</string>
+    <string name="bolus_v2_outcome_cancelled">Bolus stopped.</string>
+    <string name="bolus_v2_outcome_failed_nack">The pump rejected the bolus request.</string>
+    <string name="bolus_v2_outcome_failed_alarm">Pump alarm; delivery was stopped.</string>
+    <string name="bolus_v2_outcome_failed_timeout">Timed out waiting for the pump; delivery state is unknown. Check the pump.</string>
+    <string name="bolus_v2_outcome_failed_disconnected">Pump connection was lost; delivery state is unknown.</string>
+    <string name="bolus_v2_outcome_failed_unknown">Delivery failed; check the pump.</string>
+    <string name="bolus_v2_outcome_detail">Pump returned: status=%1$d, reason=%2$d</string>
     <string name="bolus_v2_entry_manual">Enter dose manually</string>
     <string name="bolus_v2_entry_manual_sub">Type insulin units yourself.</string>
     <string name="bolus_v2_entry_calc">Carb calculator</string>
@@ -529,25 +551,31 @@
     <string name="bolus_v2_field_total">Total dose (U)</string>
     <string name="bolus_v2_split_summary">Immediate %1$s U · Extended %2$s U</string>
     <string name="bolus_v2_extended_toggle">Extended bolus</string>
+    <string name="bolus_v2_extended_remote_unsupported">This pump model cannot start an extended bolus from the app.</string>
     <string name="bolus_v2_field_percent">Immediate share (%)</string>
-    <string name="bolus_v2_field_duration">Duration in hours (max %1$d)</string>
+    <string name="bolus_v2_field_duration">Duration in minutes (15–%1$d)</string>
     <string name="bolus_v2_error_negative">Dose cannot be negative.</string>
-    <string name="bolus_v2_error_below_min">Dose must be at least 0.05 U.</string>
-    <string name="bolus_v2_error_above_max">Dose must not exceed 25 U.</string>
-    <string name="bolus_v2_error_extended_total">Extended bolus total must be at least 0.4 U.</string>
-    <string name="bolus_v2_error_increment">Dose must be a multiple of 0.025 U.</string>
+    <string name="bolus_v2_error_below_min">Dose is below this model\'s minimum.</string>
+    <string name="bolus_v2_error_above_max">Dose exceeds this model\'s maximum.</string>
+    <string name="bolus_v2_error_extended_total">Extended part is below the configured minimum.</string>
+    <string name="bolus_v2_error_immediate_min">Immediate part is below this model\'s minimum.</string>
+    <string name="bolus_v2_error_increment">Dose must match this model\'s minimum increment.</string>
     <string name="bolus_v2_error_later_required">Extended part must be greater than 0.</string>
-    <string name="bolus_v2_error_duration">Duration must be between 1 minute and %1$d hours.</string>
+    <string name="bolus_v2_error_duration">Duration must be between 15 and %1$d minutes.</string>
     <string name="bolus_v2_error_shape">A standard bolus cannot have an extended part.</string>
     <string name="bolus_v2_confirm_mode">Delivery</string>
     <string name="bolus_v2_confirm_total">Total</string>
-    <string name="bolus_v2_confirm_now_small_warning">Immediate part is below 0.05 U (non-zero): the pump may reject it.</string>
+    <string name="bolus_v2_confirm_now_small_warning">Immediate part is below this model\'s minimum: the pump may reject it.</string>
     <string name="bolus_v2_confirm_immediate">Immediate</string>
     <string name="bolus_v2_confirm_extended">Extended</string>
     <string name="bolus_v2_confirm_duration">Duration</string>
-    <string name="bolus_v2_duration_value">%1$s h</string>
+    <string name="bolus_v2_duration_value">%1$d min</string>
     <string name="bolus_v2_send">Deliver</string>
     <string name="bolus_v2_send_unavailable_tag">Sending not connected yet</string>
+    <string name="bolus_v2_extended_experimental">Experimental: Mobi extended bolus is not yet verified on a physical pump. Check the pump after sending.</string>
+    <string name="bolus_v2_send_sent">Sent -98 through the production channel; waiting for pump confirmation.</string>
+    <string name="bolus_v2_send_permission_failed">Bolus permission not granted (-94 timeout or denied); nothing was sent.</string>
+    <string name="bolus_v2_send_build_failed">Request rejected by local validation; nothing was sent.</string>
     <string name="bolus_v2_step_of">Step %1$d of %2$d</string>
     <string name="bolus_v2_step_entry">Choose entry</string>
     <string name="bolus_v2_step_shape">Dose and delivery</string>
@@ -836,6 +864,11 @@
     <string name="settings_disconnect_and_re_pair_with_pump">Disconnect and re-pair with a pump.</string>
     <string name="settings_icon">Settings icon</string>
     <string name="settings_reconfigure_app">Reconfigure app</string>
+    <string name="settings_allow_unsafe_raw_commands">Allow unsafe raw commands</string>
+    <string name="settings_dangerous_commands">Dangerous commands</string>
+    <string name="settings_dangerous_commands_subtitle">Use at your own risk</string>
+    <string name="settings_allow_unsafe_raw_commands_subtitle">Enables the /api/pump/raw-command and /api/pump/bolus-probe debug endpoints. Bypasses the send-layer filter. Off by default.</string>
+    <string name="settings_unsafe_raw_commands_icon">Unsafe raw commands icon</string>
     <string name="settings_toggle_insulin_delivery_actions">Enable or disable insulin delivery actions.</string>
     <string name="settings_phone_pump_host">Phone (pump-host)</string>
     <string name="settings_watch_pump_host">Watch (pump-host)</string>

@@ -200,45 +200,58 @@ class BolusFormTest {
 
     @Test
     fun validate_extendedTotalBoundary() {
+        // Mobi 口径：立即段可为 0，延展段下限 0.4U 仍生效。
+        val mobiLike = BolusLimits.Default.copy(minImmediateMilliunits = 0)
         val minimum = BolusDraft(
             nowMilliunits = 0,
             laterMilliunits = 400,
             extendedSeconds = 3_600,
             shape = BolusShape.DUAL,
         )
-        assertTrue(BolusForm.isValid(minimum, ciqEnabled = false))
+        assertTrue(BolusForm.isValid(minimum, ciqEnabled = false, limits = mobiLike))
 
         val below = minimum.copy(laterMilliunits = 375)
         assertEquals(
             listOf(BolusValidationError.EXTENDED_TOTAL_BELOW_MINIMUM),
-            BolusForm.validate(below, ciqEnabled = false),
+            BolusForm.validate(below, ciqEnabled = false, limits = mobiLike),
         )
     }
 
     @Test
     fun validate_zeroImmediateAccepted() {
-        // 0:100 —— 立即 0、全部延后；已真机确认可被泵接受。
+        // Mobi 0:100 —— 立即 0、全部延后；库内用例接受 totalVolume=0（未真机验证）。
+        val mobiLike = BolusLimits.Default.copy(minImmediateMilliunits = 0)
         val draft = BolusDraft(
             nowMilliunits = 0,
             laterMilliunits = 400,
             extendedSeconds = 7_200,
             shape = BolusShape.DUAL,
         )
-        assertTrue(BolusForm.isValid(draft, ciqEnabled = null))
-        assertFalse(BolusForm.isImmediatePartUnverified(draft))
+        assertTrue(BolusForm.isValid(draft, ciqEnabled = null, limits = mobiLike))
+        assertFalse(BolusForm.isImmediatePartUnverified(draft, mobiLike))
     }
 
     @Test
-    fun validate_nonZeroImmediateBelowMinimumAllowedButFlagged() {
-        // 1–49 milliunits（25 步进下即 25）未验：不硬拦，确认页提示泵可能拒绝。
-        val draft = BolusDraft(
-            nowMilliunits = 25,
-            laterMilliunits = 375,
+    fun validate_immediateBelowModelMinimumRejected() {
+        // X2 口径（minImmediate=50）：立即段 0 / 25 均低于下限，硬拦。
+        val x2Like = BolusLimits.Default
+        val zero = BolusDraft(
+            nowMilliunits = 0,
+            laterMilliunits = 400,
             extendedSeconds = 3_600,
-            shape = BolusShape.SQUARE,
+            shape = BolusShape.DUAL,
         )
-        assertTrue(BolusForm.isValid(draft, ciqEnabled = false))
-        assertTrue(BolusForm.isImmediatePartUnverified(draft))
+        assertTrue(
+            BolusForm.validate(zero, ciqEnabled = false, limits = x2Like)
+                .contains(BolusValidationError.IMMEDIATE_BELOW_MINIMUM),
+        )
+
+        val small = zero.copy(nowMilliunits = 25)
+        assertTrue(
+            BolusForm.validate(small, ciqEnabled = false, limits = x2Like)
+                .contains(BolusValidationError.IMMEDIATE_BELOW_MINIMUM),
+        )
+        assertTrue(BolusForm.isImmediatePartUnverified(small, x2Like))
     }
 
     @Test
@@ -292,5 +305,48 @@ class BolusFormTest {
         assertEquals(7_200, BolusForm.maxExtendedSeconds(ciqEnabled = true))
         assertEquals(28_800, BolusForm.maxExtendedSeconds(ciqEnabled = false))
         assertEquals(7_200, BolusForm.maxExtendedSeconds(ciqEnabled = null))
+    }
+
+    @Test
+    fun capabilities_x2DeclaresRemoteExtendedUnsupported() {
+        val profile = PumpCapabilities.forModel(KnownDeviceModel.TSLIM_X2)
+        assertFalse(profile.remoteExtendedBolusStart)
+        assertTrue(profile.extendedBolusStatusRead)
+        assertTrue(profile.extendedBolusCancel)
+        assertEquals("unverified", profile.permissionRelease.status)
+
+        val x2 = BolusLimits.forModel(KnownDeviceModel.TSLIM_X2)
+        assertFalse(x2.remoteExtendedBolusStart)
+        val dual = BolusDraft(
+            nowMilliunits = 300,
+            laterMilliunits = 700,
+            extendedSeconds = 3_600,
+            shape = BolusShape.DUAL,
+        )
+        assertEquals(
+            listOf(BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED),
+            BolusForm.validate(dual, ciqEnabled = false, limits = x2),
+        )
+        // 兜底 / Mobi 仍允许扩展，避免配置缺失时误伤其它型号。
+        assertTrue(BolusForm.isValid(dual, ciqEnabled = false, limits = BolusLimits.Default))
+        assertTrue(BolusLimits.forModel(KnownDeviceModel.MOBI).remoteExtendedBolusStart)
+    }
+
+    @Test
+    fun capabilities_x2ThresholdsAndUnits() {
+        val profile = PumpCapabilities.forModel(KnownDeviceModel.TSLIM_X2)
+        assertEquals(50, profile.bolusIncrementMilliunits)
+        assertEquals(50, profile.minImmediateMilliunits)
+        assertEquals(400, profile.clientMinExtendedCheckMilliunits)
+        assertEquals(900, profile.minExtendedSeconds)
+        assertEquals("请到泵本体操作", profile.unsupportedHint)
+        assertEquals(25_000, profile.maxBolusMilliunits)
+        assertEquals(7_200, profile.maxExtendedSecondsCiq)
+        assertEquals(28_800, profile.maxExtendedSecondsNonCiq)
+        assertEquals("seconds", profile.wireDurationUnit)
+        assertEquals("minutes", profile.historyExtendedDurationUnit)
+        assertEquals(1, profile.historyBolusTypeBitmask["NOW"])
+        assertEquals(2, profile.historyBolusTypeBitmask["LATER"])
+        assertEquals(16, profile.historyBolusTypeBitmask["CARB"])
     }
 }

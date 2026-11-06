@@ -18,14 +18,18 @@ import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
-import java.util.Locale
-
-/** 第 3 步：校验与确认。「输注」按钮本轮不发送任何报文（待 S6）。 */
+/** 第 3 步：校验与确认。Mobi 延展未真机验证时显示实验提示；发送失败原因就地展示。 */
 @Composable
 fun BolusConfirmPanel(
     state: BolusFlowState,
     limits: BolusLimits = BolusLimits.Default,
     justSaved: Boolean = false,
+    /** 该型号的延展能力未验证（Mobi）：显示「实验特性」说明。 */
+    experimental: Boolean = false,
+    /** 发送前二次校验 / 权限失败的文案；仅在确认页展示，不禁止按钮（按钮内仍会二次校验）。 */
+    errorText: String? = null,
+    /** -94 取权限进行中时置灰，避免重复发送。 */
+    deliverEnabled: Boolean = true,
     onDeliver: () -> Unit,
     onSaveAsPreset: () -> Unit,
     onBack: () -> Unit,
@@ -38,7 +42,7 @@ fun BolusConfirmPanel(
             SummaryRow(stringResource(R.string.bolus_v2_confirm_extended), units(state.laterMilliunits, limits))
             SummaryRow(
                 stringResource(R.string.bolus_v2_confirm_duration),
-                stringResource(R.string.bolus_v2_duration_value, "%.1f".format(Locale.US, state.extendedSeconds / 3600.0)),
+                stringResource(R.string.bolus_v2_duration_value, state.extendedSeconds / 60),
             )
             if (BolusForm.isImmediatePartUnverified(state.draft(), limits)) {
                 Spacer(Modifier.height(6.dp))
@@ -50,17 +54,28 @@ fun BolusConfirmPanel(
             }
         }
 
+        if (experimental) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.bolus_v2_extended_experimental),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
         Spacer(Modifier.height(16.dp))
 
-        Button(onClick = onDeliver, modifier = Modifier.fillMaxWidth()) {
+        if (errorText != null) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            Spacer(Modifier.height(6.dp))
+        }
+        Button(onClick = onDeliver, enabled = deliverEnabled, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.bolus_v2_send))
         }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = stringResource(R.string.bolus_v2_send_unavailable_tag),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         Spacer(Modifier.height(12.dp))
 

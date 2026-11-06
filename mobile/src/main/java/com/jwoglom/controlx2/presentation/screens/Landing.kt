@@ -83,6 +83,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.ControlIQSettingsActi
 import com.jwoglom.controlx2.presentation.screens.sections.FeatureFlags
 import com.jwoglom.controlx2.presentation.screens.sections.Dashboard
 import com.jwoglom.controlx2.presentation.screens.sections.Debug
+import com.jwoglom.controlx2.presentation.screens.sections.DangerousCommands
 import com.jwoglom.controlx2.presentation.screens.sections.Notifications
 import com.jwoglom.controlx2.presentation.screens.sections.ProfileActions
 import com.jwoglom.controlx2.presentation.screens.sections.QuickBolusSettingsActions
@@ -366,10 +367,12 @@ fun Landing(
                         }
 
                         LandingSection.BOLUS_V2 -> {
-                            // S3 动作表 + S4 四步输入页；本轮不接发送，页面内不发任何泵命令
+                            // S3 动作表 + S4 四步输入页 + S6 发送（确认步才发 -98）
                             BolusV2Section(
                                 innerPadding = innerPadding,
                                 onBack = { selectedItem = LandingSection.DASHBOARD },
+                                sendMessage = sendMessage,
+                                sendPumpCommands = sendPumpCommands,
                             )
                         }
 
@@ -483,7 +486,16 @@ fun Landing(
                                 navigateToFeatureFlags = {
                                     selectedItem = LandingSection.FEATURE_FLAGS
                                 },
+                                navigateToDangerousCommands = {
+                                    selectedItem = LandingSection.DANGEROUS_COMMANDS
+                                },
                                 navigateBack = { selectedItem = LandingSection.SETTINGS },
+                            )
+                        }
+                        LandingSection.DANGEROUS_COMMANDS -> {
+                            DangerousCommands(
+                                innerPadding = innerPadding,
+                                navigateBack = { selectedItem = LandingSection.DEBUG },
                             )
                         }
                         LandingSection.FEATURE_FLAGS -> {
@@ -650,6 +662,7 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
 
     SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, true),
     DEBUG(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    DANGEROUS_COMMANDS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     NIGHTSCOUT_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     XDRIP_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     FEATURE_FLAGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
@@ -673,6 +686,7 @@ fun LandingSection.parentSection(): LandingSection? = when (this) {
     LandingSection.DEBUG,
     LandingSection.NIGHTSCOUT_SETTINGS,
     LandingSection.XDRIP_SETTINGS -> LandingSection.SETTINGS
+    LandingSection.DANGEROUS_COMMANDS -> LandingSection.DEBUG
     LandingSection.FEATURE_FLAGS -> LandingSection.DEBUG
 }
 

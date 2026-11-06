@@ -134,7 +134,10 @@ class BolusSessionControllerTest {
         controller.applyMessage(CancelBolusResponse(1, 77, 2))
 
         assertEquals(SessionPhase.FAILED, controller.session?.phase)
-        assertEquals(BolusOutcome.Failed(BolusError.NACK), controller.outcome)
+        assertEquals(
+            BolusOutcome.Failed(BolusError.NACK, statusId = 1, reasonId = 2),
+            controller.outcome,
+        )
     }
 
     // ---------- 48 LastBolusStatus ----------

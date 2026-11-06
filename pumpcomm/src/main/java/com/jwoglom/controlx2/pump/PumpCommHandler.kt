@@ -783,6 +783,21 @@ class PumpCommHandler(
                     }
                 }
             }
+            CommServiceCodes.SEND_PUMP_COMMAND_RAW_UNSAFE.ordinal -> {
+                // Debug-only path used by POST /api/pump/raw-command. Unlike
+                // SEND_PUMP_COMMAND / SEND_PUMP_COMMANDS_BULK this does not drop
+                // bolus messages via isBolusCommand, so classes hidden from the
+                // debug list (authentication.*, Nonexistent*, FactoryReset*) and
+                // -98 could be delivered. Signature/encryption still happen in
+                // pump.command(); the connection precondition is kept.
+                val rawMsg = msg.obj as? com.jwoglom.pumpx2.pump.messages.Message
+                if (rawMsg == null) {
+                    Timber.e("SEND_PUMP_COMMAND_RAW_UNSAFE received non-Message payload")
+                } else if (pumpConnectedPrecondition()) {
+                    Timber.i("pumpCommHandler send raw unsafe: $rawMsg")
+                    pump.command(rawMsg)
+                }
+            }
             CommServiceCodes.SEND_PUMP_COMMAND_BOLUS.ordinal -> {
                 Timber.i("pumpCommHandler send bolus raw: ${String(msg.obj as ByteArray)}")
                 val secretKey = callbacks.getWearPrefs()?.getString("initiateBolusSecret", "") ?: ""

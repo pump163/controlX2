@@ -403,3 +403,81 @@ curl -s -u user:pass -H 'Content-Type: application/json' \
 
 结论：**`-98` 的「发送层静默丢弃」结论作废**——生产通道确实把请求送到了泵；当前阻塞从「发不出去」变成「泵拒绝」，且拒绝码不在 pumpx2 枚举内。该笔为 `0/0/0` 干跑，**「0 剂量不被接受」与「许可消费方式不对」两种解释都还不能排除**，下一笔用 `0.05U` 立即段（同流程、同一 `-94` 许可）即可定论；`-97` 原始 `statusTypeId` 请从 `bolusProbe:` 日志与通知正文一并记录。
 
+#### 9.9 2026-11-06 终局定论：X2 固件不消费 `-98` 的延展字段
+
+> **定论一句话**：`-98`（`InitiateBolusRequest`）wire 格式第 25–36 字节的延展三字段（`extendedVolume` / `extendedSeconds` / `extended3`）是 **Mobi 语义**，X2 固件**读取但不消费**。给 X2 发带延展段的 `-98`，泵只按 `totalVolume` 打一笔普通立即大剂量，延展段被静默忽略。本轮之后**停止一切试验性发送**。
+
+**现场条件**：手机 release 包（仓库 `debug.keystore` 签名）+ 生产通道 `SEND_PUMP_COMMAND_BOLUS`（HMAC 签名 + `prefInsulinDeliveryActions`）；管路已断开；`unsafe-raw-commands` 已开。所有请求均由 `POST /api/pump/bolus-probe` 发出，`bolusId` 由 `-94` 现取。
+
+##### 9.9.1 `-98` 的延展三字段在 X2 被忽略（真机原值）
+
+| bolusId | 请求参数（mU / mU / s / mask） | 请求 cargo（37 B） | `-97` 原始返回 | 44 `CurrentBolusStatus` | 46 `ExtendedBolusStatus` |
+|---|---|---|---|---|---|
+| **6851** | `total=50, ext=400, sec=120, mask=2` | `32000000e11a000002000000000000000000000000000000009001000078000000 00000000`（按实机回读为准） | `cargo=00e11a000000` → `status=0` / `statusTypeId=0`（SUCCESS） | `bolusId=6851 requestedVolume=50` | 全程 `0/0/0/0`（未出现延展） |
+| **6852** | `total=1000, ext=700, sec=3600, mask=3` | `e8030000c41a00000300000000000000000000000000000000bc020000100e000000000000` | `cargo=00c41a000000` → `status=0` / `statusTypeId=0`（SUCCESS） | `bolusId=6852 requestedVolume=1000` | 全程 `0/0/0/0` |
+
+对应的历史原始条目（只读，未改动）：
+
+| 条目 | 6851 | 6852 |
+|---|---|---|
+| `BolusRequestedMsg3HistoryLog`(66) | `seq=2079865`、`totalBolusSize=0.05` | `seq=2079893`、`ptime=13:26:08`、`totalBolusSize=1` |
+| `BolusDeliveryHistoryLog`(280) | `seq=2079872 / 2079876`、`bolusTypeBitmask=1`、`requestedNow=50`、`requestedLater=0`、`extendedDurationRequested=0`、`deliveredTotal=0 → 50` | `seq=2079901`、`ptime=13:26:23`、`bolusTypeBitmask=1`、`requestedNow=1000`、`requestedLater=0`、`extendedDurationRequested=0`、`source=8`、`deliveredTotal=0` |
+| `LastBolusStatusV2` | `bolusId=6851`、`bolusStatusId=3`、`deliveredVolume=50`、`requestedVolume=50`、`extendedBolusDuration=0` | — |
+
+**判读**：两笔都 `-97 statusTypeId=0`（被泵接受）且 `mask` 被固件改成 `1`（NOW）；`requestedLater` 恒 `0`、`extendedDurationRequested` 恒 `0`、46 恒零。`mask=3` 未被拒（此前的「mask 语义错误」判断作废：mask 不是拒绝原因，延展字段本身不生效）。
+
+##### 9.9.2 旁证（只读分析，pumpx2 jar v1.9.0 + 源码 + Tandem 官方资料）
+
+1. **官方 App 反编译调用点**：发 `-98` 时延展三参**写死 `0L, 0L, 0L`**，官方 App 从不填延展段。
+2. **库内延展用例全部标注 `Mobi_Extended`**；测试注释原文：**「没有任何维护者的抓包里存在延展 BLE 大剂量」**。
+3. **没有 `InitiateExtendedBolus` 类**；X2 只有状态读取 `46` / `-74`，没有独立延展发起报文。
+4. **Mobi 接受 `totalVolume=0` 的纯方波**；**X2 要求立即段 ≥ 50 mIU**（与 `total=0` 全被 `statusTypeId=1` 拒、`total=50` 被当立即量执行一致）。
+5. `BolusType` 枚举：**v1.9.0 是旧映射**（`1/2/4/8` = FOOD1/CORRECTION/EXTENDED/FOOD2），**泵真实语义是 `1=NOW / 2=LATER / 4=OVERRIDE / 8=CORRECTION / 16=CARB`**。读历史时不要照库枚举解读，直接看数值。
+6. 单位：wire 侧 `duration` 是**秒**；历史 `extendedDurationRequested` 是**分钟**；`ExtendedBolusStatus.duration` 与 `LastBolusStatusV2.extendedBolusDuration` 是**秒**。
+
+##### 9.9.3 被拒记录（用于排除变量，不再是阻塞项）
+
+| 场景 | 请求 | 结果 | 解释 |
+|---|---|---|---|
+| 纯方波 | `total=0, ext=400, sec=120`，mask `2` / `4` / `12` 各一次 | 全部 `statusTypeId=1`（拒绝） | X2 要求立即段 ≥ 50 mIU，`total=0` 必拒；Mobi 才接受 |
+| 立即段过小 | `total=50, ext=400, sec=...`，mask `4` / `12` | `statusTypeId=1` | 同上：`total` 低于 400 时被当「普通笔」校验 |
+| mask=12 探针 | `total=1050/1000/1800` 等 | `statusTypeId=1` | **停止复试**；mask 不是可用变量 |
+| 许可未释放 | `total=450, ext=400, mask=2` | `BolusPermissionResponse` nack | 上一笔许可未释放，`-98` 未实际送达 |
+
+##### 9.9.4 `-96` 手机端取消取证（bolusId 6850，全部原值）
+
+| 项 | 原值 |
+|---|---|
+| 反向寻址失败 | 先按 `bolusId=6834` 算出 cargo `b21a0000` → 泵回 `statusId=1 FAILED` / `reasonId=2 INVALID_OR_ALREADY_DELIVERED`；**说明取消按 `bolusId` 精确匹配** |
+| 正确请求 | `CancelBolusRequest(-96)`，cargo **`c21a0000`**（6850 = `0x1AC2`）；`className=com.jwoglom.pumpx2.pump.messages.request.activeBolus.CancelBolusRequest` |
+| `-95` 原始返回 | cargo `00c21a0000` → `bolusId=6850`、`statusId=0 SUCCESS`、`reasonId=0 NO_ERROR` |
+| 46 变化 | 取消前 `bolusId=6850 source=1 status=1 duration=3600 requestedVolume=700`；取消后归零 `0/0/0/0` |
+| 历史终止条目 | `BolexCompletedHistoryLog`(21)：`seq=2079849 ptime=13:20:13`、`completionStatusId=0`、`STOPPED_USER_TERMINATED`、`insulinDelivered=0.0`、`insulinRequested=0.7` |
+| 交付记录 | `BolusDeliveryHistoryLog`(280)：`seq=2079850 ptime=13:20:13`、`bolusDeliveryStatusId=0`、`mask=3`、`deliveredTotal=300`、`now=300`、`later=700`、`dur=60`（分钟） |
+| 进程存活 | `GET /api/pump/connected` → `{"connected": true}`；**`-96` 路径未崩溃** |
+
+> 该笔为**泵本体**发起的双波（`source=1`），手机端仅执行取消，证明「X2 支持远程读取 + 远程取消」，但**不支持远程发起延展**。
+
+##### 9.9.5 对产品设计的最终处置
+
+- **X2 支持**：`46` / `-74` 读延展状态（原值秒）、`-96` 取消（已真机验证）、`44` 读当前大剂量。
+- **X2 不支持**：`-98` 携带 `extendedVolume` / `extendedSeconds` / `extended3` 发起延展或双波；官方 App 亦不这么做。
+- **Mobi 语义，不可用于 X2**：`totalVolume=0` 纯方波、`bitmask` 的 LATER/CARB 位语义、延展发起字段的 11 参扩展路径。
+- 因此 **X2** 的 App 侧**不提供**远程发起延展入口，改为提示「请到泵本体操作」；发完的延展仍可在手机端读状态与取消。**Mobi** 侧提供远程发起（A 轮任务，实验特性，见 §9.9.6）。
+- 设计文档对应修订见 [大剂量功能设计-v2.md](大剂量功能设计-v2.md) §7.0 / §7.2 / §7.3。
+
+##### 9.9.6 Mobi 分支：**X2 无效 ≠ Mobi 无效**（2026-11-06 上游实证，未真机验证）
+
+X2 的负面定论**不得外推**到 Mobi。Mobi（501）真实抓包 + 泵侧回写：
+
+- `-98`：`totalVolume` = **立即段**，`extendedVolume` = 延后段（毫单位），`extendedSeconds` = **秒**，`extended3 = 0`
+- `bolusTypeBitmask = 12`：两条抓包均为 12（唯一实测可用值，非唯一合法值）；**不要**用 `BolusType#toBitmask` 推导——248 请求写 12，泵回写 `LATER|OVERRIDE`
+- `totalVolume = 0` 的纯方波在 Mobi 合法；8h / 28800s 也被接受
+- 延展段 0.25U 也被泵接受 → `MIN_EXTENDED_BOLUS_MILLIUNITS=400` 只是**客户端兜底**，不是泵下限
+- 28800 只是**观测最大值**，不是协议上限
+- 元数据字段（BG / IOB / carbs）可空可填（501 填 `BG=170 / IOB=2810` 亦被接受）
+- `-96` 取消对运行中的延展有效
+- `46` / `-74` 的 `duration` 目前只有空记录，单位仍是注释级推测，**不要用它计算剩余时间**；状态页只显示「是否有延展在跑」
+
+> **验证说明（单独一节）**：本项目**未**做 Mobi 真机验证（无设备），能力配置 `models.MOBI.commands.verified=false`，UI 显示「实验特性，尚未在真机验证」，发送时写本地取证日志 `bolus-evidence/mobi-extended-*.jsonl`（型号 + 能力快照 + 请求全部字段 + `-97` 原值 + `46`/`-74` 状态），**待第三方回传**。`verified` 只影响提示，不参与「能不能发」的判定。
+

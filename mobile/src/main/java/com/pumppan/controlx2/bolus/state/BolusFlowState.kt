@@ -123,7 +123,8 @@ data class BolusFlowState(
 
     companion object {
         const val DEFAULT_PERCENT = 50
-        const val DEFAULT_EXTENDED_SECONDS = 3_600
+        /** 默认 50/50、2 小时（7200 秒）；UI 以分钟输入。 */
+        const val DEFAULT_EXTENDED_SECONDS = 7_200
 
         /** rememberSaveable 的 Saver：旋转后草稿原样恢复（纯数据、无泵依赖）。 */
         val Saver: Saver<BolusFlowState, List<Any>> = Saver(

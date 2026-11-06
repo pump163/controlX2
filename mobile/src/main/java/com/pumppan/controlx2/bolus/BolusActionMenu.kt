@@ -1,10 +1,10 @@
 package com.pumppan.controlx2.bolus
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,19 +19,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
+import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
+import com.pumppan.controlx2.bolus.state.CancelDecision
 import com.pumppan.controlx2.bolus.state.CancelRowState
 import com.pumppan.controlx2.bolus.state.SessionPhase
 import com.pumppan.controlx2.ui.ActionRow
 import com.pumppan.controlx2.ui.NavigationRow
 
 /**
- * S3 动作表：取消行（五态只显示、不发送）+「新的大剂量」入口。
- * READY 点击也只显示「取消发送尚未接入（待 S6）」，不调用任何发送通道。
+ * S3 动作表：取消行（五态判定）+「新的大剂量」入口。
+ * S8a：READY 点击经 [BolusSessionHolder.requestCancel] 判定后，才发 `-96`
+ * （`SendType.BUST_CACHE`，cargo = bolusId；禁盲取消 / 断连 fail-fast / 15s 内 3 次节流）。
  */
 @Composable
 fun BolusActionMenu(
     onNewBolus: () -> Unit,
     onBack: () -> Unit,
+    sendPumpCommands: (SendType, List<Message>) -> Unit,
+    /** 输注进行中不给「新的大剂量」入口（§4.6.1）；延后段在跑时为二选一的第二项。 */
+    showNewBolus: Boolean = true,
+    /** 相位标题（取消页 / 二选一页共用本组件时的页头）。 */
+    headerText: String? = null,
+    /** 二选一页的第二项文案；null 时用「新的大剂量」。 */
+    newBolusTitle: String? = null,
+    newBolusSubtitle: String? = null,
 ) {
     val connected by LocalDataStore.current.pumpConnected.observeAsState()
     val coordinator = BolusRuntime.coordinator
@@ -40,7 +53,21 @@ fun BolusActionMenu(
     val isConnected = connected == true
     val rowState = coordinator?.holder?.cancelRowState(connected = isConnected) ?: CancelRowState.HIDDEN
     var notice by rememberSaveable { mutableStateOf<String?>(null) }
-    val cancelNotWired = stringResource(R.string.bolus_v2_cancel_not_wired)
+    val cancelSentText = stringResource(R.string.bolus_v2_cancel_sent)
+    val cancelThrottledText = stringResource(R.string.bolus_v2_cancel_not_stopped)
+    val cancelDisconnectedText = stringResource(R.string.bolus_v2_cancel_reason_disconnected)
+    val cancelNeedsIdText = stringResource(R.string.bolus_v2_cancel_reason_needs_id)
+    val cancelReconcilingText = stringResource(R.string.bolus_v2_cancel_reason_reconciling)
+    val cancelIdleText = stringResource(R.string.bolus_v2_status_idle)
+
+    if (!headerText.isNullOrBlank()) {
+        Text(
+            text = headerText,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(8.dp))
+    }
 
     if (rowState == CancelRowState.HIDDEN) {
         Text(
@@ -63,7 +90,20 @@ fun BolusActionMenu(
             title = stringResource(R.string.bolus_v2_cancel_row),
             subtitle = subtitle,
             readOnly = rowState != CancelRowState.READY,
-            onClick = { notice = cancelNotWired },
+            onClick = {
+                notice = when (val decision = coordinator?.holder?.requestCancel(connected = isConnected)) {
+                    is CancelDecision.Send -> {
+                        sendPumpCommands(SendType.BUST_CACHE, listOf(CancelBolusRequest(decision.bolusId)))
+                        cancelSentText
+                    }
+
+                    CancelDecision.MissingBolusId -> cancelNeedsIdText
+                    CancelDecision.Disconnected -> cancelDisconnectedText
+                    CancelDecision.Reconciling -> cancelReconcilingText
+                    CancelDecision.Throttled -> cancelThrottledText
+                    CancelDecision.NotActive, null -> cancelIdleText
+                }
+            },
             emphasized = rowState == CancelRowState.READY,
         )
         if (!notice.isNullOrBlank()) {
@@ -75,27 +115,22 @@ fun BolusActionMenu(
         }
     }
 
-    Spacer(Modifier.height(16.dp))
+    if (showNewBolus) {
+        Spacer(Modifier.height(16.dp))
 
-    NavigationRow(
-        title = stringResource(R.string.bolus_v2_action_new),
-        subtitle = stringResource(R.string.bolus_v2_action_new_sub),
-        onClick = {
-            notice = null
-            onNewBolus()
-        },
-    )
+        NavigationRow(
+            title = newBolusTitle ?: stringResource(R.string.bolus_v2_action_new),
+            subtitle = newBolusSubtitle ?: stringResource(R.string.bolus_v2_action_new_sub),
+            onClick = {
+                notice = null
+                onNewBolus()
+            },
+        )
+    }
 
     Spacer(Modifier.height(16.dp))
 
     Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.profile_back))
     }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        text = stringResource(R.string.bolus_v2_send_not_wired),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 4.dp),
-    )
 }

@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "note": "按型号分组的能力档案。UI 显隐、校验、发送前检查只读此文件（经 PumpCapabilities 访问），业务代码不写 if (isX2)。证据见 docs/feature/HTTP取证与真机点检.md §9.9 与 docs/feature/大剂量功能设计-v2.md §7.0。",
+  "default": {
+    "commands": {
+      "initiateNormalBolus": true,
+      "remoteExtendedBolusStart": true,
+      "extendedBolusStatusRead": true,
+      "extendedBolusCancel": true,
+      "bolusPermissionRelease": {
+        "status": "unverified",
+        "note": "2026-11-06 未发 -16，保持未知语义"
+      }
+    },
+    "limits": {
+      "bolusIncrementMilliunits": 25,
+      "minBolusMilliunits": 50,
+      "minImmediateMilliunits": 50,
+      "clientMinExtendedCheck": 400,
+      "minExtendedSeconds": 900,
+      "maxBolusMilliunits": 25000,
+      "maxExtendedSecondsCiq": 7200,
+      "maxExtendedSecondsNonCiq": 28800
+    },
+    "ui": {
+      "unsupportedHint": null
+    },
+    "units": {
+      "wireDuration": "seconds",
+      "historyExtendedDurationRequested": "minutes"
+    },
+    "encodings": {
+      "requestBitmask": {
+        "status": "unverified",
+        "note": "X2 不消费延展位；实测 mask=3 被接受并改写为 1。键名沿用 pumpx2 v1.9.0，仅供 Debug 探针",
+        "values": {
+          "FOOD1": 1,
+          "CORRECTION": 2,
+          "EXTENDED": 4,
+          "FOOD2": 8
+        }
+      },
+      "historyBolusTypeBitmask": {
+        "status": "verified",
+        "note": "泵真实语义；pumpx2 v1.9.0 BolusType 枚举是旧映射，读历史时直接看数值",
+        "values": {
+          "NOW": 1,
+          "LATER": 2,
+          "OVERRIDE": 4,
+          "CORRECTION": 8,
+          "CARB": 16
+        }
+      },
+      "extendedBitmask": {
+        "value": 12,
+        "status": "unverified",
+        "note": "未知型号兜底；Mobi 见 models.MOBI.encodings.extendedBitmask"
+      }
+    }
+  },
+  "models": {
+    "TSLIM_X2": {
+      "evidence": {
+        "remoteExtendedBolusStart": "false：-98 wire 25–36 字节（extendedVolume/extendedSeconds/extended3）被 X2 固件忽略。真机 6852 total=1000/ext=700/sec=3600/mask=3 被接受，但 66 totalBolusSize=1、280 mask=1 now=1000 later=0 dur=0、46 恒零。官方 App 调用点延展三参写死 0,0,0；库内延展用例全标 Mobi_Extended。见 HTTP取证与真机点检.md §9.9.1 / §9.9.2。",
+        "extendedBolusStatusRead": "true：46 / -74 只读正常（泵本体双波 6850 时 duration=3600 秒、requestedVolume=700，取消后归零）。见 §9.9.4。",
+        "extendedBolusCancel": "true：手机端 -96 取消 6850 成功，-95 statusId=0 SUCCESS / reasonId=0 NO_ERROR，历史 STOPPED_USER_TERMINATED。见 §9.9.4。",
+        "bolusPermissionRelease": "unverified：本轮未发送 -16，不写死可用或不可用。",
+        "minImmediateMilliunits": "50：total=0 纯方波全被 statusTypeId=1 拒；total=50 被当立即量执行。Mobi 才接受 total=0。见 §9.9.3。",
+        "bolusIncrementMilliunits": "50：用户 2026-11-05 已核实 0.05U。",
+        "units": "wire duration 秒（46 duration=3600 对应 60 分钟）；历史 extendedDurationRequested 分钟（280 dur=60）。",
+        "historyBolusTypeBitmask": "实测 6852 为 1=NOW；真实语义 1/2/4/8/16，v1.9.0 库枚举为误读。"
+      },
+      "commands": {
+        "initiateNormalBolus": true,
+        "remoteExtendedBolusStart": false,
+        "extendedBolusStatusRead": true,
+        "extendedBolusCancel": true,
+        "bolusPermissionRelease": {
+          "status": "unverified",
+          "note": "2026-11-06 未发 -16，保持未知语义"
+        }
+      },
+      "limits": {
+        "bolusIncrementMilliunits": 50,
+        "minBolusMilliunits": 50,
+        "minImmediateMilliunits": 50,
+        "clientMinExtendedCheck": 400,
+        "maxBolusMilliunits": 25000,
+        "maxExtendedSecondsCiq": 7200,
+        "maxExtendedSecondsNonCiq": 28800
+      },
+      "ui": {
+        "unsupportedHint": "请到泵本体操作"
+      },
+      "units": {
+        "wireDuration": "seconds",
+        "historyExtendedDurationRequested": "minutes"
+      },
+      "encodings": {
+        "requestBitmask": {
+          "status": "unverified",
+          "note": "X2 不消费延展位；实测 mask=3 被接受并改写为 1。键名沿用 pumpx2 v1.9.0，仅供 Debug 探针",
+          "values": {
+            "FOOD1": 1,
+            "CORRECTION": 2,
+            "EXTENDED": 4,
+            "FOOD2": 8
+          }
+        },
+        "historyBolusTypeBitmask": {
+          "status": "verified",
+          "note": "泵真实语义 1=NOW / 2=LATER / 4=OVERRIDE / 8=CORRECTION / 16=CARB；v1.9.0 BolusType 枚举是旧映射，读历史时直接看数值",
+          "values": {
+            "NOW": 1,
+            "LATER": 2,
+            "OVERRIDE": 4,
+            "CORRECTION": 8,
+            "CARB": 16
+          }
+        }
+      }
+    },
+    "MOBI": {
+      "evidence": {
+        "remoteExtendedBolusStart": "true：上游实证（Mobi 501 真实抓包 + 泵侧回写）——-98 wire totalVolume=立即段、extendedVolume=延后段、extendedSeconds=秒、extended3=0；totalVolume=0 纯方波合法，8h/28800s 也被接受；bitmask=12 直接发。本项目本身未真机验证（verified=false），待第三方回传；见 HTTP取证与真机点检.md §9.9.5。",
+        "verified": "false：本项目未做 Mobi 真机验证（上游有 501 抓包实证）。仅用于 UI 实验提示与本地取证日志，**不参与能否发送的判定**；闸门只看 remoteExtendedBolusStart。",
+        "extendedBitmask": "12：唯一实测可用值（两条 Mobi 抓包均为 12），非唯一合法值。不要用 BolusType#toBitmask 推导——库里 248 请求写 12，泵回写 LATER|OVERRIDE。",
+        "clientMinExtendedCheck": "400：仅客户端兜底校验，不是泵下限。Mobi 手册没有任何「延展段最小剂量」；唯一下限是整次大剂量 0.05U，且 Deliver Now 可设 0U（全部进 Later）。501 延展段 0.25U 也被泵接受。",
+        "maxExtendedSeconds": "按 CIQ 版本分叉：Control-IQ 1.0 = 7200s（2h）、Control-IQ+ 1.5 = 28800s（8h）。28800 只是观测最大值，不是协议上限；本地校验按版本取。",
+        "bolusIncrementMilliunits": "50：Mobi 手册 §32.4 大剂量 0.05–25U，0.05U 以上 0.01U 步进（wire 50 / 10 milliunits）；未经真机核实，若确认不同只改本字段。",
+        "minImmediateMilliunits": "0：Mobi 接受 total=0 纯方波（与 X2 的 50 不同）。校正量只进 totalVolume（Now），绝不进 extendedVolume。"
+      },
+      "commands": {
+        "initiateNormalBolus": true,
+        "remoteExtendedBolusStart": true,
+        "verified": false,
+        "extendedBolusStatusRead": true,
+        "extendedBolusCancel": true,
+        "bolusPermissionRelease": {
+          "status": "unverified",
+          "note": "Mobi 未做真机验证"
+        }
+      },
+      "limits": {
+        "bolusIncrementMilliunits": 50,
+        "minBolusMilliunits": 50,
+        "minImmediateMilliunits": 0,
+        "clientMinExtendedCheck": 400,
+        "minExtendedSeconds": 900,
+        "maxBolusMilliunits": 25000,
+        "maxExtendedSecondsCiq": 7200,
+        "maxExtendedSecondsNonCiq": 28800
+      },
+      "ui": {
+        "unsupportedHint": null
+      },
+      "units": {
+        "wireDuration": "seconds",
+        "historyExtendedDurationRequested": "minutes"
+      },
+      "encodings": {
+        "requestBitmask": {
+          "status": "unverified",
+          "note": "X2 不消费延展位；Mobi 延展请求直接写 extendedBitmask=12（实测值），本表仅供 Debug 探针",
+          "values": {
+            "FOOD1": 1,
+            "CORRECTION": 2,
+            "EXTENDED": 4,
+            "FOOD2": 8
+          }
+        },
+        "historyBolusTypeBitmask": {
+          "status": "verified",
+          "note": "泵真实语义 1=NOW / 2=LATER / 4=OVERRIDE / 8=CORRECTION / 16=CARB",
+          "values": {
+            "NOW": 1,
+            "LATER": 2,
+            "OVERRIDE": 4,
+            "CORRECTION": 8,
+            "CARB": 16
+          }
+        },
+        "extendedBitmask": {
+          "value": 12,
+          "status": "verified",
+          "note": "实测值（两条 Mobi 抓包均为 12），非唯一合法值；请求侧直接写 12，勿用 BolusType#toBitmask 推导"
+        }
+      }
+    }
+  }
+}

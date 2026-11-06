@@ -248,6 +248,18 @@ class Prefs(val context: Context) {
     }
 
     /**
+     * Safety valve for the raw-command / bolus-probe debug HTTP endpoints.
+     * Off by default: when disabled those endpoints return 403.
+     */
+    fun unsafeRawCommandsEnabled(): Boolean {
+        return prefs().getBoolean("unsafe-raw-commands", false)
+    }
+
+    fun setUnsafeRawCommandsEnabled(b: Boolean) {
+        prefs().edit().putBoolean("unsafe-raw-commands", b).commit()
+    }
+
+    /**
      * Time range selected for the dashboard CGM/basal chart.
      */
     fun dashboardChartTimeRange(): String? {

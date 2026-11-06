@@ -14,13 +14,19 @@ import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.Messages
 import com.jwoglom.pumpx2.pump.messages.bluetooth.Characteristic
+import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
+import com.jwoglom.pumpx2.pump.messages.request.control.InitiateBolusRequest
 import com.jwoglom.pumpx2.pump.messages.response.ErrorResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionReleaseResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogParser
 import com.jwoglom.pumpx2.shared.Hex
 import com.jwoglom.pumpx2.shared.JavaHelpers
 import fi.iki.elonen.NanoHTTPD
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
 import java.io.IOException
@@ -36,6 +42,16 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 
 class HttpDebugApiService(private val context: Context, private val port: Int = 18282) {
+
+    companion object {
+        // How long /api/pump/raw-command keeps collecting messages on the same
+        // characteristic after sending.
+        private const val RAW_COMMAND_COLLECT_WINDOW_MS = 4_000L
+
+        // Waits for BolusPermissionResponse (-93) and InitiateBolusResponse (-97).
+        private const val BOLUS_PERMISSION_TIMEOUT_MS = 10_000L
+        private const val BOLUS_RESPONSE_TIMEOUT_MS = 10_000L
+    }
 
     private var server: DebugApiServer? = null
     private val prefs = Prefs(context)
@@ -59,6 +75,27 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
     // Pending pump message requests waiting for responses
     private val pendingPumpRequests = ConcurrentHashMap<Pair<Characteristic, Byte>, CompletableFuture<Message>>()
 
+    private data class MessageCollector(
+        val characteristic: Characteristic,
+        val untilMs: Long,
+        val messages: MutableList<Message> = CopyOnWriteArrayList()
+    )
+
+    // Short-lived per-request collectors used by /api/pump/raw-command to gather
+    // every message received on one characteristic right after sending.
+    private val transientMessageCollectors = CopyOnWriteArrayList<MessageCollector>()
+
+    private fun recordToCollectors(message: Message) {
+        val now = System.currentTimeMillis()
+        transientMessageCollectors.forEach { collector ->
+            if (now > collector.untilMs) {
+                transientMessageCollectors.remove(collector)
+            } else if (collector.characteristic == message.characteristic) {
+                collector.messages.add(message)
+            }
+        }
+    }
+
     // Callbacks to get current pump data from CommService
     var getCurrentPumpDataCallback: (() -> String)? = null
 
@@ -67,6 +104,12 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
 
     // Callback to send pump messages
     var sendPumpMessagesCallback: ((ByteArray) -> Unit)? = null
+
+    // Debug-only: deliver an arbitrary Message bypassing isBolusCommand filtering
+    var sendRawPumpCommandCallback: ((Message) -> Unit)? = null
+
+    // Debug-only: deliver an arbitrary Message via the signed SEND_PUMP_COMMAND_BOLUS path
+    var sendBolusCommandCallback: ((Message) -> Unit)? = null
 
     // Callback to send messaging messages
     var sendMessagingCallback: ((String, ByteArray) -> Unit)? = null
@@ -126,6 +169,7 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
         // Check if this message is a response to a pending request
         val key = Pair(message.characteristic, message.opCode())
         pendingPumpRequests[key]?.complete(message)
+        recordToCollectors(message)
     }
 
     fun onPumpCriticalError(reason: TandemError, source: SendType = SendType.STANDARD) {
@@ -139,6 +183,7 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                     Timber.d("Broadcasting pump critical ErrorResponse to ${pumpMessageStreamClients.size} clients (source=$source)")
                     broadcastToPumpMessageClients(jsonString, source)
                 }
+                recordToCollectors(reason.errorResponse)
             } catch (e: Exception) {
                 Timber.w(e, "Failed to stream ErrorResponse from onPumpCriticalError")
             }
@@ -279,6 +324,8 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 method == Method.GET && uri == "/api/pump/wait-connected" -> handlePumpWaitConnected()
                 method == Method.GET && uri == "/api/pump/messages" -> handlePumpMessagesStream(session)
                 method == Method.POST && uri == "/api/pump/messages" -> handlePumpMessagesPost(session)
+                method == Method.POST && uri == "/api/pump/raw-command" -> handlePumpRawCommand(session)
+                method == Method.POST && uri == "/api/pump/bolus-probe" -> handlePumpBolusProbe(session)
                 method == Method.GET && uri == "/api/comm/messages" -> handleMessagingStream(session)
                 method == Method.POST && uri == "/api/comm/messages" -> handleMessagingPost(session)
                 method == Method.GET && uri == "/api/prefs" -> handlePrefsGet()
@@ -912,6 +959,298 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                     "application/json",
                     errorJson.toString()
                 )
+            }
+        }
+
+        private fun readPostBody(session: IHTTPSession): String {
+            val contentLength = session.headers["content-length"]?.toIntOrNull() ?: 0
+            val body = ByteArray(contentLength)
+            var read = 0
+            while (read < contentLength) {
+                val n = session.inputStream.read(body, read, contentLength - read)
+                if (n <= 0) break
+                read += n
+            }
+            return String(body, 0, read)
+        }
+
+        /**
+         * Both unsafe debug endpoints share this gate. Returns a 403 response when
+         * the `unsafe-raw-commands` preference is disabled (the default), else null.
+         */
+        private fun unsafeEndpointsBlocked(): Response? {
+            if (prefs.unsafeRawCommandsEnabled()) return null
+            return errorResponse(
+                "Unsafe raw commands are disabled. Enable it in Settings > Reconfigure app " +
+                    "(preference 'unsafe-raw-commands') before calling this endpoint.",
+                Response.Status.FORBIDDEN
+            )
+        }
+
+        private fun messageToJson(message: Message): JSONObject {
+            val json = JSONObject()
+            json.put("opCode", message.opCode().toInt())
+            json.put("characteristic", message.characteristic.name)
+            json.put("cargo", Hex.encodeHexString(message.cargo))
+            json.put("className", message.javaClass.name)
+            try {
+                json.put("json", JSONObject(message.jsonToString()))
+            } catch (e: Exception) {
+                json.put("jsonError", e.message)
+            }
+            return json
+        }
+
+        /**
+         * Builds a Message by fully-qualified class name. Prefers a public byte[]
+         * constructor (the usual Message subclass entry point) and otherwise uses
+         * the no-arg constructor followed by Message.parse(cargo).
+         */
+        private fun buildMessageByClassName(className: String, cargo: ByteArray, cargoProvided: Boolean): Message {
+            val cls = Class.forName(className)
+            require(Message::class.java.isAssignableFrom(cls)) { "$className is not a class in the Message hierarchy" }
+            @Suppress("UNCHECKED_CAST")
+            val messageClass = cls as Class<out Message>
+            if (cargoProvided) {
+                val cargoCtor = messageClass.constructors.firstOrNull {
+                    it.parameterCount == 1 && it.parameterTypes[0] == ByteArray::class.java
+                }
+                if (cargoCtor != null) {
+                    return cargoCtor.newInstance(cargo) as Message
+                }
+            }
+            val message = messageClass.getDeclaredConstructor().newInstance()
+            if (cargoProvided && cargo.isNotEmpty()) {
+                Message::class.java.getMethod("parse", ByteArray::class.java).invoke(message, cargo)
+            }
+            return message
+        }
+
+        /**
+         * POST /api/pump/raw-command
+         * Body: {"opCode":int,"characteristic":"NAME","cargo":"hex","className":"optional FQCN"}
+         *
+         * Sends the constructed Message through a send-layer path that skips the
+         * isBolusCommand drop filter, then collects every message received on the
+         * same characteristic for a few seconds.
+         */
+        private fun handlePumpRawCommand(session: IHTTPSession): Response {
+            unsafeEndpointsBlocked()?.let { return it }
+            return try {
+                val json = JSONObject(readPostBody(session))
+                val className = json.optString("className", "").trim()
+                val cargoHexRaw = json.optString("cargo", "").trim()
+                val cargoProvided = cargoHexRaw.isNotEmpty()
+                val cargo = if (cargoProvided) Hex.decodeHex(cargoHexRaw) else ByteArray(0)
+                val opCode = if (json.has("opCode")) json.getInt("opCode") else null
+                val characteristicName = json.optString("characteristic", "").trim()
+
+                val message: Message = if (className.isNotEmpty()) {
+                    buildMessageByClassName(className, cargo, cargoProvided)
+                } else {
+                    if (opCode == null) {
+                        return errorResponse("Missing 'opCode' (or provide 'className')")
+                    }
+                    if (characteristicName.isEmpty()) {
+                        return errorResponse("Missing 'characteristic'")
+                    }
+                    val characteristic = try {
+                        Characteristic.valueOf(characteristicName.uppercase())
+                    } catch (e: Exception) {
+                        return errorResponse("Unknown characteristic: $characteristicName")
+                    }
+                    Messages.parse(cargo, opCode, characteristic)
+                        ?: return errorResponse("Unable to construct a Message for opCode=$opCode characteristic=$characteristic")
+                }
+
+                if (opCode != null && message.opCode().toInt() != opCode) {
+                    return errorResponse(
+                        "opCode mismatch: requested $opCode but ${message.javaClass.simpleName} has opCode ${message.opCode().toInt()}"
+                    )
+                }
+                if (!pumpConnected.get()) {
+                    return errorResponse("Pump is not connected; refusing to send", Response.Status.CONFLICT)
+                }
+                val send = sendRawPumpCommandCallback
+                    ?: return errorResponse("sendRawPumpCommandCallback not configured", Response.Status.INTERNAL_ERROR)
+
+                val collector = MessageCollector(
+                    message.characteristic,
+                    System.currentTimeMillis() + RAW_COMMAND_COLLECT_WINDOW_MS
+                )
+                transientMessageCollectors.add(collector)
+                val key = Pair(message.characteristic, message.responseOpCode)
+                val future = CompletableFuture<Message>()
+                pendingPumpRequests[key] = future
+
+                Timber.i("POST /api/pump/raw-command sending $message")
+                send.invoke(message)
+
+                var firstResponse: Message? = null
+                var timedOut = false
+                try {
+                    firstResponse = future.get(RAW_COMMAND_COLLECT_WINDOW_MS, TimeUnit.MILLISECONDS)
+                } catch (e: java.util.concurrent.TimeoutException) {
+                    timedOut = true
+                } catch (e: Exception) {
+                    timedOut = true
+                    Timber.w(e, "raw-command: error while waiting for response")
+                } finally {
+                    pendingPumpRequests.remove(key)
+                }
+
+                val remaining = collector.untilMs - System.currentTimeMillis()
+                if (remaining > 0) {
+                    Thread.sleep(remaining)
+                }
+                transientMessageCollectors.remove(collector)
+
+                val responses = JSONArray()
+                collector.messages.forEach { responses.put(messageToJson(it)) }
+
+                val out = JSONObject()
+                out.put("sent", true)
+                out.put("timedOut", timedOut)
+                out.put("request", messageToJson(message))
+                out.put("responseOpCode", message.responseOpCode.toInt())
+                if (firstResponse != null) {
+                    out.put("firstResponse", messageToJson(firstResponse))
+                }
+                out.put("responses", responses)
+                newFixedLengthResponse(Response.Status.OK, "application/json", out.toString())
+            } catch (e: Exception) {
+                Timber.e(e, "Error handling POST /api/pump/raw-command")
+                errorResponse("${e.message}", Response.Status.BAD_REQUEST)
+            }
+        }
+
+        /**
+         * POST /api/pump/bolus-probe
+         * Body: {"totalVolumeMilliunits":int,"extendedVolumeMilliunits":int,
+         *        "extendedSeconds":int,"bitmask":int,"bolusId":int,
+         *        "foodVolumeMilliunits":int,"correctionVolumeMilliunits":int,
+         *        "extended3":int}
+         *
+         * When bolusId is omitted/0 a BolusPermissionRequest (-94) is sent first;
+         * the returned bolusId is used to send InitiateBolusRequest (-98)
+         * immediately afterwards over the signed production bolus channel.
+         * The raw -97 status/statusTypeId from InitiateBolusResponse is returned.
+         */
+        private fun handlePumpBolusProbe(session: IHTTPSession): Response {
+            unsafeEndpointsBlocked()?.let { return it }
+            return try {
+                val json = JSONObject(readPostBody(session))
+                val totalVolume = json.optInt("totalVolumeMilliunits", 0).toLong()
+                val extendedVolume = json.optInt("extendedVolumeMilliunits", 0).toLong()
+                val extendedSeconds = json.optInt("extendedSeconds", 0).toLong()
+                val bitmask = json.optInt("bitmask", 0)
+                var bolusId = json.optInt("bolusId", 0)
+                val foodVolume = json.optInt("foodVolumeMilliunits", 0).toLong()
+                val correctionVolume = json.optInt("correctionVolumeMilliunits", 0).toLong()
+                val extended3 = json.optInt("extended3", 0).toLong()
+
+                if (totalVolume < 0 || extendedVolume < 0 || extendedSeconds < 0 ||
+                    foodVolume < 0 || correctionVolume < 0 || extended3 < 0
+                ) {
+                    return errorResponse("Volumes and extendedSeconds must be non-negative")
+                }
+                if (!pumpConnected.get()) {
+                    return errorResponse("Pump is not connected; refusing to send", Response.Status.CONFLICT)
+                }
+                val rawSend = sendRawPumpCommandCallback
+                    ?: return errorResponse("sendRawPumpCommandCallback not configured", Response.Status.INTERNAL_ERROR)
+                val bolusSend = sendBolusCommandCallback
+                    ?: return errorResponse("sendBolusCommandCallback not configured", Response.Status.INTERNAL_ERROR)
+
+                var permissionJson: JSONObject? = null
+                if (bolusId <= 0) {
+                    val permissionRequest = BolusPermissionRequest()
+                    val key = Pair(permissionRequest.characteristic, permissionRequest.responseOpCode)
+                    val future = CompletableFuture<Message>()
+                    pendingPumpRequests[key] = future
+                    Timber.i("POST /api/pump/bolus-probe sending $permissionRequest")
+                    rawSend.invoke(permissionRequest)
+                    val permissionResponse = try {
+                        future.get(BOLUS_PERMISSION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    } catch (e: Exception) {
+                        Timber.w(e, "bolus-probe: BolusPermissionRequest timed out")
+                        null
+                    } finally {
+                        pendingPumpRequests.remove(key)
+                    }
+
+                    if (permissionResponse !is BolusPermissionResponse) {
+                        return errorResponse(
+                            "BolusPermissionRequest did not return a BolusPermissionResponse " +
+                                "(got ${permissionResponse?.javaClass?.simpleName ?: "timeout"})",
+                            Response.Status.SERVICE_UNAVAILABLE
+                        )
+                    }
+                    bolusId = permissionResponse.bolusId
+                    permissionJson = messageToJson(permissionResponse)
+                    if (bolusId <= 0) {
+                        val err = JSONObject()
+                        err.put("error", "BolusPermissionResponse did not grant a bolusId")
+                        err.put("bolusPermission", permissionJson)
+                        return newFixedLengthResponse(
+                            Response.Status.CONFLICT,
+                            "application/json",
+                            err.toString()
+                        )
+                    }
+                }
+
+                val cargo = InitiateBolusRequest.buildCargo(
+                    totalVolume, bolusId, bitmask, foodVolume, correctionVolume,
+                    0, 0, 0L, extendedVolume, extendedSeconds, extended3
+                )
+                val request = InitiateBolusRequest(cargo)
+                val key = Pair(request.characteristic, request.responseOpCode)
+                val future = CompletableFuture<Message>()
+                pendingPumpRequests[key] = future
+                Timber.i("POST /api/pump/bolus-probe sending $request (bolusId=$bolusId)")
+                bolusSend.invoke(request)
+
+                val response = try {
+                    future.get(BOLUS_RESPONSE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                } catch (e: Exception) {
+                    Timber.w(e, "bolus-probe: InitiateBolusRequest timed out")
+                    null
+                } finally {
+                    pendingPumpRequests.remove(key)
+                }
+
+                val out = JSONObject()
+                out.put("sent", true)
+                out.put("bolusId", bolusId)
+                out.put("permission", permissionJson ?: JSONObject.NULL)
+                out.put("request", messageToJson(request))
+                if (response is InitiateBolusResponse) {
+                    out.put("status", response.status)
+                    out.put("statusTypeId", response.statusTypeId)
+                    out.put("statusType", response.statusType?.name)
+                    out.put("responseBolusId", response.bolusId)
+                    out.put("response", messageToJson(response))
+                } else {
+                    out.put("status", JSONObject.NULL)
+                    out.put("statusTypeId", JSONObject.NULL)
+                    if (response != null) {
+                        out.put("firstResponse", messageToJson(response))
+                        out.put("error", "Unexpected response type ${response.javaClass.simpleName}")
+                    } else {
+                        out.put("timedOut", true)
+                    }
+                }
+
+                val status = if (response is InitiateBolusResponse) {
+                    Response.Status.OK
+                } else {
+                    Response.Status.SERVICE_UNAVAILABLE
+                }
+                newFixedLengthResponse(status, "application/json", out.toString())
+            } catch (e: Exception) {
+                Timber.e(e, "Error handling POST /api/pump/bolus-probe")
+                errorResponse("${e.message}", Response.Status.BAD_REQUEST)
             }
         }
 

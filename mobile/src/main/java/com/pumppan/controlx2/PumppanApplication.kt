@@ -3,6 +3,8 @@ package com.pumppan.controlx2
 import android.app.Application
 import android.content.Context
 import com.jwoglom.controlx2.shared.FeatureFlag
+import com.pumppan.controlx2.bolus.send.BolusEvidenceLog
+import com.pumppan.controlx2.bolus.state.PumpCapabilities
 
 /**
  * pumppan: 全局 Application，挂三件事。
@@ -21,6 +23,8 @@ class PumppanApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         PumppanPumpModel.apply(this)
+        PumpCapabilities.initialize(this)
+        BolusEvidenceLog.initialize(this)
         FeatureFlag.initState(this)
     }
 }
