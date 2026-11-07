@@ -77,7 +77,7 @@ fun BolusShapePanel(
     val context = LocalContext.current
     val prefs = remember { Prefs(context) }
     // 百分比快捷项：固定 3 个、只能改值不能增删（与 12 条剂量预设不共用存储）。
-    var percentPresets by remember { mutableStateOf(prefs.bolusPercentPresets()) }
+    var percentPresets by remember { mutableStateOf(prefs.bolusPercentPresets(limits.extendedPercentPresets)) }
     var editingPresetIndex by remember { mutableStateOf<Int?>(null) }
     // 双态：false = 百分比（左），true = 剂量（右）；默认百分比。
     var doseMode by rememberSaveable { mutableStateOf(false) }
@@ -287,7 +287,7 @@ fun BolusShapePanel(
                     onClick = {
                         val value = text.toIntOrNull()?.coerceIn(0, 100) ?: initial
                         prefs.setBolusPercentPreset(index, value)
-                        percentPresets = prefs.bolusPercentPresets()
+                        percentPresets = prefs.bolusPercentPresets(limits.extendedPercentPresets)
                         editingPresetIndex = null
                     },
                 ) {

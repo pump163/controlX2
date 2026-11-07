@@ -12,9 +12,6 @@ enum class BolusEntryPage {
     /** 立即段在打 / 正在取消：取消页（不给新输入入口）。 */
     CANCEL,
 
-    /** 延后段在跑：二选一页（取消 / 追加普通大剂量）。 */
-    EITHER_OR,
-
     /** 刚完成：完成页（数秒后自动收起）。 */
     DONE,
 
@@ -41,8 +38,7 @@ fun deliveryToPage(delivery: BolusDelivery?, outcome: BolusOutcome): BolusEntryP
         BolusDeliveryState.UNKNOWN,
         -> BolusEntryPage.READONLY_CANCEL
 
-        BolusDeliveryState.ACTIVE ->
-            if (delivery.isExtendedRunning) BolusEntryPage.EITHER_OR else BolusEntryPage.CANCEL
+        BolusDeliveryState.ACTIVE -> BolusEntryPage.CANCEL
 
         BolusDeliveryState.CANCELLING -> BolusEntryPage.CANCEL
 

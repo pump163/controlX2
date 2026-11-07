@@ -36,6 +36,8 @@ fun BolusConfirmPanel(
     experimental: Boolean = false,
     overMaxBolus: Boolean = false,
     maxBolusText: String? = null,
+    /** 发起前「已有进行中」提示（§4.9.9）：只提示，不阻断，也不禁用按钮。 */
+    inProgressHint: String? = null,
     errorText: String? = null,
     deliverEnabled: Boolean = true,
     onDeliver: () -> Unit,
@@ -68,6 +70,15 @@ fun BolusConfirmPanel(
                 text = stringResource(R.string.bolus_v2_extended_experimental),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        if (!inProgressHint.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = inProgressHint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

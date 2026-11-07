@@ -59,7 +59,7 @@ class BolusSessionHolderTest {
     @Test
     fun staleWindow_boundaryIsStillActive() {
         holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
-        now += BolusLimits.STALE_ACTIVE_WINDOW_SECONDS * 1000L
+        now += BolusLimits.STALE_IMMEDIATE_MILLIS
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
 
         now += 1
@@ -69,7 +69,7 @@ class BolusSessionHolderTest {
     @Test
     fun evidenceRefreshesStaleTimer() {
         holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
-        now += 599_000
+        now += BolusLimits.STALE_IMMEDIATE_MILLIS - 1_000L
         // 状态机内每条新证据都经由 holder.update 刷新 lastEvidenceAtMillis。
         holder.update(now) { it }
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))

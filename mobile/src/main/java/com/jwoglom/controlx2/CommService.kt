@@ -58,6 +58,8 @@ import com.jwoglom.controlx2.shared.util.triggerAppReload
 import com.jwoglom.controlx2.shared.util.shortTime
 import com.jwoglom.controlx2.shared.util.unregisterAppReloadShutdownHook
 import com.jwoglom.controlx2.util.AppVersionCheck
+import com.pumppan.controlx2.bolus.BolusRouter
+import com.pumppan.controlx2.bolus.state.BolusControllerMode
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.bluetooth.Characteristic
 import com.jwoglom.pumpx2.pump.messages.builders.CurrentBatteryRequestBuilder
@@ -411,7 +413,14 @@ class CommService : Service(), CommServiceCallbacks {
                 bolusManager.confirmBolusRequest(PumpMessageSerializer.fromBytes(data) as InitiateBolusRequest, BolusManager.BolusRequestSource.WEAR)
             }
             MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE -> {
-                bolusManager.confirmBolusRequest(PumpMessageSerializer.fromBytes(data) as InitiateBolusRequest, BolusManager.BolusRequestSource.PHONE)
+                val request = PumpMessageSerializer.fromBytes(data) as InitiateBolusRequest
+                // v2：确认已在 v2 确认页完成 → 抑制旧通知 / 旧确认对话框，但发送仍走
+                // confirmBolusRequest 内的 INITIATE 签名链路（-98 照旧发出）。
+                bolusManager.confirmBolusRequest(
+                    request,
+                    BolusManager.BolusRequestSource.PHONE,
+                    autoApprove = BolusRouter.controllerMode(this) == BolusControllerMode.V2,
+                )
             }
             MessagePaths.TO_SERVER_BOLUS_CANCEL -> {
                 Timber.i("bolus state cancelled")

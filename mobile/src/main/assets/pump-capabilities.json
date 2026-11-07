@@ -23,11 +23,31 @@
       "maxExtendedSecondsNonCiq": 28800
     },
     "ui": {
-      "unsupportedHint": null
+      "unsupportedHint": null,
+      "extendedPercentPresets": [
+        0,
+        50,
+        75
+      ],
+      "endingPageDismissMs": 15000
     },
     "polling": {
       "immediatePollIntervalMs": 10000,
-      "extendedPollIntervalMs": 300000
+      "extendedPollIntervalMs": 300000,
+      "requestTimeoutMs": 10000
+    },
+    "timing": {
+      "confirmUnconfirmedMs": 10000,
+      "confirmUnknownMs": 60000,
+      "cancelConfirmMs": 10000,
+      "cancelThrottleWindowMs": 15000,
+      "maxCancelAttempts": 3,
+      "staleNoBolusMs": 600000,
+      "staleImmediateMs": 30000,
+      "staleExtendedGraceMs": 300000
+    },
+    "notifications": {
+      "refreshIntervalMs": 1000
     },
     "units": {
       "wireDuration": "seconds",

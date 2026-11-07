@@ -29,7 +29,7 @@ sealed interface CancelDecision {
     data object Throttled : CancelDecision
 }
 
-/** S8a 取消三态：取消中（10 秒窗口）/ 已停止 / 未停止（5 秒最坏兜底）。 */
+/** S8a 取消三态：取消中（[BolusLimits.cancelConfirmMillis] 窗口）/ 已停止 / 未停止。 */
 enum class CancelStatus {
     /** 本次会话没有发过 `-96`。 */
     IDLE,
@@ -55,6 +55,9 @@ class BolusSessionHolder(
     var session: BolusDelivery? = null
         private set
 
+    /** 会话快照每次变更后回调；持久化层在这里做「仅状态跃迁」过滤。 */
+    var onSessionChanged: ((BolusDelivery?) -> Unit)? = null
+
     var reconciling: Boolean = false
         private set
 
@@ -63,6 +66,9 @@ class BolusSessionHolder(
 
     /** 最近一次真正发出 `-96` 的时间；0 表示本次会话未取消过。 */
     private var lastCancelAtMillis = 0L
+
+    /** 供状态机做取消超时兜底；0 = 未发过 `-96`。 */
+    fun cancelSentAtMillis(): Long = lastCancelAtMillis
 
     fun begin(
         state: BolusDeliveryState,
@@ -79,17 +85,20 @@ class BolusSessionHolder(
             expectedEndAtMillis = expectedEndAtMillis,
             lastEvidenceAtMillis = now,
         )
+        onSessionChanged?.invoke(session)
     }
 
     /** 直接替换快照（状态机内部使用）。 */
     fun set(delivery: BolusDelivery?) {
         session = delivery
+        onSessionChanged?.invoke(session)
     }
 
     /** 在现有快照上做一次原子更新；没有会话时不做任何事。 */
     fun update(now: Long = clock(), block: (BolusDelivery) -> BolusDelivery) {
         val current = session ?: return
         session = block(current).copy(lastEvidenceAtMillis = now)
+        onSessionChanged?.invoke(session)
     }
 
     fun markReconciling(value: Boolean) {
@@ -101,11 +110,13 @@ class BolusSessionHolder(
         reconciling = false
         cancelAttempts.clear()
         lastCancelAtMillis = 0L
+        onSessionChanged?.invoke(null)
     }
 
     /** 只清会话，保留对账标记：对账期间的消息不能把「对账中」提前结束。 */
     fun clearSession() {
         session = null
+        onSessionChanged?.invoke(null)
     }
 
     /** 新会话开始：清空上一笔的取消节流记录。 */
@@ -126,12 +137,14 @@ class BolusSessionHolder(
         // 延展段只有 47 归零 / -91 才算结束；预计结束时刻过了先按 Unknown 处理，
         // 不在预计时刻把会话判成 Idle（§4.9 结束判据）。
         val expectedEnd = current.expectedEndAtMillis
-        if (expectedEnd != null && now > expectedEnd + EXTENDED_END_GRACE_MS) {
+        if (expectedEnd != null && now > expectedEnd + limits.staleExtendedGraceMillis) {
             return BolusActivity.UNKNOWN
         }
 
         if (!current.isLive) return BolusActivity.IDLE
-        if (now - current.lastEvidenceAtMillis > limits.staleActiveWindowMillis) {
+        // 证据过期分相：立即段 30 秒（3× 10 秒轮询）；延展段只看 expectedEnd + 5 分钟兜底，
+        // 否则 5 分钟一次的兜底查询本身就会被 30 秒窗口误判成 Unknown。
+        if (expectedEnd == null && now - current.lastEvidenceAtMillis > limits.staleImmediateMillis) {
             return BolusActivity.UNKNOWN
         }
         return BolusActivity.ACTIVE
@@ -178,22 +191,23 @@ class BolusSessionHolder(
         if (current.isFinished) return CancelDecision.NotActive
         if (current.state !in CANCELABLE_STATES) return CancelDecision.NotActive
         val bolusId = current.bolusId ?: return CancelDecision.MissingBolusId
-        cancelAttempts.removeAll { now - it >= CANCEL_THROTTLE_WINDOW_MS }
-        if (cancelAttempts.size >= MAX_CANCEL_ATTEMPTS) return CancelDecision.Throttled
+        cancelAttempts.removeAll { now - it >= limits.cancelThrottleWindowMillis }
+        if (cancelAttempts.size >= limits.maxCancelAttempts) return CancelDecision.Throttled
         cancelAttempts.add(now)
         lastCancelAtMillis = now
         session = current.copy(
             state = BolusDeliveryState.CANCELLING,
             lastEvidenceAtMillis = now,
         )
+        onSessionChanged?.invoke(session)
         return CancelDecision.Send(bolusId)
     }
 
     /**
      * S8a 取消三态（供取消页文案）：
      * - 已落定结局且不是「取消失败」→ [CancelStatus.CONFIRMED]；
-     * - 取消失败（UNKNOWN）或发出 `-96` 后满 [CANCEL_STOPPED_WORST_CASE_MS] 仍未停 → [CancelStatus.FAILED]；
-     * - 否则 [CancelStatus.SENDING]（手册 §9.9 的 10 秒确认窗口）。
+     * - 取消失败（UNKNOWN）或发出 `-96` 后满 [BolusLimits.cancelConfirmMillis] 仍未停 → [CancelStatus.FAILED]；
+     * - 否则 [CancelStatus.SENDING]（与状态机的取消终态兜底同一阈值，界面「最长 10 秒」不再是空话）。
      */
     fun cancelStatus(now: Long = clock()): CancelStatus {
         if (lastCancelAtMillis <= 0L) return CancelStatus.IDLE
@@ -203,7 +217,7 @@ class BolusSessionHolder(
             else CancelStatus.CONFIRMED
         }
         if (current.state == BolusDeliveryState.UNKNOWN) return CancelStatus.FAILED
-        return if (now - lastCancelAtMillis >= CANCEL_STOPPED_WORST_CASE_MS) {
+        return if (now - lastCancelAtMillis >= limits.cancelConfirmMillis) {
             CancelStatus.FAILED
         } else {
             CancelStatus.SENDING
@@ -216,14 +230,5 @@ class BolusSessionHolder(
             BolusDeliveryState.CANCELLING,
             BolusDeliveryState.UNKNOWN,
         )
-
-        const val MAX_CANCEL_ATTEMPTS = 3
-        /** 设计文档 §S8a：15 秒窗口内最多 3 次；与下方 5 秒「停止兜底」不是同一个窗口。 */
-        const val CANCEL_THROTTLE_WINDOW_MS = 15_000L
-        /** 5 秒内仍拿不到停止证据就按「未停止」提示断开管路。 */
-        const val CANCEL_STOPPED_WORST_CASE_MS = 5_000L
-
-        /** 延展段过了预计结束时刻仍无 47/-91 证据时的兜底窗口（§4.1 的 5 分钟）。 */
-        const val EXTENDED_END_GRACE_MS = 5 * 60_000L
     }
 }

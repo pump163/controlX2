@@ -55,7 +55,9 @@ import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusFlowStep
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
+import com.pumppan.controlx2.bolus.state.BolusSessionMeta
 import com.pumppan.controlx2.bolus.state.BolusShape
+import com.pumppan.controlx2.bolus.state.SOURCE_APP
 import com.pumppan.controlx2.bolus.state.BolusValidationError
 import com.pumppan.controlx2.bolus.state.CiqVersion
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
@@ -84,9 +86,11 @@ fun BolusFlowScreen(
 ) {
     // 发送协程里要读「当前」相位：state 是形参，改用 rememberUpdatedState 防捕获旧值。
     val latestState by rememberUpdatedState(state)
-    // CIQ 开关状态暂无独立数据源；版本另从 ControlIQInfo 响应取（见下）。
-    val ciqEnabled: Boolean? = null
     val dataStore = LocalDataStore.current
+    // CIQ 开关状态：来自 ControlIQInfo*Response.getClosedLoopEnabled（MainActivity 解析入 DataStore）；
+    // 未收到报文前为 null，按「不知道」处理，不假设已开启。
+    val ciqEnabledState by dataStore.controlIQEnabled.observeAsState()
+    val ciqEnabled: Boolean? = ciqEnabledState
     // Control-IQ 版本信号：V2（Control-IQ+ 1.5）→ 8h；V1（1.0）→ 2h；
     // 拿不到响应 → null（保守按 2h，不猜 8h）。
     val ciqInfo by dataStore.controlIQInfoResponse.observeAsState()
@@ -208,6 +212,14 @@ fun BolusFlowScreen(
                         } else {
                             null
                         },
+                        // 只用于落盘 single 块的补充字段（shape/剂量/来源），不进运行时状态机。
+                        meta = BolusSessionMeta(
+                            shape = state.shape.name,
+                            nowMilliunits = state.nowMilliunits.toLong(),
+                            laterMilliunits = state.laterMilliunits.toLong(),
+                            extendedSeconds = state.extendedSeconds.toLong(),
+                            source = SOURCE_APP,
+                        ),
                     )
                     onStateChange(latestState.copy(step = BolusFlowStep.RESULT))
                 }
@@ -248,6 +260,19 @@ fun BolusFlowScreen(
                 }
             },
         )
+    }
+
+    // 发起前「已有进行中」提示（§4.9.9）：只在确认页渲染一行，不阻断、不禁用按钮。
+    val inProgressDelivery = BolusRuntime.coordinator?.sessionState?.value
+    val inProgressHint = if (
+        inProgressDelivery != null &&
+        !inProgressDelivery.isFinished &&
+        inProgressDelivery.state != BolusDeliveryState.IDLE &&
+        inProgressDelivery.state != BolusDeliveryState.CANCELLED
+    ) {
+        stringResource(R.string.bolus_v2_confirm_in_progress)
+    } else {
+        null
     }
 
     Column(
@@ -291,6 +316,7 @@ fun BolusFlowScreen(
                     experimental = state.shape != BolusShape.NORMAL && !limits.remoteExtendedBolusVerified,
                     overMaxBolus = overMaxBolus,
                     maxBolusText = maxBolusMilliunits?.let { formatDose(it, limits.bolusIncrementMilliunits) },
+                    inProgressHint = inProgressHint,
                     errorText = sendErrorText,
                     deliverEnabled = pendingPlan == null,
                     onDeliver = deliver,

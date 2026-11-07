@@ -61,6 +61,29 @@ data class PumpCapabilityProfile(
     val immediatePollIntervalMs: Long = 10_000L,
     /** 延展段兜底查询间隔（§4.9.3）；默认 5 分钟。 */
     val extendedPollIntervalMs: Long = 300_000L,
+    /** 同一 opCode 在飞请求的超时（§4.9.3）；超时后才允许重发。 */
+    val requestTimeoutMs: Long = 10_000L,
+    /** 确认阶梯第一档：发出 `-98` 后多久未确认转 UNCONFIRMED。 */
+    val confirmUnconfirmedMs: Long = 10_000L,
+    /** 确认阶梯第二档：发出 `-98` 后多久仍无证据落 UNKNOWN。 */
+    val confirmUnknownMs: Long = 60_000L,
+    /** 取消确认窗口：发出 `-96` 后多久仍无 `-95` / `-91` → 落 UNKNOWN（取消的终态兜底）。 */
+    val cancelConfirmMs: Long = 10_000L,
+    /** 取消节流窗口（15 秒内最多 maxCancelAttempts 次）。 */
+    val cancelThrottleWindowMs: Long = 15_000L,
+    val maxCancelAttempts: Int = 3,
+    /** 无输注时会话痕迹的过期窗口。 */
+    val staleNoBolusMs: Long = 600_000L,
+    /** 立即段输注期的证据过期窗口（3× 10 秒轮询）。 */
+    val staleImmediateMs: Long = 30_000L,
+    /** 延展段过了预计结束时刻后的兜底窗口。 */
+    val staleExtendedGraceMs: Long = 300_000L,
+    /** V2 常驻通知的重绘间隔。 */
+    val notificationRefreshIntervalMs: Long = 1_000L,
+    /** 结局页自动关闭时长。 */
+    val endingPageDismissMs: Long = 15_000L,
+    /** 百分比快捷项默认值（仅作为 Prefs 的首次默认，之后以用户编辑为准）。 */
+    val extendedPercentPresets: List<Int> = listOf(0, 50, 75),
 ) {
     fun maxExtendedSeconds(ciqEnabled: Boolean?): Int =
         if (ciqEnabled == false) maxExtendedSecondsNonCiq else maxExtendedSecondsCiq
@@ -187,6 +210,8 @@ object PumpCapabilities {
         val units = obj.optJSONObject("units")
         val encodings = obj.optJSONObject("encodings")
         val polling = obj.optJSONObject("polling")
+        val timing = obj.optJSONObject("timing")
+        val notifications = obj.optJSONObject("notifications")
 
         return PumpCapabilityProfile(
             modelKey = key,
@@ -252,7 +277,49 @@ object PumpCapabilities {
             extendedPollIntervalMs = polling
                 ?.optLong("extendedPollIntervalMs", base.extendedPollIntervalMs)
                 ?: base.extendedPollIntervalMs,
+            requestTimeoutMs = polling
+                ?.optLong("requestTimeoutMs", base.requestTimeoutMs)
+                ?: base.requestTimeoutMs,
+            confirmUnconfirmedMs = timing
+                ?.optLong("confirmUnconfirmedMs", base.confirmUnconfirmedMs)
+                ?: base.confirmUnconfirmedMs,
+            confirmUnknownMs = timing
+                ?.optLong("confirmUnknownMs", base.confirmUnknownMs)
+                ?: base.confirmUnknownMs,
+            cancelConfirmMs = timing
+                ?.optLong("cancelConfirmMs", base.cancelConfirmMs)
+                ?: base.cancelConfirmMs,
+            cancelThrottleWindowMs = timing
+                ?.optLong("cancelThrottleWindowMs", base.cancelThrottleWindowMs)
+                ?: base.cancelThrottleWindowMs,
+            maxCancelAttempts = timing
+                ?.optInt("maxCancelAttempts", base.maxCancelAttempts)
+                ?: base.maxCancelAttempts,
+            staleNoBolusMs = timing
+                ?.optLong("staleNoBolusMs", base.staleNoBolusMs)
+                ?: base.staleNoBolusMs,
+            staleImmediateMs = timing
+                ?.optLong("staleImmediateMs", base.staleImmediateMs)
+                ?: base.staleImmediateMs,
+            staleExtendedGraceMs = timing
+                ?.optLong("staleExtendedGraceMs", base.staleExtendedGraceMs)
+                ?: base.staleExtendedGraceMs,
+            notificationRefreshIntervalMs = notifications
+                ?.optLong("refreshIntervalMs", base.notificationRefreshIntervalMs)
+                ?: base.notificationRefreshIntervalMs,
+            endingPageDismissMs = ui
+                ?.optLong("endingPageDismissMs", base.endingPageDismissMs)
+                ?: base.endingPageDismissMs,
+            extendedPercentPresets = readIntList(
+                ui, "extendedPercentPresets", base.extendedPercentPresets,
+            ),
         )
+    }
+
+    private fun readIntList(obj: JSONObject?, key: String, base: List<Int>): List<Int> {
+        val array = obj?.optJSONArray(key) ?: return base
+        val parsed = (0 until array.length()).map { array.optInt(it) }
+        return if (parsed.isEmpty()) base else parsed
     }
 
     /**

@@ -100,21 +100,50 @@ class BolusSessionControllerTest {
     // ---------- -94 BolusPermission ----------
 
     @Test
-    fun permissionWithId_goesAwaitingPhoneThenDelivering() {
+    fun permissionWithId_doesNotCreateSessionBeforeSend() {
         controller.applyMessage(BolusPermissionResponse(0, 77, 0))
-        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
-        assertEquals(77, controller.session?.bolusId)
+
+        // -94 只表示「可以发」，不再建立 CONFIRMING 会话：
+        // 否则流程中途退出时会留下一个没有 -98、也没有出口的等待态。
+        assertNull(controller.session)
+        assertEquals(BolusOutcome.Pending, controller.outcome)
 
         controller.applyMessage(deliveringBolus(77))
         assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+        assertEquals(77, controller.session?.bolusId)
     }
 
     @Test
-    fun permissionWithoutId_staysAwaitingPhone() {
+    fun permissionWithoutId_doesNotCreateSession() {
         controller.applyMessage(BolusPermissionResponse(0, 0, 0))
 
-        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
-        assertNull(controller.session?.bolusId)
+        assertNull(controller.session)
+        assertEquals(BolusOutcome.Pending, controller.outcome)
+    }
+
+    // ---------- 取消终态兜底 ----------
+
+    @Test
+    fun cancelling_without95_fallsUnknownAtCancelConfirmWindow() {
+        controller.applyMessage(deliveringBolus(77))
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+
+        controller.holder.requestCancel(connected = true, now = now)
+        assertEquals(BolusDeliveryState.CANCELLING, controller.session?.state)
+
+        now += 9_999
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.CANCELLING, controller.session?.state)
+
+        // -95 一直不来：超过取消确认窗口必须落终态，不能无限停在 CANCELLING。
+        now += 1
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.UNKNOWN, controller.session?.state)
+        assertTrue(controller.session?.isFinished == true)
+        assertEquals(
+            BolusOutcome.Failed(error = BolusError.TIMEOUT, fromCancel = true),
+            controller.outcome,
+        )
     }
 
     @Test
@@ -175,6 +204,29 @@ class BolusSessionControllerTest {
 
         assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
         assertEquals(BolusOutcome.Pending, controller.outcome)
+    }
+
+    // ---------- 结局页「关闭」 ----------
+
+    @Test
+    fun dismissFinished_clearsFinishedSessionAndResetsOutcome() {
+        controller.applyMessage(deliveringBolus(77))
+        controller.applyMessage(LastBolusStatusV2Response(1, 77, 0, 2300, 3, 0, 0, 0, 2300))
+        assertEquals(BolusOutcome.Success, controller.outcome)
+
+        controller.dismissFinished()
+
+        assertNull(controller.session)
+        assertEquals(BolusOutcome.Pending, controller.outcome)
+    }
+
+    @Test
+    fun dismissFinished_doesNotClearActiveSession() {
+        controller.applyMessage(deliveringBolus(77))
+
+        controller.dismissFinished()
+
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
     }
 
     // ---------- 未知 / 字段缺失 ----------

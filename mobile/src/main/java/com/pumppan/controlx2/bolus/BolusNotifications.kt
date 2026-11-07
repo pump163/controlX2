@@ -24,6 +24,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAb
 import com.pumppan.controlx2.bolus.state.BolusDelivery
 import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.bolus.state.BolusError
+import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.CancelStatus
 import timber.log.Timber
@@ -45,6 +46,8 @@ class BolusNotifications(
     private val outcome: () -> BolusOutcome,
     private val connected: () -> Boolean,
     private val cancelStatus: () -> CancelStatus = { CancelStatus.IDLE },
+    /** 重绘间隔；由 `pump-capabilities.json` 的 `notifications.refreshIntervalMs` 注入。 */
+    private val refreshIntervalMillis: Long = BolusLimits.NOTIFICATION_REFRESH_INTERVAL_MILLIS,
 ) {
     private val appContext: Context = context.applicationContext
     private val handler = Handler(Looper.getMainLooper())
@@ -253,7 +256,7 @@ class BolusNotifications(
     private fun startTicker() {
         if (tickerScheduled) return
         tickerScheduled = true
-        handler.postDelayed(tick, REFRESH_INTERVAL_MILLIS)
+        handler.postDelayed(tick, refreshIntervalMillis)
     }
 
     private fun stopTicker() {
@@ -308,7 +311,6 @@ class BolusNotifications(
 
     companion object {
         const val NOTIFICATION_ID = 3001
-        const val REFRESH_INTERVAL_MILLIS = 1000L
     }
 }
 

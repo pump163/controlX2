@@ -37,7 +37,16 @@ class BolusManager(
         WEAR("wear")
     }
 
-    fun confirmBolusRequest(request: InitiateBolusRequest, source: BolusRequestSource) {
+    /**
+     * @param autoApprove 确认已在 v2 大剂量确认页完成：跳过旧「待确认」通知与旧确认对话框，
+     *   但仍然走**同一条** `INITIATE` 签名链路把 `-98` 真正发给泵。
+     *   只由 v2 模式下的 phone 请求传 true；wear / legacy 保持默认 false。
+     */
+    fun confirmBolusRequest(
+        request: InitiateBolusRequest,
+        source: BolusRequestSource,
+        autoApprove: Boolean = false,
+    ) {
         val units = twoDecimalPlaces(InsulinUnit.from1000To1(request.totalVolume))
         Timber.i("confirmBolusRequest $units: $request")
         bolusNotificationId++
@@ -66,11 +75,13 @@ class BolusManager(
             )
         }
 
-        fun getConfirmIntent(): PendingIntent {
+        fun getConfirmIntent(silent: Boolean = false): PendingIntent {
             val confirmIntent =
                 Intent(context, BolusNotificationBroadcastReceiver::class.java).apply {
                     putExtra("action", "INITIATE")
                     putExtra("request", PumpMessageSerializer.toBytes(request))
+                    // 接收器据此跳过旧式进度通知；发送链路不受影响。
+                    if (silent) putExtra("silent", true)
                 }
             return PendingIntent.getBroadcast(
                 context,
@@ -85,6 +96,14 @@ class BolusManager(
             Prefs(context).wearBolusAutoApproveTimeoutSeconds() else 0
         sendWearCommMessage(MessagePaths.TO_CLIENT_BOLUS_MIN_NOTIFY_THRESHOLD, "$minNotifyThreshold".toByteArray())
         sendWearCommMessage(MessagePaths.TO_CLIENT_WEAR_AUTO_APPROVE_TIMEOUT, "$autoApproveTimeout".toByteArray())
+
+        if (autoApprove) {
+            // v2：用户在 v2 确认页已经确认过，这里只把请求交回同一条 INITIATE 签名链路：
+            // 不发旧「待确认」通知，也不广播旧确认对话框（否则会和 v2 页面重复确认）。
+            Timber.i("v2 bolus: 确认已完成，抑制旧通知/旧对话框，直接发 INITIATE（$units U）")
+            getConfirmIntent(silent = true).send()
+            return
+        }
 
         if (InsulinUnit.from1000To1(request.totalVolume) >= minNotifyThreshold || minNotifyThreshold == 0.0) {
             Timber.i("Requesting permission for bolus because $units >= minNotifyThreshold=$minNotifyThreshold")

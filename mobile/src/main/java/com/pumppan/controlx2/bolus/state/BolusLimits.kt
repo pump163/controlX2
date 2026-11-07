@@ -61,10 +61,30 @@ data class BolusLimits(
     val unsupportedHint: String? = null,
     /** 型号显示名（来自 `pump-capabilities.json` 的 `displayName`）；null 时 UI 回落「当前型号」。 */
     val modelDisplayName: String? = null,
-    val staleActiveWindowSeconds: Long = STALE_ACTIVE_WINDOW_SECONDS,
-    val bolusResponseTimeoutSeconds: Long = BOLUS_RESPONSE_TIMEOUT_SECONDS,
-    val cancelMaxAttempts: Int = CANCEL_MAX_ATTEMPTS,
-    val cancelAttemptWindowSeconds: Long = CANCEL_ATTEMPT_WINDOW_SECONDS,
+    /** 无输注时会话痕迹的过期窗口。 */
+    val staleNoBolusMillis: Long = STALE_NO_BOLUS_MILLIS,
+    /** 立即段输注期的证据过期窗口（3× 10 秒轮询）。 */
+    val staleImmediateMillis: Long = STALE_IMMEDIATE_MILLIS,
+    /** 延展段过了预计结束时刻后的兜底窗口。 */
+    val staleExtendedGraceMillis: Long = STALE_EXTENDED_GRACE_MILLIS,
+    /** 同一 opCode 在飞请求的超时。 */
+    val requestTimeoutMillis: Long = REQUEST_TIMEOUT_MILLIS,
+    /** 确认阶梯第一档：`-98` 发出后多久未确认转 UNCONFIRMED。 */
+    val confirmUnconfirmedMillis: Long = CONFIRM_UNCONFIRMED_MILLIS,
+    /** 确认阶梯第二档：`-98` 发出后多久仍无证据落 UNKNOWN。 */
+    val confirmUnknownMillis: Long = CONFIRM_UNKNOWN_MILLIS,
+    /**
+     * 取消确认窗口：发出 `-96` 后多久仍没有 `-95` / `-91` 停止证据 → 落 UNKNOWN。
+     * 取消分支的**终态兜底**，与界面「最长 10 秒」同源；不能只靠回执到达才推进。
+     */
+    val cancelConfirmMillis: Long = CANCEL_CONFIRM_MILLIS,
+    /** 取消节流窗口（窗口内最多 [maxCancelAttempts] 次）。 */
+    val cancelThrottleWindowMillis: Long = CANCEL_THROTTLE_WINDOW_MILLIS,
+    val maxCancelAttempts: Int = MAX_CANCEL_ATTEMPTS,
+    /** V2 常驻通知的重绘间隔。 */
+    val notificationRefreshIntervalMillis: Long = NOTIFICATION_REFRESH_INTERVAL_MILLIS,
+    /** 结局页自动关闭时长。 */
+    val endingPageDismissMillis: Long = ENDING_PAGE_DISMISS_MILLIS,
     /**
      * 扩展大剂量「立即占比」的预设快捷项（百分比整数）。
      * 硬默认兜底；外置文件 schema 见 docs/feature/阈值配置外置-设计.md。
@@ -72,12 +92,6 @@ data class BolusLimits(
      */
     val extendedPercentPresets: List<Int> = EXTENDED_PERCENT_PRESETS,
 ) {
-    val staleActiveWindowMillis: Long get() = staleActiveWindowSeconds * 1000L
-
-    val bolusResponseTimeoutMillis: Long get() = bolusResponseTimeoutSeconds * 1000L
-
-    val cancelAttemptWindowMillis: Long get() = cancelAttemptWindowSeconds * 1000L
-
     /**
      * 延展时长上限（秒），按 Control-IQ 版本分叉：
      * - [CiqVersion.V1]（Control-IQ 1.0）→ 2h（7200s）；
@@ -117,27 +131,36 @@ data class BolusLimits(
         fun incrementFor(model: KnownDeviceModel?): Int =
             PumpCapabilities.forModel(model).bolusIncrementMilliunits
 
-        /**
-         * 按型号生成一份阈值：所有数值与 `remoteExtendedBolusStart` 都取自
-         * [PumpCapabilities.forModel]；本类常量只作兜底。
-         */
-        fun forModel(model: KnownDeviceModel?): BolusLimits {
-            val profile = PumpCapabilities.forModel(model)
-            return Default.copy(
-                bolusIncrementMilliunits = profile.bolusIncrementMilliunits,
-                minBolusMilliunits = profile.minBolusMilliunits,
-                minImmediateMilliunits = profile.minImmediateMilliunits,
-                clientMinExtendedCheckMilliunits = profile.clientMinExtendedCheckMilliunits,
-                minExtendedSeconds = profile.minExtendedSeconds,
-                maxBolusMilliunits = profile.maxBolusMilliunits,
-                maxExtendedSecondsCiq = profile.maxExtendedSecondsCiq,
-                maxExtendedSecondsNonCiq = profile.maxExtendedSecondsNonCiq,
-                remoteExtendedBolusStart = profile.remoteExtendedBolusStart,
-                remoteExtendedBolusVerified = profile.remoteExtendedBolusVerified,
-                unsupportedHint = profile.unsupportedHint,
-                modelDisplayName = profile.modelDisplayName,
-            )
-        }
+        /** 由能力档案（配置或兜底）生成阈值；所有数值单一来源是 `pump-capabilities.json`。 */
+        fun fromProfile(profile: PumpCapabilityProfile): BolusLimits = Default.copy(
+            bolusIncrementMilliunits = profile.bolusIncrementMilliunits,
+            minBolusMilliunits = profile.minBolusMilliunits,
+            minImmediateMilliunits = profile.minImmediateMilliunits,
+            clientMinExtendedCheckMilliunits = profile.clientMinExtendedCheckMilliunits,
+            minExtendedSeconds = profile.minExtendedSeconds,
+            maxBolusMilliunits = profile.maxBolusMilliunits,
+            maxExtendedSecondsCiq = profile.maxExtendedSecondsCiq,
+            maxExtendedSecondsNonCiq = profile.maxExtendedSecondsNonCiq,
+            remoteExtendedBolusStart = profile.remoteExtendedBolusStart,
+            remoteExtendedBolusVerified = profile.remoteExtendedBolusVerified,
+            unsupportedHint = profile.unsupportedHint,
+            modelDisplayName = profile.modelDisplayName,
+            staleNoBolusMillis = profile.staleNoBolusMs,
+            staleImmediateMillis = profile.staleImmediateMs,
+            staleExtendedGraceMillis = profile.staleExtendedGraceMs,
+            requestTimeoutMillis = profile.requestTimeoutMs,
+            confirmUnconfirmedMillis = profile.confirmUnconfirmedMs,
+            confirmUnknownMillis = profile.confirmUnknownMs,
+            cancelConfirmMillis = profile.cancelConfirmMs,
+            cancelThrottleWindowMillis = profile.cancelThrottleWindowMs,
+            maxCancelAttempts = profile.maxCancelAttempts,
+            notificationRefreshIntervalMillis = profile.notificationRefreshIntervalMs,
+            endingPageDismissMillis = profile.endingPageDismissMs,
+            extendedPercentPresets = profile.extendedPercentPresets,
+        )
+
+        fun forModel(model: KnownDeviceModel?): BolusLimits =
+            fromProfile(PumpCapabilities.forModel(model))
 
         const val MAX_BOLUS_MILLIUNITS = 25_000
         /** 客户端兜底：与 pumpx2 `MIN_EXTENDED_BOLUS_MILLIUNITS` 同值，**不是**泵的下限。 */
@@ -146,10 +169,20 @@ data class BolusLimits(
         const val MIN_EXTENDED_SECONDS = 900
         const val MAX_EXTENDED_SECONDS_NON_CIQ = 28_800
         const val MAX_EXTENDED_SECONDS_CIQ = 7_200
-        const val STALE_ACTIVE_WINDOW_SECONDS = 600L
-        const val BOLUS_RESPONSE_TIMEOUT_SECONDS = 30L
-        const val CANCEL_MAX_ATTEMPTS = 3
-        const val CANCEL_ATTEMPT_WINDOW_SECONDS = 15L
+        /** 无输注时会话痕迹的过期兜底（10 分钟）。 */
+        const val STALE_NO_BOLUS_MILLIS = 600_000L
+        /** 立即段证据过期兜底（3× 10 秒轮询）。 */
+        const val STALE_IMMEDIATE_MILLIS = 30_000L
+        /** 延展段预计结束后仍无结束证据的兜底（5 分钟）。 */
+        const val STALE_EXTENDED_GRACE_MILLIS = 300_000L
+        const val REQUEST_TIMEOUT_MILLIS = 10_000L
+        const val CONFIRM_UNCONFIRMED_MILLIS = 10_000L
+        const val CONFIRM_UNKNOWN_MILLIS = 60_000L
+        const val CANCEL_CONFIRM_MILLIS = 10_000L
+        const val CANCEL_THROTTLE_WINDOW_MILLIS = 15_000L
+        const val MAX_CANCEL_ATTEMPTS = 3
+        const val NOTIFICATION_REFRESH_INTERVAL_MILLIS = 1_000L
+        const val ENDING_PAGE_DISMISS_MILLIS = 15_000L
 
         /** 立即占比预设：0:100、50:50、75:25（0 已真机确认可接受）。 */
         val EXTENDED_PERCENT_PRESETS = listOf(0, 50, 75)

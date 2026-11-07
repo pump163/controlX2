@@ -46,8 +46,9 @@ enum class BolusControllerMode {
 class BolusSessionController(
     private val mode: () -> BolusControllerMode = { BolusControllerMode.LEGACY },
     private val clock: () -> Long = { System.currentTimeMillis() },
+    private val limits: BolusLimits = BolusLimits.Default,
 ) {
-    val holder = BolusSessionHolder(clock = clock)
+    val holder = BolusSessionHolder(limits = limits, clock = clock)
 
     val session: BolusDelivery?
         get() = holder.session
@@ -83,7 +84,29 @@ class BolusSessionController(
     }
 
     /**
-     * 由协调器的 ticker 驱动：确认阶梯（10s 警示 / 60s UNKNOWN）与延展超时兜底。
+     * 进程重启后从落盘信封恢复单笔会话：只还原快照与结局，**不发送、不取消**。
+     * 是否仍有效（是否过期）由调用方判断。
+     */
+    fun restoreSession(delivery: BolusDelivery) {
+        if (mode() != BolusControllerMode.V2) return
+        outcome = delivery.outcome
+        holder.set(delivery)
+    }
+
+    /**
+     * 结局页「关闭」：只清**已落定**的会话并把结局复位；进行中的会话一律不动，
+     * 避免把一笔还在输注的会话误清掉。
+     */
+    fun dismissFinished() {
+        if (mode() != BolusControllerMode.V2) return
+        val current = holder.session
+        if (current != null && !current.isFinished) return
+        outcome = BolusOutcome.Pending
+        holder.clear()
+    }
+
+    /**
+     * 由协调器的 ticker 驱动：确认阶梯（10s 警示 / 60s UNKNOWN）、取消终态兜底与延展超时兜底。
      * 没有时钟推进时，只有报文到达才会改变状态。
      */
     fun onTick(now: Long = clock()) {
@@ -93,25 +116,53 @@ class BolusSessionController(
 
         when (current.state) {
             BolusDeliveryState.CONFIRMING -> {
-                val startedAt = current.startedAtMillis ?: return
-                if (now - startedAt >= CONFIRM_UNCONFIRMED_MS) {
-                    holder.update(now) { it.copy(state = BolusDeliveryState.UNCONFIRMED) }
+                // startedAtMillis 只在 -98 真正发出后才有值；只有 -94 授权时为 null，
+                // 用最近证据时间兜底，避免「等确认」这一相位没有出口。
+                val anchor = current.startedAtMillis ?: current.lastEvidenceAtMillis
+                if (anchor > 0L && now - anchor >= limits.confirmUnconfirmedMillis) {
+                    Timber.w("bolus: 超过 %dms 未收到开始确认，转 UNCONFIRMED", limits.confirmUnconfirmedMillis)
+                    holder.update(now) {
+                        it.copy(
+                            state = BolusDeliveryState.UNCONFIRMED,
+                            startedAtMillis = it.startedAtMillis ?: anchor,
+                        )
+                    }
                 }
             }
 
             BolusDeliveryState.UNCONFIRMED -> {
-                val startedAt = current.startedAtMillis ?: return
-                if (now - startedAt >= CONFIRM_UNKNOWN_MS) {
-                    Timber.w("bolus: 发出 -98 后 %dms 仍无开始证据，落 UNKNOWN", CONFIRM_UNKNOWN_MS)
+                val anchor = current.startedAtMillis ?: current.lastEvidenceAtMillis
+                if (anchor > 0L && now - anchor >= limits.confirmUnknownMillis) {
+                    Timber.w("bolus: 发出 -98 后 %dms 仍无开始证据，落 UNKNOWN", limits.confirmUnknownMillis)
                     holder.update(now) { it.copy(state = BolusDeliveryState.UNKNOWN) }
                 }
             }
 
             BolusDeliveryState.ACTIVE -> {
                 val expectedEnd = current.expectedEndAtMillis ?: return
-                if (now > expectedEnd + EXTENDED_UNKNOWN_GRACE_MS) {
-                    Timber.w("bolus: 延展预计结束 %dms 后仍无 47/-91，落 UNKNOWN", EXTENDED_UNKNOWN_GRACE_MS)
+                if (now > expectedEnd + limits.staleExtendedGraceMillis) {
+                    Timber.w("bolus: 延展预计结束 %dms 后仍无 47/-91，落 UNKNOWN", limits.staleExtendedGraceMillis)
                     holder.update(now) { it.copy(state = BolusDeliveryState.UNKNOWN) }
+                }
+            }
+
+            BolusDeliveryState.CANCELLING -> {
+                // 取消分支的终态兜底：-95 没回来时不能无限停在 CANCELLING。
+                // 超过窗口仍无停止证据 → UNKNOWN + fromCancel，交给结局页给出断管指引。
+                val cancelAt = holder.cancelSentAtMillis()
+                if (cancelAt > 0L && now - cancelAt >= limits.cancelConfirmMillis) {
+                    Timber.w(
+                        "bolus: 发出 -96 后 %dms 未收到 -95/-91，落 UNKNOWN（取消失败）",
+                        limits.cancelConfirmMillis,
+                    )
+                    finish(
+                        BolusDeliveryState.UNKNOWN,
+                        BolusOutcome.Failed(
+                            error = BolusError.TIMEOUT,
+                            fromCancel = true,
+                        ),
+                        now,
+                    )
                 }
             }
 
@@ -346,10 +397,16 @@ class BolusSessionController(
 
         val bolusId = message.bolusId.takeIf { it != 0 } ?: current.bolusId
         holder.update(clock()) {
-            it.copy(
-                state = BolusDeliveryState.ACTIVE,
-                bolusId = bolusId,
-            )
+            // 取消中收到（迟到的）-97 成功：不能把状态退回 ACTIVE，
+            // 否则取消的终态兜底会从这一刻重新起算，甚至覆盖正在发出的 -96。
+            if (it.state == BolusDeliveryState.CANCELLING) {
+                it.copy(lastEvidenceAtMillis = clock())
+            } else {
+                it.copy(
+                    state = BolusDeliveryState.ACTIVE,
+                    bolusId = bolusId,
+                )
+            }
         }
     }
 
@@ -414,16 +471,15 @@ class BolusSessionController(
             if (message.bolusId == 0) {
                 Timber.w("bolus: 权限已授予但缺少 bolusId，等待 44 补全")
             }
+            // -94 只表示「可以发」，**不创建会话**：真正的会话由 markInitiateSent（-98 发出）建立。
+            // 之前在这里无条件 set(CONFIRMING, startedAt=null)，一旦用户中途退出流程，
+            // 迟到的授权会留下一个没有 -98、也没有出口的 CONFIRMING，并且会被落盘还原。
+            // 已有会话（已发出 / 正在取消 / 已 ACTIVE）时同样不能被迟到的 -94 回退状态。
+            val current = holder.session
+            if (current != null && !current.isFinished) {
+                holder.update(clock()) { it }
+            }
             outcome = BolusOutcome.Pending
-            holder.set(
-                BolusDelivery(
-                    state = BolusDeliveryState.CONFIRMING,
-                    bolusId = message.bolusId.takeIf { it != 0 },
-                    // 阶梯从 -98 发出时起算；-94 只表示「可以发」。
-                    startedAtMillis = null,
-                    lastEvidenceAtMillis = clock(),
-                )
-            )
             return
         }
         if (nackReason == BolusPermissionResponse.NackReason.MPP_STATE_WAITING_FOR_RESPONSE) return
@@ -484,14 +540,5 @@ class BolusSessionController(
 
     private companion object {
         const val EXTENDED_STATUS_NONE = 0
-
-        /** 0–10s 未确认 → UNCONFIRMED（提示检查泵，继续等）。 */
-        const val CONFIRM_UNCONFIRMED_MS = 10_000L
-
-        /** 60s 仍无开始证据 → UNKNOWN（不给重试）。 */
-        const val CONFIRM_UNKNOWN_MS = 60_000L
-
-        /** 延展预计结束后的兜底：5 分钟仍无 47/-91 → UNKNOWN（§4.1）。 */
-        const val EXTENDED_UNKNOWN_GRACE_MS = 5 * 60_000L
     }
 }

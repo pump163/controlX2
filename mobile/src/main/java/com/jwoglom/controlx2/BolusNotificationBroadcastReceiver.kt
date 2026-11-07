@@ -63,6 +63,9 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
             }
             "INITIATE" -> {
                 CommService.cancelAutoApproveStatic(context)
+                // v2：确认已在 v2 页面完成，旧式「请求中」通知由 BolusNotifications 统一渲染，
+                // 这里只负责把签名后的请求发出去，不再画旧通知。
+                val silent = intent?.getBooleanExtra("silent", false) == true
                 validateBolusInfo(intent, context)?.let { intentRequest ->
                     Timber.w("BolusNotificationBroadcastReceiver performing $intentRequest")
                     val secretKey = prefs(context)?.getString("initiateBolusSecret", "") ?: ""
@@ -88,15 +91,19 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                     }
                     if (!PumpState.actionsAffectingInsulinDeliveryEnabled()) {
                         // The same message will appear on the wearable
-                        reply(
-                            context, notifId, confirmBolusRequestBaseNotification(
-                                context,
-                                context?.getString(R.string.bolus_not_enabled) ?: "",
-                                context?.getString(R.string.bolus_was_requested_set_not_enabled) ?: ""
+                        if (!silent) {
+                            reply(
+                                context, notifId, confirmBolusRequestBaseNotification(
+                                    context,
+                                    context?.getString(R.string.bolus_not_enabled) ?: "",
+                                    context?.getString(R.string.bolus_was_requested_set_not_enabled) ?: ""
+                                )
                             )
-                        )
+                        }
                         return
                     }
+
+                    if (silent) return
 
                     val cancelIntent =
                         Intent(context, BolusNotificationBroadcastReceiver::class.java).apply {

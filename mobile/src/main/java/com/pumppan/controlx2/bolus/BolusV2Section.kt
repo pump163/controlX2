@@ -36,8 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import android.os.SystemClock
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.R
@@ -187,7 +191,7 @@ fun BolusV2Section(
 }
 
 /**
- * 「大剂量」标签的内容：有草稿 → 三步流程页；无草稿 → 按相位映射的动作表 / 结局页。
+ * 「大剂量」标签的内容：有草稿 → 三步流程页；无草稿 → 三段式页面（提醒 / 状态 / 入口）。
  */
 @Composable
 private fun BolusTabPage(
@@ -216,72 +220,70 @@ private fun BolusTabPage(
         return
     }
 
+    // 结局停留自动收起：只统计页面处于 RESUMED 的时间；切后台/离开时暂停，回来接着计。
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(page, limits.endingPageDismissMillis, lifecycle) {
+        if (page != BolusEntryPage.DONE) return@LaunchedEffect
+        var remaining = limits.endingPageDismissMillis
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (remaining <= 0L) return@repeatOnLifecycle
+            val startedAt = SystemClock.elapsedRealtime()
+            var completed = false
+            try {
+                delay(remaining)
+                remaining = 0L
+                completed = true
+            } finally {
+                if (!completed) remaining -= SystemClock.elapsedRealtime() - startedAt
+            }
+            // 必须走协调器入口：清会话之外还要复位结局并立刻推送 UI，
+            // 否则页面会一直停在完成态，直到下一条泵报文才刷新。
+            if (completed) BolusRuntime.coordinator?.dismissFinish()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // 一进大剂量页就能看到上次大剂量；静态提示，不弹窗、不拦截、不可点击。
+        // 段一 · 提醒：一行灰字，任何状态下都在，与当前这一笔无关。
         LastBolusReminder(
             modifier = Modifier.padding(bottom = 8.dp),
         )
+        // 段二 · 状态：标题固定「大剂量」+ 一句状态描述；状态变化只改这一句，不重排整页。
         Text(
             text = stringResource(R.string.dashboard_bolus),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        val startFlow = { onSessionChange(session.startFlow(BolusTab.BOLUS)) }
-        when (page) {
-            BolusEntryPage.DRAFT -> {
-                // ABORTED / FAILED 也映射到 DRAFT：失败/中止后要留一行结局提示，
-                // 否则用户退出流程页后看不到任何反馈（成功结局不在此重复展示）。
-                val outcome = BolusRuntime.coordinator?.outcomeState?.value
-                if (outcome is BolusOutcome.Failed) {
-                    Text(
-                        text = if (outcome.fromCancel) stringResource(R.string.bolus_v2_outcome_failed_cancel)
-                        else failureText(outcome.error),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
-                BolusActionMenu(
-                    onNewBolus = startFlow,
-                    onBack = onSectionBack,
-                    sendPumpCommands = sendPumpCommands,
-                )
+        StateDescription(
+            delivery = delivery,
+            outcome = BolusRuntime.coordinator?.outcomeState?.value ?: BolusOutcome.Pending,
+        )
+        // 硬约束：只有空闲（DRAFT）/ 已完成（DONE）才允许进输入页；任何进行中的相位
+        // （申请中 / 已确认 / 输注中 / 取消中 / 状态未知）都不给入口，也不允许程序性进入。
+        val startFlow = {
+            if (page == BolusEntryPage.DRAFT || page == BolusEntryPage.DONE) {
+                onSessionChange(session.startFlow(BolusTab.BOLUS))
             }
-
-            BolusEntryPage.CANCEL -> BolusActionMenu(
+        }
+        // 段三 · 入口加按键：空闲与完成态共用同一张表（只换段二那句文案）；
+        // 输注期间整段不出现（取消行属于段二，见 BolusActionMenu）。
+        when (page) {
+            BolusEntryPage.DRAFT, BolusEntryPage.DONE -> BolusActionMenu(
                 onNewBolus = startFlow,
                 onBack = onSectionBack,
                 sendPumpCommands = sendPumpCommands,
-                showNewBolus = false, // 立即段在打 / 正在取消：不给新输入入口
-                headerText = stateHeader(delivery),
-                hiddenText = stringResource(R.string.bolus_v2_cancel_pending),
             )
 
-            BolusEntryPage.EITHER_OR -> BolusActionMenu(
-                onNewBolus = startFlow,
-                onBack = onSectionBack,
-                sendPumpCommands = sendPumpCommands,
-                showNewBolus = true, // 二选一：取消 / 追加普通大剂量
-                headerText = stateHeader(delivery),
-                newBolusTitle = stringResource(R.string.bolus_v2_action_extra_now),
-                newBolusSubtitle = stringResource(R.string.bolus_v2_action_extra_now_sub),
-            )
-
-            BolusEntryPage.READONLY_CANCEL -> BolusActionMenu(
+            BolusEntryPage.CANCEL, BolusEntryPage.READONLY_CANCEL -> BolusActionMenu(
                 onNewBolus = startFlow,
                 onBack = onSectionBack,
                 sendPumpCommands = sendPumpCommands,
                 showNewBolus = false,
-                headerText = stateHeader(delivery),
-                hiddenText = stringResource(R.string.bolus_v2_cancel_pending),
             )
-
-            BolusEntryPage.DONE -> BolusDonePage()
         }
     }
 }
@@ -356,44 +358,57 @@ private fun tabTitle(tab: BolusTab): Int = when (tab) {
     BolusTab.PRESETS -> R.string.bolus_v2_entry_preset
 }
 
-/** 已完成提示页：按结局区分「完成 / 已停止 / 失败」，数秒后自动收起回到动作表。 */
+/**
+ * 完成态那一行的文案：与通知同源（只看 [BolusOutcome]），完成页与空闲页共用同一个槽位，
+ * 不再单独维护一套「完成页」文案。
+ */
 @Composable
-private fun BolusDonePage() {
-    val outcome = BolusRuntime.coordinator?.outcomeState?.value
-    LaunchedEffect(Unit) {
-        delay(DONE_DISMISS_MS)
-        BolusRuntime.coordinator?.holder?.clear()
-    }
-    val text = when (outcome) {
-        is BolusOutcome.Cancelled -> stringResource(R.string.bolus_v2_outcome_cancelled)
-        is BolusOutcome.Failed ->
-            if (outcome.fromCancel) stringResource(R.string.bolus_v2_outcome_failed_cancel)
-            else failureText(outcome.error)
-        else -> stringResource(R.string.bolus_v2_outcome_success)
+private fun outcomeText(outcome: BolusOutcome?): String = when (outcome) {
+    is BolusOutcome.Cancelled -> stringResource(R.string.bolus_v2_outcome_cancelled)
+    is BolusOutcome.Failed ->
+        if (outcome.fromCancel) stringResource(R.string.bolus_v2_outcome_failed_cancel)
+        else failureText(outcome.error)
+
+    else -> stringResource(R.string.bolus_v2_outcome_success)
+}
+
+/**
+ * 段二 · 状态描述：**唯一**一句当前状态文案，只看 [BolusDelivery] 与 [BolusOutcome]。
+ * 原先横幅 / 页头 / 正文各写一套，才出现「已发出请求」与「取消请求已发出」互相打架。
+ */
+@Composable
+private fun StateDescription(delivery: BolusDelivery?, outcome: BolusOutcome) {
+    val failed = outcome is BolusOutcome.Failed
+    val text = when {
+        delivery == null ->
+            if (failed) outcomeText(outcome) else stringResource(R.string.bolus_v2_status_idle)
+
+        delivery.isFinished -> outcomeText(outcome)
+
+        delivery.state == BolusDeliveryState.CONFIRMING ||
+            delivery.state == BolusDeliveryState.UNCONFIRMED ->
+            stringResource(R.string.bolus_v2_page_pending)
+
+        delivery.state == BolusDeliveryState.ACTIVE ->
+            if (delivery.isExtendedRunning) stringResource(R.string.bolus_v2_page_extended_running)
+            else stringResource(R.string.bolus_v2_page_delivering)
+
+        delivery.state == BolusDeliveryState.CANCELLING ->
+            stringResource(R.string.bolus_v2_page_cancelling)
+
+        delivery.state == BolusDeliveryState.UNKNOWN ->
+            stringResource(R.string.bolus_v2_page_unknown)
+
+        else ->
+            if (failed) outcomeText(outcome) else stringResource(R.string.bolus_v2_status_idle)
     }
     Text(
         text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        color = if (outcome is BolusOutcome.Failed) MaterialTheme.colorScheme.error
-        else MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp),
     )
 }
-
-@Composable
-private fun stateHeader(delivery: BolusDelivery?): String = when {
-    delivery == null -> stringResource(R.string.dashboard_bolus)
-    delivery.isExtendedRunning -> stringResource(R.string.bolus_v2_page_extended_running)
-    delivery.state == BolusDeliveryState.ACTIVE -> stringResource(R.string.bolus_v2_page_delivering)
-    delivery.state == BolusDeliveryState.CANCELLING -> stringResource(R.string.bolus_v2_page_cancelling)
-    delivery.state == BolusDeliveryState.UNKNOWN -> stringResource(R.string.bolus_v2_page_unknown)
-    delivery.state == BolusDeliveryState.CONFIRMING ||
-        delivery.state == BolusDeliveryState.UNCONFIRMED ->
-        stringResource(R.string.bolus_v2_page_pending)
-
-    else -> stringResource(R.string.dashboard_bolus)
-}
-
-private const val DONE_DISMISS_MS = 4_000L
 
 /** 拖过这段距离即切档（轻点仍走 toggle）。 */
 private val PANEL_DRAG_THRESHOLD = 24.dp

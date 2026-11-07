@@ -33,24 +33,20 @@ import com.pumppan.controlx2.ui.NavigationRow
 import kotlinx.coroutines.delay
 
 /**
- * S3 动作表：取消行（五态判定）+「新的大剂量」入口。
+ * 段三：取消行（五态判定）+「新的大剂量」入口 + 返回按键。
  * S8a：READY 点击经 [BolusSessionHolder.requestCancel] 判定后，才发 `-96`
  * （`SendType.BUST_CACHE`，cargo = bolusId；禁盲取消 / 断连 fail-fast / 15s 内 3 次节流）。
+ *
+ * 状态描述由页面（段二）统一渲染，本组件不再接收 `headerText` / `hiddenText`，
+ * 避免同一状态出现两套文案。
  */
 @Composable
 fun BolusActionMenu(
     onNewBolus: () -> Unit,
     onBack: () -> Unit,
     sendPumpCommands: (SendType, List<Message>) -> Unit,
-    /** 输注进行中不给「新的大剂量」入口（§4.6.1）；延后段在跑时为二选一的第二项。 */
+    /** 段三（入口 + 返回按键）是否出现；输注期间整段不出现，不是置灰。 */
     showNewBolus: Boolean = true,
-    /** 相位标题（取消页 / 二选一页共用本组件时的页头）。 */
-    headerText: String? = null,
-    /** 二选一页的第二项文案；null 时用「新的大剂量」。 */
-    newBolusTitle: String? = null,
-    newBolusSubtitle: String? = null,
-    /** 取消行隐藏时（如等权限/等状态）的中性说明；null 时用「当前没有进行中的大剂量」。 */
-    hiddenText: String? = null,
 ) {
     val connected by LocalDataStore.current.pumpConnected.observeAsState()
     val coordinator = BolusRuntime.coordinator
@@ -76,22 +72,8 @@ fun BolusActionMenu(
     val cancelReconcilingText = stringResource(R.string.bolus_v2_cancel_reason_reconciling)
     val cancelIdleText = stringResource(R.string.bolus_v2_status_idle)
 
-    if (!headerText.isNullOrBlank()) {
-        Text(
-            text = headerText,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(Modifier.height(8.dp))
-    }
-
-    if (rowState == CancelRowState.HIDDEN) {
-        Text(
-            text = hiddenText ?: stringResource(R.string.bolus_v2_status_idle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    } else {
+    // 没有取消行时整段不渲染：状态描述已在段二统一渲染，这里不再重复。
+    if (rowState != CancelRowState.HIDDEN) {
         val subtitle = when (rowState) {
             CancelRowState.RECONCILING -> stringResource(R.string.bolus_v2_cancel_reason_reconciling)
             CancelRowState.NEEDS_ID -> stringResource(R.string.bolus_v2_cancel_reason_needs_id)
@@ -143,23 +125,24 @@ fun BolusActionMenu(
         }
     }
 
+    // 段三整段：入口 + 返回按键。输注期间不出现（不是置灰）。
     if (showNewBolus) {
         Spacer(Modifier.height(16.dp))
 
         NavigationRow(
-            title = newBolusTitle ?: stringResource(R.string.bolus_v2_action_new),
-            subtitle = newBolusSubtitle ?: stringResource(R.string.bolus_v2_action_new_sub),
+            title = stringResource(R.string.bolus_v2_action_new),
+            subtitle = stringResource(R.string.bolus_v2_action_new_sub),
             onClick = {
                 notice = null
                 onNewBolus()
             },
         )
-    }
 
-    Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-    Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.profile_back))
+        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.profile_back))
+        }
     }
 }
 
