@@ -3,6 +3,7 @@ package com.pumppan.controlx2
 import android.app.Application
 import android.content.Context
 import com.jwoglom.controlx2.shared.FeatureFlag
+import com.jwoglom.controlx2.shared.diag.DiagMonitor
 import com.pumppan.controlx2.bolus.send.BolusEvidenceLog
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 
@@ -26,5 +27,6 @@ class PumppanApplication : Application() {
         PumpCapabilities.initialize(this)
         BolusEvidenceLog.initialize(this)
         FeatureFlag.initState(this)
+        DiagMonitor.initialize(this) // DIAG-TEMP：断连临时监控，用完即删
     }
 }

@@ -2,6 +2,7 @@ package com.jwoglom.controlx2.shared.util
 
 import android.content.Context
 import android.util.Log
+import com.jwoglom.controlx2.shared.diag.DiagMonitor
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -51,6 +52,8 @@ class DebugTree(
             }
         }
         super.log(priority, "CX2:${prefix}:$tag", message, t)
+        // DIAG-TEMP：旁采 pumpx2 的重连/退避/停手日志（日志文本是唯一来源）
+        DiagMonitor.onLogLine(tag, message)
         tag?.let {
             val isPumpx2Tag = it.startsWith("L:")
             if (shouldLog(priority, it) || isPumpx2Tag) {

@@ -224,6 +224,7 @@ fun Debug(
     historyLogViewModel: HistoryLogViewModel? = null,
     navigateToFeatureFlags: () -> Unit = {},
     navigateToDangerousCommands: () -> Unit = {},
+    navigateToDiag: () -> Unit = {}, // DIAG-TEMP
     navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -305,6 +306,17 @@ fun Debug(
         content = {
             item {
                 HeaderLine(context.getString(R.string.debug_debug))
+                DebugDivider()
+            }
+            item { // DIAG-TEMP：断连临时监控入口
+                ActionRow(
+                    title = "断连监控（临时）",
+                    subtitle = "抓断连现场，默认关闭；用完即删",
+                    leadingIcon = {
+                        Icon(Icons.Filled.Build, contentDescription = null)
+                    },
+                    onClick = navigateToDiag,
+                )
                 DebugDivider()
             }
             if (Prefs(context).serviceEnabled()) {

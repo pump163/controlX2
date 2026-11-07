@@ -16,6 +16,7 @@ import com.jwoglom.controlx2.pumpcomm.R
 import com.jwoglom.controlx2.shared.CommServiceCodes
 import com.jwoglom.controlx2.shared.FeatureFlags
 import com.jwoglom.controlx2.shared.MessagePaths
+import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.InitiateConfirmedBolusSerializer
 import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.util.extractPumpSid
@@ -281,6 +282,7 @@ class PumpCommHandler(
             message: com.jwoglom.pumpx2.pump.messages.Message?
         ) {
             message?.let {
+                DiagMonitor.onRx(it.javaClass.simpleName) // DIAG-TEMP
                 callbacks.pumpCommState.lastResponseMessage.put(Pair(it.characteristic, it.opCode()), Pair(it, Instant.now()))
                 val source = if (callbacks.pumpCommState.consumeDebugPromptResponse(it.characteristic, it.opCode())) {
                     com.jwoglom.controlx2.shared.util.SendType.DEBUG_PROMPT
@@ -361,6 +363,7 @@ class PumpCommHandler(
             centralChallengeResponse: AbstractCentralChallengeResponse?
         ) {
             pairingCodeCentralChallenge = centralChallengeResponse
+            DiagMonitor.onAwaitUser("waiting_pairing_code") // DIAG-TEMP
             val hasSavedPairingCode = !PumpState.getPairingCode(context).isNullOrBlank()
             if (!hasSavedPairingCode) {
                 val challengeBytes = if (centralChallengeResponse != null) {
@@ -380,6 +383,7 @@ class PumpCommHandler(
             peripheral: BluetoothPeripheral?,
             resp: AbstractPumpChallengeResponse?
         ) {
+            DiagMonitor.onAwaitUser("invalid_pairing_code") // DIAG-TEMP
             callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_INVALID_PAIRING_CODE, "".toByteArray())
             super.onInvalidPairingCode(peripheral, resp)
         }
@@ -418,10 +422,12 @@ class PumpCommHandler(
                 MessagePaths.FROM_PUMP_PUMP_DISCOVERED,
                 "${peripheral?.name.orEmpty()};;${readyState.name}".toByteArray()
             )
+            DiagMonitor.onConnectStart("discovered:${readyState.name}") // DIAG-TEMP
             return super.onPumpDiscovered(peripheral, scanResult, readyState)
         }
 
         override fun onInitialPumpConnection(peripheral: BluetoothPeripheral?) {
+            DiagMonitor.onConnectStart("initial") // DIAG-TEMP
             lastPeripheral = peripheral
             val wait = (500..1000).random()
             Timber.i("Waiting to pair onInitialPumpConnection to avoid race condition with tconnect app for ${wait}ms")
@@ -498,6 +504,7 @@ class PumpCommHandler(
         }
 
         override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
+            DiagMonitor.onConnected("onPumpConnected") // DIAG-TEMP
             initializeConnection(peripheral!!)
             initializeHistoryAndSync()
             waitForResponseStabilization()
@@ -525,7 +532,8 @@ class PumpCommHandler(
             peripheral: BluetoothPeripheral?,
             status: HciStatus?
         ): Boolean {
-            Timber.i("service onPumpDisconnected: isConnected=false")
+            DiagMonitor.onDisconnected(status?.name, "callback", "peripheral=${peripheral?.name}") // DIAG-TEMP
+            Timber.i("service onPumpDisconnected: isConnected=false status=$status") // DIAG-TEMP
             currentSession?.close()
             currentSession = null
             lastPeripheral = null
@@ -551,6 +559,7 @@ class PumpCommHandler(
         override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
             super.onPumpCriticalError(peripheral, reason)
             Timber.w("onPumpCriticalError $reason")
+            DiagMonitor.onCriticalError(reason?.name ?: "null") // DIAG-TEMP
             val source = reason?.initiatingMessage?.let {
                 if (callbacks.pumpCommState.consumeDebugPromptResponse(it.characteristic, it.responseOpCode)) {
                     com.jwoglom.controlx2.shared.util.SendType.DEBUG_PROMPT
@@ -594,6 +603,7 @@ class PumpCommHandler(
             }
 
             Timber.i("Pump send command: $message")
+            DiagMonitor.onTx(message.javaClass.simpleName) // DIAG-TEMP
             runBlocking { session.sendCommand(message) }
         }
 
@@ -864,6 +874,7 @@ class PumpCommHandler(
                         Timber.w("writeCharacteristicFailedCallback: calling onPumpConnected pump=$pump from authorization error")
                         pump.onPumpConnected(pump.lastPeripheral)
                     } else {
+                        DiagMonitor.onWriteCut(uuidStr, null) // DIAG-TEMP
                         Timber.w("writeCharacteristicFailedCallback: triggering disconnection from non-authorization error")
                         pump.lastPeripheral?.cancelConnection();
                         pump.lastPeripheral?.let { pump.onPumpDisconnected(it, null) }

@@ -496,6 +496,9 @@ fun Landing(
                                 navigateToDangerousCommands = {
                                     selectedItem = LandingSection.DANGEROUS_COMMANDS
                                 },
+                                navigateToDiag = { // DIAG-TEMP
+                                    selectedItem = LandingSection.DIAG
+                                },
                                 navigateBack = { selectedItem = LandingSection.SETTINGS },
                             )
                         }
@@ -512,6 +515,12 @@ fun Landing(
                                 navigateBack = {
                                     selectedItem = LandingSection.DEBUG
                                 },
+                            )
+                        }
+                        LandingSection.DIAG -> { // DIAG-TEMP
+                            com.pumppan.controlx2.diag.DiagScreen(
+                                innerPadding = innerPadding,
+                                navigateBack = { selectedItem = LandingSection.DEBUG },
                             )
                         }
                         LandingSection.SETTINGS -> {
@@ -673,6 +682,7 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
     NIGHTSCOUT_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     XDRIP_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     FEATURE_FLAGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    DIAG(R.string.dashboard_settings, Icons.Filled.Settings, false), // DIAG-TEMP
     ;
 }
 
@@ -695,6 +705,7 @@ fun LandingSection.parentSection(): LandingSection? = when (this) {
     LandingSection.XDRIP_SETTINGS -> LandingSection.SETTINGS
     LandingSection.DANGEROUS_COMMANDS -> LandingSection.DEBUG
     LandingSection.FEATURE_FLAGS -> LandingSection.DEBUG
+    LandingSection.DIAG -> LandingSection.DEBUG // DIAG-TEMP
 }
 
 enum class BottomScaffoldState {

@@ -8,6 +8,7 @@ import com.jwoglom.controlx2.db.historylog.HistoryLogRepo
 import com.jwoglom.controlx2.db.historylog.HistoryLogTypeStats
 import com.jwoglom.controlx2.shared.MessagePaths
 import com.jwoglom.controlx2.shared.PumpMessageSerializer
+import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.util.AppVersionInfo
 import com.jwoglom.pumpx2.pump.TandemError
@@ -336,6 +337,13 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 method == Method.GET && uri == "/api/historylog/types" -> handleHistoryLogTypes(session)
                 method == Method.GET && uri == "/api/historylog/stream" -> handleHistoryLogStream(session)
                 method == Method.POST && uri == "/api/pump/debug-write-bt-characteristic" -> handlePumpDebugWriteBtCharacteristic(session)
+                // DIAG-TEMP BEGIN：临时断连监控取回端点
+                method == Method.GET && uri == "/api/diag/state" -> handleDiagState()
+                method == Method.GET && uri == "/api/diag/files" -> handleDiagFiles()
+                method == Method.GET && uri == "/api/diag/incident/latest" -> handleDiagIncident(session, uri)
+                method == Method.GET && uri.startsWith("/api/diag/incident/") -> handleDiagIncident(session, uri)
+                method == Method.GET && uri == "/api/diag/live" -> handleDiagLive(session)
+                // DIAG-TEMP END
                 else -> newFixedLengthResponse(
                     Response.Status.NOT_FOUND,
                     MIME_PLAINTEXT,
@@ -1325,6 +1333,48 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 )
             }
         }
+
+        // DIAG-TEMP BEGIN：临时断连监控取回
+        private fun handleDiagState(): Response {
+            return newFixedLengthResponse(
+                Response.Status.OK,
+                "application/json",
+                DiagMonitor.snapshotJson()
+            )
+        }
+
+        private fun handleDiagFiles(): Response {
+            val json = JSONObject()
+            json.put("dir", DiagMonitor.diagDir().absolutePath)
+            json.put("liveBytes", DiagMonitor.liveFile()?.length() ?: 0)
+            val files = JSONArray()
+            DiagMonitor.incidentFiles().forEach { f ->
+                val o = JSONObject()
+                o.put("name", f.name)
+                o.put("bytes", f.length())
+                o.put("modified", f.lastModified())
+                files.put(o)
+            }
+            json.put("incidents", files)
+            return newFixedLengthResponse(Response.Status.OK, "application/json", json.toString())
+        }
+
+        private fun handleDiagIncident(session: IHTTPSession, uri: String): Response {
+            val name = session.parameters["name"]?.firstOrNull()
+                ?: uri.substringAfterLast('/').takeIf { it != "latest" }
+            val text = DiagMonitor.readIncident(name)
+                ?: return errorResponse("No incident file (name=${name ?: "latest"})", Response.Status.NOT_FOUND)
+            return newFixedLengthResponse(Response.Status.OK, "application/json", text)
+        }
+
+        private fun handleDiagLive(session: IHTTPSession): Response {
+            val tail = session.parameters["tail"]?.firstOrNull()?.toIntOrNull() ?: 500
+            val text = DiagMonitor.readLiveTail(tail)
+                ?: return errorResponse("No live.jsonl yet", Response.Status.NOT_FOUND)
+            return newFixedLengthResponse(Response.Status.OK, "application/x-ndjson", text)
+        }
+
+        // DIAG-TEMP END
 
         private fun handlePumpDebugWriteBtCharacteristic(session: IHTTPSession): Response {
 

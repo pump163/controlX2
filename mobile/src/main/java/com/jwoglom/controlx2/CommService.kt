@@ -211,6 +211,7 @@ class CommService : Service(), CommServiceCallbacks {
             shouldLog = ShouldLogToFile(this),
             writeCharacteristicFailedCallback = handleWriteCharacteristicFailedCallback)
         Timber.i("service onCreate")
+        com.jwoglom.controlx2.shared.diag.DiagMonitor.onServiceEvent("SERVICE_CREATE") // DIAG-TEMP
 
         registerAppReloadShutdownHook(appReloadShutdownHook)
 
@@ -587,6 +588,7 @@ class CommService : Service(), CommServiceCallbacks {
         }
 
         started = true
+        com.jwoglom.controlx2.shared.diag.DiagMonitor.onServiceEvent("SERVICE_START") // DIAG-TEMP
         Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_service_starting), Toast.LENGTH_SHORT).show()
 
         updateNotification("Initializing...")
@@ -621,6 +623,7 @@ class CommService : Service(), CommServiceCallbacks {
             } else {
                 startForeground(id, notification)
             }
+            com.jwoglom.controlx2.shared.diag.DiagMonitor.onFgs(true) // DIAG-TEMP
             true
         } catch (e: SecurityException) {
             Timber.e(e, "Unable to start foreground service: missing connectedDevice permissions")
@@ -646,6 +649,8 @@ class CommService : Service(), CommServiceCallbacks {
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
         Timber.w("CommService onTaskRemoved")
+        com.jwoglom.controlx2.shared.diag.DiagMonitor.onServiceEvent("ON_TASK_REMOVED") // DIAG-TEMP
+        com.jwoglom.controlx2.shared.diag.DiagMonitor.onAppExit("onTaskRemoved") // DIAG-TEMP
         triggerAppReload(applicationContext)
         Toast.makeText(this, this.getString(R.string.comm_ctrl_x2_service_removed), Toast.LENGTH_SHORT).show()
         stopSelf()
@@ -878,6 +883,7 @@ class CommService : Service(), CommServiceCallbacks {
 
     override fun onDestroy() {
         super.onDestroy()
+        com.jwoglom.controlx2.shared.diag.DiagMonitor.onServiceEvent("SERVICE_DESTROY") // DIAG-TEMP
         unregisterAppReloadShutdownHook(appReloadShutdownHook)
         pumpCommHandler?.stopHistoryLogSyncWorker()
         scope.cancel()
