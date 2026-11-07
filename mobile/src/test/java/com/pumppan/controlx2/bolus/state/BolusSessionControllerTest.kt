@@ -10,6 +10,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStat
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,19 +38,24 @@ class BolusSessionControllerTest {
     // ---------- 44 CurrentBolusStatus ----------
 
     @Test
-    fun currentBolusIdle_clearsSession() {
+    fun currentBolusIdle_marksImmediateLegDoneButKeepsSession() {
         controller.applyMessage(deliveringBolus(77))
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
 
+        // 新模型：45 归零只作为「立即段结束」证据；整次输注的判决仍等 -91 / 延展 47 归零。
         controller.applyMessage(CurrentBolusStatusResponse(0, 0, 0, 0, 0, 0))
-        assertNull(controller.session)
+        val session = controller.session
+        assertNotNull(session)
+        assertEquals(BolusDeliveryState.ACTIVE, session?.state)
+        assertEquals(77, session?.bolusId)
+        assertNotNull(session?.immediateLegDoneAtMillis)
     }
 
     @Test
     fun currentBolusWithId_isDeliveringAndActive() {
         controller.applyMessage(deliveringBolus(77))
 
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
         assertEquals(77, controller.session?.bolusId)
         assertEquals(BolusActivity.ACTIVE, controller.holder.isAnyBolusActive(connected = true))
         assertEquals(CancelRowState.READY, controller.holder.cancelRowState(connected = true))
@@ -64,7 +70,8 @@ class BolusSessionControllerTest {
             ExtendedBolusStatusResponse(1, 77, pumpTimestampAt(now), 2300, duration, 0)
         )
 
-        assertEquals(SessionPhase.EXTENDED_RUNNING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+        assertTrue(controller.session?.isExtendedRunning == true)
         assertEquals(77, controller.session?.bolusId)
         assertRemaining(duration)
     }
@@ -76,7 +83,8 @@ class BolusSessionControllerTest {
             ExtendedBolusStatusV2Response(1, 78, pumpTimestampAt(now), 2300, duration, 0, 0)
         )
 
-        assertEquals(SessionPhase.EXTENDED_RUNNING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+        assertTrue(controller.session?.isExtendedRunning == true)
         assertEquals(78, controller.session?.bolusId)
         assertRemaining(duration)
     }
@@ -86,7 +94,7 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(ExtendedBolusStatusResponse(0, 0, 0, 0, 0, 0))
 
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
     }
 
     // ---------- -94 BolusPermission ----------
@@ -94,18 +102,18 @@ class BolusSessionControllerTest {
     @Test
     fun permissionWithId_goesAwaitingPhoneThenDelivering() {
         controller.applyMessage(BolusPermissionResponse(0, 77, 0))
-        assertEquals(SessionPhase.AWAITING_PHONE, controller.session?.phase)
+        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
         assertEquals(77, controller.session?.bolusId)
 
         controller.applyMessage(deliveringBolus(77))
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
     }
 
     @Test
     fun permissionWithoutId_staysAwaitingPhone() {
         controller.applyMessage(BolusPermissionResponse(0, 0, 0))
 
-        assertEquals(SessionPhase.AWAITING_PHONE, controller.session?.phase)
+        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
         assertNull(controller.session?.bolusId)
     }
 
@@ -113,7 +121,8 @@ class BolusSessionControllerTest {
     fun permissionNack_failsWithNack() {
         controller.applyMessage(BolusPermissionResponse(1, 0, 1))
 
-        assertEquals(SessionPhase.FAILED, controller.session?.phase)
+        // 新模型：NACK 到达时尚未建立会话快照（-98 未发出），只落结局。
+        assertNull(controller.session)
         assertEquals(BolusOutcome.Failed(BolusError.NACK), controller.outcome)
     }
 
@@ -124,7 +133,8 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(CancelBolusResponse(0, 77, 0))
 
-        assertEquals(SessionPhase.DONE, controller.session?.phase)
+        assertEquals(BolusDeliveryState.CANCELLED, controller.session?.state)
+        assertTrue(controller.session?.isFinished == true)
         assertEquals(BolusOutcome.Cancelled, controller.outcome)
     }
 
@@ -133,7 +143,8 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(CancelBolusResponse(1, 77, 2))
 
-        assertEquals(SessionPhase.FAILED, controller.session?.phase)
+        assertEquals(BolusDeliveryState.UNKNOWN, controller.session?.state)
+        assertTrue(controller.session?.isFinished == true)
         assertEquals(
             BolusOutcome.Failed(
                 BolusError.NACK,
@@ -152,7 +163,8 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(LastBolusStatusV2Response(1, 77, 0, 2300, 3, 0, 0, 0, 2300))
 
-        assertEquals(SessionPhase.DONE, controller.session?.phase)
+        assertEquals(BolusDeliveryState.IDLE, controller.session?.state)
+        assertTrue(controller.session?.isFinished == true)
         assertEquals(BolusOutcome.Success, controller.outcome)
     }
 
@@ -161,7 +173,7 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(LastBolusStatusV2Response(1, 78, 0, 2300, 3, 0, 0, 0, 2300))
 
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
         assertEquals(BolusOutcome.Pending, controller.outcome)
     }
 
@@ -172,7 +184,7 @@ class BolusSessionControllerTest {
         controller.applyMessage(deliveringBolus(77))
         controller.applyMessage(UnknownMessage())
 
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
         assertEquals(77, controller.session?.bolusId)
     }
 
@@ -183,8 +195,60 @@ class BolusSessionControllerTest {
         controller.applyMessage(ExtendedBolusStatusResponse())
         controller.applyMessage(LastBolusStatusResponse(0, 0, 0, 0, 0, 0, 0, 0, byteArrayOf()))
 
-        assertEquals(SessionPhase.DELIVERING, controller.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
         assertEquals(77, controller.session?.bolusId)
+    }
+
+    // ---------- 确认阶梯（10s / 60s）与延展超时 ----------
+
+    @Test
+    fun initiateLadder_confirmingToUnconfirmedAtTenSeconds() {
+        controller.markInitiateSent(bolusId = 77, hasImmediateLeg = true, now = now)
+        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
+
+        now += 9_999
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.CONFIRMING, controller.session?.state)
+
+        now += 1
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.UNCONFIRMED, controller.session?.state)
+    }
+
+    @Test
+    fun initiateLadder_unconfirmedToUnknownAtSixtySeconds() {
+        controller.markInitiateSent(bolusId = 77, hasImmediateLeg = true, now = now)
+        now += 10_000
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.UNCONFIRMED, controller.session?.state)
+
+        now += 50_000
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.UNKNOWN, controller.session?.state)
+    }
+
+    @Test
+    fun initiateLadder_evidenceBeforeTenSeconds_flipsToActive() {
+        controller.markInitiateSent(bolusId = 77, hasImmediateLeg = true, now = now)
+        now += 5_000
+        controller.applyMessage(deliveringBolus(77))
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+
+        // 已确认开始后，确认阶梯不再把它退回 UNCONFIRMED / UNKNOWN。
+        controller.onTick(now)
+        assertEquals(BolusDeliveryState.ACTIVE, controller.session?.state)
+    }
+
+    @Test
+    fun extendedEndTimeout_fallsUnknownAfterFiveMinuteGrace() {
+        controller.applyMessage(
+            ExtendedBolusStatusResponse(1, 77, pumpTimestampAt(now), 2300, 900, 0)
+        )
+        val end = controller.session!!.expectedEndAtMillis!!
+        now = end + 5 * 60_000L + 1
+        controller.onTick(now)
+
+        assertEquals(BolusDeliveryState.UNKNOWN, controller.session?.state)
     }
 
     // ---------- helpers ----------

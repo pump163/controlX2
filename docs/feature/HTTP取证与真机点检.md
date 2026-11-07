@@ -219,7 +219,7 @@ def cargo(total, bolus_id, bitmask, ext_vol, ext_secs,
 | 48 | LastBolusStatus | ✅ `bolusId=6803, deliveredVolume=5000, bolusStatusId=3, timestamp=594684556` |
 | -92 | LastBolusStatusV2 | ✅ 同上 + `requestedVolume=5000` |
 | 50 | LastBG | ✅ `bgSource=MANUAL, bgValue=0` |
-| 84 | PumpVersion | ✅ `modelNum=1000354, partNum=1011979, armSwVer=1547050764, serialNum=90964627` |
+| 84 | PumpVersion | ✅ `modelNum=1000354, partNum=1011979, armSwVer=1547050764, serialNum=<已隐去>` |
 | 114 | BolusCalcDataSnapshot | ✅ `maxBolusAmount=20000, isf=18, carbRatio=10000, targetBg=100, iob=5148, cartridgeRemainingInsulin=240, correctionFactor=0, carbEntryEnabled=false, isAutopopAllowed=false` |
 | -114 | CommonSoftwareInfo | ⚠️ cargo 必须 1 字节（MCU 类型，ARM=0 → `"00"`）；空 cargo → HTTP 400；填 `"00"` 后返回 appSoftwarePartNumber=1011979, bootloaderPartNumber=65, bootloaderVersion="2" |
 | -94 | BolusPermissionRequest | ✅ `bolusId=6804, nackReasonId=0, status=0(SUCCESS)`，`signed=true` |

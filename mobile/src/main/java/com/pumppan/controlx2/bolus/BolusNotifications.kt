@@ -21,11 +21,11 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatu
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
+import com.pumppan.controlx2.bolus.state.BolusDelivery
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.bolus.state.BolusError
 import com.pumppan.controlx2.bolus.state.BolusOutcome
-import com.pumppan.controlx2.bolus.state.BolusSession
 import com.pumppan.controlx2.bolus.state.CancelStatus
-import com.pumppan.controlx2.bolus.state.SessionPhase
 import timber.log.Timber
 
 /**
@@ -41,7 +41,7 @@ import timber.log.Timber
 class BolusNotifications(
     context: Context,
     private val enabled: () -> Boolean,
-    private val session: () -> BolusSession?,
+    private val delivery: () -> BolusDelivery?,
     private val outcome: () -> BolusOutcome,
     private val connected: () -> Boolean,
     private val cancelStatus: () -> CancelStatus = { CancelStatus.IDLE },
@@ -65,7 +65,6 @@ class BolusNotifications(
     private var startTimeText: String? = null
 
     /** 已展示过终结态通知的 bolusId；被用户手动关闭后不再重发。 */
-    private var terminalBolusId: Int? = null
     private var terminalShown = false
     private var dismissedBolusId: Int? = null
 
@@ -132,13 +131,13 @@ class BolusNotifications(
     /** 通知被用户关闭：不再为同一 bolusId 重发终结态。 */
     fun dismiss() {
         if (!enabled()) return
-        dismissedBolusId = session()?.bolusId
+        dismissedBolusId = delivery()?.bolusId
         stopTicker()
         cancelNotification()
     }
 
     private fun render() {
-        val current = session()
+        val current = delivery()
         if (current == null) {
             stopTicker()
             // 终结态通知要停在最终结果，会话被清空后也不主动撤掉。
@@ -146,22 +145,11 @@ class BolusNotifications(
             return
         }
 
-        val phase = current.phase
-        if (phase == SessionPhase.DRAFT || phase == SessionPhase.PERMITTING) {
-            stopTicker()
-            terminalShown = false
-            terminalBolusId = null
-            cancelNotification()
-            return
-        }
-
-        val terminal = phase == SessionPhase.DONE ||
-            phase == SessionPhase.ABORTED ||
-            phase == SessionPhase.FAILED
+        // 状态与结局都来自同一份快照：finishedAtMillis 是唯一「已落定」判据。
+        val terminal = current.isFinished
         if (!terminal) {
-            // 回到进行中/未知态：上一笔的终结标记失效，通知按当前相位重绘。
+            // 回到进行中/未知态：上一笔的终结标记失效，通知按当前状态重绘。
             terminalShown = false
-            terminalBolusId = null
         }
         if (current.bolusId != dismissedBolusId) dismissedBolusId = null
 
@@ -171,10 +159,10 @@ class BolusNotifications(
         }
 
         val content = contentFor(
-            phase = phase,
+            delivery = current,
             outcome = outcome(),
             connected = connected(),
-            doseText = doseTextFor(phase),
+            doseText = doseTextFor(current),
             extendedDoseText = extendedMilliunits?.let { twoDecimalPlaces1000Unit(it) },
             startText = startTimeText,
             endText = current.expectedEndAtMillis?.let { formatLocalMillis(it) },
@@ -184,16 +172,15 @@ class BolusNotifications(
             return
         }
 
-        val canCancel = (phase == SessionPhase.DELIVERING || phase == SessionPhase.EXTENDED_RUNNING) &&
+        val canCancel = current.state == BolusDeliveryState.ACTIVE &&
             current.bolusId != null &&
             cancelStatus() != CancelStatus.SENDING
-        post(content, ongoing = isLivePhase(phase), cancellable = canCancel)
+        post(content, ongoing = isLiveState(current.state), cancellable = canCancel)
 
         if (terminal) {
             terminalShown = true
-            terminalBolusId = current.bolusId
             stopTicker()
-        } else if (isLivePhase(phase) && connected()) {
+        } else if (isLiveState(current.state) && connected()) {
             startTicker()
         } else {
             stopTicker()
@@ -274,10 +261,10 @@ class BolusNotifications(
         tickerScheduled = false
     }
 
-    private fun doseTextFor(phase: SessionPhase): String? {
-        val milliunits = when (phase) {
-            SessionPhase.EXTENDED_RUNNING -> extendedMilliunits ?: immediateMilliunits
-            SessionPhase.DONE, SessionPhase.ABORTED -> deliveredMilliunits ?: totalMilliunits()
+    private fun doseTextFor(current: BolusDelivery): String? {
+        val milliunits = when {
+            current.isExtendedRunning -> extendedMilliunits ?: immediateMilliunits
+            current.isFinished -> deliveredMilliunits ?: totalMilliunits()
             else -> immediateMilliunits ?: extendedMilliunits
         } ?: return null
         return twoDecimalPlaces1000Unit(milliunits)
@@ -314,8 +301,8 @@ class BolusNotifications(
             appContext.getString(R.string.units_pm),
         )
 
-    private fun isLivePhase(phase: SessionPhase): Boolean = when (phase) {
-        SessionPhase.DELIVERING, SessionPhase.EXTENDED_RUNNING, SessionPhase.CANCELLING -> true
+    private fun isLiveState(state: BolusDeliveryState): Boolean = when (state) {
+        BolusDeliveryState.ACTIVE, BolusDeliveryState.CANCELLING -> true
         else -> false
     }
 
@@ -325,7 +312,7 @@ class BolusNotifications(
     }
 }
 
-/** 相位 → 标题/正文（纯函数，单测覆盖；不含任何 Android 资源读取）。 */
+/** 状态 → 标题/正文（纯函数，单测覆盖；不含任何 Android 资源读取）。 */
 data class BolusNotificationContent(
     @StringRes val titleRes: Int,
     @StringRes val textRes: Int,
@@ -333,7 +320,7 @@ data class BolusNotificationContent(
 )
 
 fun contentFor(
-    phase: SessionPhase,
+    delivery: BolusDelivery,
     outcome: BolusOutcome,
     connected: Boolean,
     doseText: String?,
@@ -341,9 +328,8 @@ fun contentFor(
     startText: String?,
     endText: String?,
 ): BolusNotificationContent? {
-    if (!connected && (phase == SessionPhase.DELIVERING ||
-            phase == SessionPhase.EXTENDED_RUNNING ||
-            phase == SessionPhase.CANCELLING)
+    if (!connected && (delivery.state == BolusDeliveryState.ACTIVE ||
+            delivery.state == BolusDeliveryState.CANCELLING)
     ) {
         // 断连时不能让用户以为还在输注：正文明确「已断开」。
         return BolusNotificationContent(
@@ -352,70 +338,77 @@ fun contentFor(
         )
     }
 
-    return when (phase) {
-        SessionPhase.DRAFT, SessionPhase.PERMITTING -> null
+    // 已落定：完成 / 停止 / 失败由 outcome 决定，状态位只区分 CANCELLED / IDLE。
+    if (delivery.isFinished) {
+        return when (outcome) {
+            BolusOutcome.Cancelled -> stoppedContent(doseText)
+            is BolusOutcome.Failed -> failedContent(outcome, connected)
+            BolusOutcome.Success -> BolusNotificationContent(
+                R.string.bolus_notif_title_done,
+                if (doseText != null) R.string.bolus_notif_body_done else R.string.bolus_notif_body_done_generic,
+                listOfNotNull(doseText),
+            )
+            BolusOutcome.Pending -> BolusNotificationContent(
+                R.string.bolus_notif_title_unknown,
+                if (!connected) R.string.bolus_notif_body_unknown_disconnected else R.string.bolus_notif_body_unknown,
+            )
+        }
+    }
 
-        SessionPhase.AWAITING_PHONE -> BolusNotificationContent(
+    return when (delivery.state) {
+        BolusDeliveryState.IDLE -> null
+
+        BolusDeliveryState.CONFIRMING,
+        BolusDeliveryState.UNCONFIRMED,
+        -> BolusNotificationContent(
             R.string.bolus_notif_title_preparing,
             if (doseText != null) R.string.bolus_notif_body_preparing else R.string.bolus_notif_body_preparing_generic,
             listOfNotNull(doseText),
         )
 
-        SessionPhase.DELIVERING -> BolusNotificationContent(
-            R.string.bolus_notif_title_delivering,
-            when {
-                doseText != null && startText != null -> R.string.bolus_notif_body_delivering
-                doseText != null -> R.string.bolus_notif_body_delivering_no_start
-                else -> R.string.bolus_notif_body_delivering_generic
-            },
-            listOfNotNull(doseText, startText),
-        )
+        BolusDeliveryState.ACTIVE -> if (delivery.isExtendedRunning) {
+            BolusNotificationContent(
+                R.string.bolus_notif_title_extended,
+                when {
+                    extendedDoseText != null && endText != null -> R.string.bolus_notif_body_extended
+                    extendedDoseText != null -> R.string.bolus_notif_body_extended_no_end
+                    else -> R.string.bolus_notif_body_extended_generic
+                },
+                listOfNotNull(extendedDoseText, endText),
+            )
+        } else {
+            BolusNotificationContent(
+                R.string.bolus_notif_title_delivering,
+                when {
+                    doseText != null && startText != null -> R.string.bolus_notif_body_delivering
+                    doseText != null -> R.string.bolus_notif_body_delivering_no_start
+                    else -> R.string.bolus_notif_body_delivering_generic
+                },
+                listOfNotNull(doseText, startText),
+            )
+        }
 
-        SessionPhase.EXTENDED_RUNNING -> BolusNotificationContent(
-            R.string.bolus_notif_title_extended,
-            when {
-                extendedDoseText != null && endText != null -> R.string.bolus_notif_body_extended
-                extendedDoseText != null -> R.string.bolus_notif_body_extended_no_end
-                else -> R.string.bolus_notif_body_extended_generic
-            },
-            listOfNotNull(extendedDoseText, endText),
-        )
-
-        SessionPhase.CANCELLING -> BolusNotificationContent(
+        BolusDeliveryState.CANCELLING -> BolusNotificationContent(
             R.string.bolus_notif_title_cancelling,
             if (doseText != null) R.string.bolus_notif_body_cancelling else R.string.bolus_notif_body_cancelling_generic,
             listOfNotNull(doseText),
         )
 
-        SessionPhase.DONE -> when (outcome) {
-            BolusOutcome.Cancelled -> BolusNotificationContent(
-                R.string.bolus_notif_title_stopped,
-                if (doseText != null) R.string.bolus_notif_body_stopped else R.string.bolus_notif_body_stopped_generic,
-                listOfNotNull(doseText),
-            )
+        BolusDeliveryState.CANCELLED -> stoppedContent(doseText)
 
-            is BolusOutcome.Failed -> failedContent(outcome, connected)
-            else -> BolusNotificationContent(
-                R.string.bolus_notif_title_done,
-                if (doseText != null) R.string.bolus_notif_body_done else R.string.bolus_notif_body_done_generic,
-                listOfNotNull(doseText),
-            )
-        }
-
-        SessionPhase.ABORTED -> BolusNotificationContent(
-            R.string.bolus_notif_title_stopped,
-            if (doseText != null) R.string.bolus_notif_body_aborted else R.string.bolus_notif_body_stopped_generic,
-            listOfNotNull(doseText),
-        )
-
-        SessionPhase.FAILED -> failedContent(outcome as? BolusOutcome.Failed, connected)
-
-        SessionPhase.UNKNOWN -> BolusNotificationContent(
+        BolusDeliveryState.UNKNOWN -> BolusNotificationContent(
             R.string.bolus_notif_title_unknown,
             if (!connected) R.string.bolus_notif_body_unknown_disconnected else R.string.bolus_notif_body_unknown,
         )
     }
 }
+
+private fun stoppedContent(doseText: String?): BolusNotificationContent =
+    BolusNotificationContent(
+        R.string.bolus_notif_title_stopped,
+        if (doseText != null) R.string.bolus_notif_body_stopped else R.string.bolus_notif_body_stopped_generic,
+        listOfNotNull(doseText),
+    )
 
 private fun failedContent(failed: BolusOutcome.Failed?, connected: Boolean): BolusNotificationContent =
     BolusNotificationContent(

@@ -34,11 +34,11 @@ fun convertLegacyPreset(
         return LegacyPresetValues(immediateMilliunits = total, laterMilliunits = 0, durationMinutes = 0)
     }
     val percent = nowPercent.coerceIn(0, 100)
-    val laterRaw = ((total.toLong() * (100 - percent) + 50) / 100).toInt()
-    val later = BolusForm.quantizeToIncrement(laterRaw, incrementMilliunits).coerceIn(0, total)
+    // 复用输入页同一条换算（延后段 half-up 到步进，立即段 = 总量 − 延后段）。
+    val split = BolusForm.splitByPercent(total, percent, incrementMilliunits)
     return LegacyPresetValues(
-        immediateMilliunits = total - later,
-        laterMilliunits = later,
+        immediateMilliunits = split.nowMilliunits,
+        laterMilliunits = split.laterMilliunits,
         durationMinutes = (extendedSeconds / 60).coerceAtLeast(0),
     )
 }

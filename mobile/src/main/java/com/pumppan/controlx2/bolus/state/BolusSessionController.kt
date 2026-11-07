@@ -5,6 +5,7 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.control.CancelBolusResponse
+import com.jwoglom.pumpx2.pump.messages.response.control.InitiateBolusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse.CurrentBolusStatus
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusResponse
@@ -25,8 +26,8 @@ enum class BolusControllerMode {
 }
 
 /**
- * 被动消费泵侧大剂量状态报文，把证据映射到 [BolusSessionHolder] 的 [SessionPhase] 与
- * [BolusOutcome]。S1 只读：不发送任何请求、不改变上游发送路径。
+ * 输注期状态机（设计 §4.9）：把泵侧证据翻译成单一 [BolusDeliveryState]，
+ * 并维护确认阶梯、结束判据与最终结局。
  *
  * 报文按**响应类**分派（不是按 opcode 数字），pumpx2 1.9.0 中对应关系为：
  *
@@ -37,10 +38,8 @@ enum class BolusControllerMode {
  * | `-74` | `ExtendedBolusStatusV2Response` | -73 |
  * | `48` | `LastBolusStatusResponse` / `LastBolusStatusV2Response` / `LastBolusStatusV3Response` | 49 / -91 / -69 |
  * | `-94` | `BolusPermissionResponse` | -93 |
+ * | `-97` | `InitiateBolusResponse` | -97（带签名） |
  * | `-96` | `CancelBolusResponse` | -95 |
- *
- * 文档里的编号是**请求** opcode：正向响应 = 请求 + 1，负向响应 = 请求绝对值 − 1。
- * `-92` 是 `LastBolusStatusV2Request` 的请求 opcode，1.9.0 里没有对应响应报文，因此无需消费。
  *
  * 未知报文一律忽略；单条报文解析失败（字段缺失 / 无枚举值）只记一条日志，不抛异常、不改状态。
  */
@@ -50,11 +49,75 @@ class BolusSessionController(
 ) {
     val holder = BolusSessionHolder(clock = clock)
 
-    val session: BolusSession?
+    val session: BolusDelivery?
         get() = holder.session
 
     var outcome: BolusOutcome = BolusOutcome.Pending
         private set
+
+    /**
+     * 本 App 发出 `-98` 时调用：进入 [BolusDeliveryState.CONFIRMING]，从此刻起算确认阶梯。
+     *
+     * @param hasImmediateLeg 本次是否含立即段；false = 纯方波，`45` 全程为零不可用。
+     * @param expectedEndAtMillis 纯方波 / 双波的延展预计结束时刻（可空）。
+     */
+    fun markInitiateSent(
+        bolusId: Int,
+        hasImmediateLeg: Boolean,
+        expectedEndAtMillis: Long? = null,
+        now: Long = clock(),
+    ) {
+        if (mode() != BolusControllerMode.V2) return
+        holder.resetCancelTracking()
+        outcome = BolusOutcome.Pending
+        holder.set(
+            BolusDelivery(
+                state = BolusDeliveryState.CONFIRMING,
+                bolusId = bolusId.takeIf { it != 0 },
+                hasImmediateLeg = hasImmediateLeg,
+                startedAtMillis = now,
+                expectedEndAtMillis = expectedEndAtMillis,
+                lastEvidenceAtMillis = now,
+            )
+        )
+    }
+
+    /**
+     * 由协调器的 ticker 驱动：确认阶梯（10s 警示 / 60s UNKNOWN）与延展超时兜底。
+     * 没有时钟推进时，只有报文到达才会改变状态。
+     */
+    fun onTick(now: Long = clock()) {
+        if (mode() != BolusControllerMode.V2) return
+        val current = holder.session ?: return
+        if (current.isFinished) return
+
+        when (current.state) {
+            BolusDeliveryState.CONFIRMING -> {
+                val startedAt = current.startedAtMillis ?: return
+                if (now - startedAt >= CONFIRM_UNCONFIRMED_MS) {
+                    holder.update(now) { it.copy(state = BolusDeliveryState.UNCONFIRMED) }
+                }
+            }
+
+            BolusDeliveryState.UNCONFIRMED -> {
+                val startedAt = current.startedAtMillis ?: return
+                if (now - startedAt >= CONFIRM_UNKNOWN_MS) {
+                    Timber.w("bolus: 发出 -98 后 %dms 仍无开始证据，落 UNKNOWN", CONFIRM_UNKNOWN_MS)
+                    holder.update(now) { it.copy(state = BolusDeliveryState.UNKNOWN) }
+                }
+            }
+
+            BolusDeliveryState.ACTIVE -> {
+                val expectedEnd = current.expectedEndAtMillis ?: return
+                if (now > expectedEnd + EXTENDED_UNKNOWN_GRACE_MS) {
+                    Timber.w("bolus: 延展预计结束 %dms 后仍无 47/-91，落 UNKNOWN", EXTENDED_UNKNOWN_GRACE_MS)
+                    holder.update(now) { it.copy(state = BolusDeliveryState.UNKNOWN) }
+                }
+            }
+
+            else -> Unit
+        }
+    }
 
     fun applyMessage(message: Message) {
         if (mode() != BolusControllerMode.V2) return
@@ -68,6 +131,7 @@ class BolusSessionController(
                 is LastBolusStatusV3Response -> onLastBolusV3(message)
                 is LastBolusStatusResponse -> onLastBolus(message.bolusId, message.bolusStatus)
                 is LastBolusStatusV2Response -> onLastBolus(message.bolusId, message.bolusStatus)
+                is InitiateBolusResponse -> onInitiateBolus(message)
                 is BolusPermissionResponse -> onPermission(message)
                 is CancelBolusResponse -> onCancel(message)
                 else -> Unit
@@ -78,42 +142,176 @@ class BolusSessionController(
     }
 
     /**
-     * 44：当前大剂量状态。`ALREADY_DELIVERED_OR_INVALID` 视为空（Idle）；
-     * `REQUESTING` / `DELIVERING` 且带 `bolusId` 时视为在输注（两者的区别只在泵内部，
-     * 对「是否有大剂量在进行」没有影响）。
+     * 44：当前大剂量状态。
+     *
+     * - `ALREADY_DELIVERED_OR_INVALID`：只在**立即段仍在跑**时作为结束证据（`45 bolusId=0`）；
+     *   纯方波 / 已进入延展段的会话忽略它（延展的 45 全程为零）；CONFIRMING / UNCONFIRMED / UNKNOWN
+     *   也忽略它，避免把「可能没开始」误判成 Idle 而放行重试。
+     * - `REQUESTING` / `DELIVERING` 且带 `bolusId`：确认开始（10–60s 的阶梯在此切回 ACTIVE）。
      */
     private fun onCurrentBolus(message: CurrentBolusStatusResponse) {
+        val now = clock()
+        val current = holder.session
         when (message.status) {
-            CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID ->
-                // 对账中的「空」只是证据，不能把 reconciling 标记一并清掉
-                if (holder.reconciling) holder.clearSession() else holder.clear()
+            CurrentBolusStatus.ALREADY_DELIVERED_OR_INVALID -> onCurrentBolusEmpty(current, now)
 
             CurrentBolusStatus.REQUESTING, CurrentBolusStatus.DELIVERING -> {
                 if (message.bolusId == 0) {
                     anomaly(message.javaClass.simpleName, "进行中但缺少 bolusId")
                     return
                 }
-                // 延展段在跑时，44 可能仍返回 DELIVERING；此时不要把阶段降级回 DELIVERING。
-                val phase = if (holder.session?.phase == SessionPhase.EXTENDED_RUNNING) null else SessionPhase.DELIVERING
-                holder.onEvidence(phase = phase, bolusId = message.bolusId)
+                onCurrentBolusActive(message.bolusId, current, now)
             }
 
             null -> anomaly(message.javaClass.simpleName, "未知 status=${message.statusId}")
         }
     }
 
+    private fun onCurrentBolusEmpty(current: BolusDelivery?, now: Long) {
+        if (current == null) {
+            if (holder.reconciling) holder.clearSession() else holder.clear()
+            return
+        }
+        if (current.isFinished) return
+
+        val immediateStillRunning =
+            current.hasImmediateLeg && current.immediateLegDoneAtMillis == null
+        when (current.state) {
+            BolusDeliveryState.ACTIVE -> {
+                if (immediateStillRunning) {
+                    holder.update(now) {
+                        it.copy(
+                            immediateLegDoneAtMillis = now,
+                            endObservedAtMillis = if (it.expectedEndAtMillis == null) {
+                                it.endObservedAtMillis ?: now
+                            } else {
+                                it.endObservedAtMillis
+                            },
+                        )
+                    }
+                }
+                // 已进入延展段 / 纯方波：45 全程为零，不作任何结束证据。
+            }
+
+            BolusDeliveryState.CANCELLING ->
+                holder.update(now) {
+                    if (it.endObservedAtMillis == null) it.copy(endObservedAtMillis = now) else it
+                }
+
+            // CONFIRMING / UNCONFIRMED / UNKNOWN：零结果不足以证明「没开始」，继续等 / 保持未知。
+            else -> Unit
+        }
+    }
+
+    private fun onCurrentBolusActive(bolusId: Int, current: BolusDelivery?, now: Long) {
+        if (current == null) {
+            holder.begin(BolusDeliveryState.ACTIVE, bolusId, hasImmediateLeg = true, now = now)
+            return
+        }
+        if (current.isFinished) {
+            // 上一笔已落定后又出现带 id 的 45：是另一笔（或泵侧重新报告），按新会话处理。
+            holder.begin(BolusDeliveryState.ACTIVE, bolusId, hasImmediateLeg = true, now = now)
+            return
+        }
+        when (current.state) {
+            BolusDeliveryState.CANCELLING ->
+                // 取消中不能因为 44 仍在跑就退回 ACTIVE，等 -95 / -91 落定。
+                holder.update(now) { it.copy(lastEvidenceAtMillis = now) }
+
+            BolusDeliveryState.UNKNOWN ->
+                if (current.bolusId != null && current.bolusId == bolusId) {
+                    // 迟到但明确的开始证据：允许纠正 UNKNOWN（不给用户重试，但不拒绝证据）。
+                    holder.update(now) {
+                        it.copy(state = BolusDeliveryState.ACTIVE, lastEvidenceAtMillis = now)
+                    }
+                } else {
+                    holder.begin(BolusDeliveryState.ACTIVE, bolusId, hasImmediateLeg = true, now = now)
+                }
+
+            else ->
+                holder.update(now) {
+                    it.copy(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        lastEvidenceAtMillis = now,
+                    )
+                }
+        }
+    }
+
     /**
-     * 46 / -74：延展大剂量状态。`bolusStatus=0` 或 `bolusId=0` 表示当前没有延展段，
-     * 不改状态（避免清掉正在进行的立即段）；否则进入 [SessionPhase.EXTENDED_RUNNING]，
-     * 并由「泵时钟起点 + duration」换算剩余时间。
+     * 46 / -74：延展大剂量状态。
+     *
+     * - `bolusStatus=0` / `bolusId=0`：只有**延展段真的在跑**（纯方波或立即段已结束）才作为结束证据；
+     *   双波立即段尚未结束时忽略。
+     * - 活跃：更新 `expectedEndAtMillis`，并作为「已在输注」的补强证据。
      */
     private fun onExtendedBolus(status: Int, bolusId: Int, pumpTimestampSeconds: Long, durationSeconds: Long) {
-        if (status == EXTENDED_STATUS_NONE || bolusId == 0 || durationSeconds <= 0) return
-        holder.onEvidence(
-            phase = SessionPhase.EXTENDED_RUNNING,
-            bolusId = bolusId,
-            expectedEndAtMillis = extendedEndAtMillis(pumpTimestampSeconds, durationSeconds),
-        )
+        val now = clock()
+        val current = holder.session
+        if (status == EXTENDED_STATUS_NONE || bolusId == 0 || durationSeconds <= 0) {
+            if (current == null || current.isFinished) return
+            if (!current.isExtendedRunning) return
+            holder.update(now) {
+                if (it.endObservedAtMillis == null) it.copy(endObservedAtMillis = now) else it
+            }
+            return
+        }
+
+        val expectedEnd = extendedEndAtMillis(pumpTimestampSeconds, durationSeconds)
+        if (current == null) {
+            holder.begin(
+                BolusDeliveryState.ACTIVE,
+                bolusId,
+                hasImmediateLeg = false,
+                expectedEndAtMillis = expectedEnd,
+                now = now,
+            )
+            return
+        }
+        if (current.isFinished) {
+            holder.begin(
+                BolusDeliveryState.ACTIVE,
+                bolusId,
+                hasImmediateLeg = false,
+                expectedEndAtMillis = expectedEnd,
+                now = now,
+            )
+            return
+        }
+        when (current.state) {
+            BolusDeliveryState.CANCELLING ->
+                holder.update(now) { it.copy(lastEvidenceAtMillis = now) }
+
+            BolusDeliveryState.UNKNOWN ->
+                if (current.bolusId != null && current.bolusId == bolusId) {
+                    holder.update(now) {
+                        it.copy(
+                            state = BolusDeliveryState.ACTIVE,
+                            expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
+                            lastEvidenceAtMillis = now,
+                        )
+                    }
+                } else {
+                    holder.begin(
+                        BolusDeliveryState.ACTIVE,
+                        bolusId,
+                        hasImmediateLeg = false,
+                        expectedEndAtMillis = expectedEnd,
+                        now = now,
+                    )
+                }
+
+            else ->
+                holder.update(now) {
+                    it.copy(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
+                        lastEvidenceAtMillis = now,
+                    )
+                }
+        }
     }
 
     /** 泵时间戳是泵本地墙上时间，需先经 [pumpTimeToLocalTz] 对齐到本机时钟。 */
@@ -124,11 +322,45 @@ class BolusSessionController(
     }
 
     /**
+     * -97：发起大剂量响应。`status=0 && statusTypeId=0` → 已开始（ACTIVE）；
+     * 其余（含库枚举里不存在的 `statusTypeId=1`）→ **立即失败**，不与 60s 超时混同。
+     */
+    private fun onInitiateBolus(message: InitiateBolusResponse) {
+        val current = holder.session ?: return
+        if (current.isFinished) return
+
+        val initiated = message.wasBolusInitiated()
+        if (!initiated) {
+            Timber.w(
+                "bolus: -97 拒绝开始 status=%s statusTypeId=%s",
+                message.status,
+                message.statusTypeId,
+            )
+            finish(
+                BolusDeliveryState.IDLE,
+                BolusOutcome.Failed(BolusError.NACK),
+                clock(),
+            )
+            return
+        }
+
+        val bolusId = message.bolusId.takeIf { it != 0 } ?: current.bolusId
+        holder.update(clock()) {
+            it.copy(
+                state = BolusDeliveryState.ACTIVE,
+                bolusId = bolusId,
+            )
+        }
+    }
+
+    /**
      * 48：最近一次大剂量。仅在 `bolusId` 与当前会话吻合时采纳，避免把几小时前的
-     * 旧记录套到新会话上。
+     * 旧记录套到新会话上。`bolusStatusId`：3 = 完成，0 = 取消（§4.9 结束判据）。
      */
     private fun onLastBolus(bolusId: Int, status: BolusStatus?) {
         if (!matchesCurrentSession(bolusId)) return
+        val current = holder.session ?: return
+        if (current.isFinished) return
         if (status == null) {
             anomaly("LastBolusStatus", "未知 bolusStatusId")
             return
@@ -149,38 +381,28 @@ class BolusSessionController(
         bolusId != 0 && holder.session?.bolusId == bolusId
 
     private fun applyTerminalStatus(status: BolusStatus) {
+        val now = clock()
         when (status) {
-            BolusStatus.COMPLETE -> {
-                holder.onEvidence(phase = SessionPhase.DONE)
-                outcome = BolusOutcome.Success
-            }
+            BolusStatus.COMPLETE ->
+                finish(BolusDeliveryState.IDLE, BolusOutcome.Success, now)
 
             BolusStatus.STOPPED_USER_TERMINATED,
             BolusStatus.STOPPED_WIRELESS,
-            -> {
-                holder.onEvidence(phase = SessionPhase.DONE)
-                outcome = BolusOutcome.Cancelled
-            }
+            -> finish(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now)
 
             BolusStatus.STOPPED_ALARM,
             BolusStatus.STOPPED_MALFUNCTION,
             BolusStatus.TERMINATED_PLGS,
-            -> {
-                holder.onEvidence(phase = SessionPhase.FAILED)
-                outcome = BolusOutcome.Failed(BolusError.ALARM)
-            }
+            -> finish(BolusDeliveryState.IDLE, BolusOutcome.Failed(BolusError.ALARM), now)
 
-            BolusStatus.REJECTED_WIRELESS -> {
-                holder.onEvidence(phase = SessionPhase.FAILED)
-                outcome = BolusOutcome.Failed(BolusError.NACK)
-            }
+            BolusStatus.REJECTED_WIRELESS ->
+                finish(BolusDeliveryState.IDLE, BolusOutcome.Failed(BolusError.NACK), now)
         }
     }
 
     /**
-     * -94：权限响应。授予且带 `bolusId` → [SessionPhase.AWAITING_PHONE]（等 -98 / 44 证据）；
-     * 授予但缺 `bolusId` → 仍进 [SessionPhase.AWAITING_PHONE]，id 留空（取消行为 NEEDS_ID）；
-     * NACK → [SessionPhase.FAILED] + [BolusError.NACK]；「等待中」是瞬态，不改状态。
+     * -94：权限响应。授予 → [BolusDeliveryState.CONFIRMING]（等 `-98` 发出后才起算阶梯）；
+     * NACK → `IDLE` + [BolusError.NACK]；「等待中」是瞬态，不改状态。
      */
     private fun onPermission(message: BolusPermissionResponse) {
         val nackReason = message.nackReason
@@ -192,39 +414,66 @@ class BolusSessionController(
             if (message.bolusId == 0) {
                 Timber.w("bolus: 权限已授予但缺少 bolusId，等待 44 补全")
             }
-            holder.begin(
-                phase = SessionPhase.AWAITING_PHONE,
-                bolusId = message.bolusId.takeIf { it != 0 },
-            )
             outcome = BolusOutcome.Pending
+            holder.set(
+                BolusDelivery(
+                    state = BolusDeliveryState.CONFIRMING,
+                    bolusId = message.bolusId.takeIf { it != 0 },
+                    // 阶梯从 -98 发出时起算；-94 只表示「可以发」。
+                    startedAtMillis = null,
+                    lastEvidenceAtMillis = clock(),
+                )
+            )
             return
         }
         if (nackReason == BolusPermissionResponse.NackReason.MPP_STATE_WAITING_FOR_RESPONSE) return
-        holder.onEvidence(
-            phase = SessionPhase.FAILED,
-            bolusId = message.bolusId.takeIf { it != 0 },
-        )
-        outcome = BolusOutcome.Failed(BolusError.NACK)
+        finish(BolusDeliveryState.IDLE, BolusOutcome.Failed(BolusError.NACK), clock())
     }
 
     /**
-     * -96：取消响应。`wasCancelled=true` → [SessionPhase.DONE] + [BolusOutcome.Cancelled]；
-     * `false` → [SessionPhase.FAILED] + [BolusError.NACK]（按设计 §4.5 的 CANCELLING 出口）。
+     * -96：取消响应。`wasCancelled=true` → `CANCELLED` + [BolusOutcome.Cancelled]；
+     * `false` → `UNKNOWN` + `Failed(fromCancel)`（泵没确认停止，不能声称已停）。
      */
     private fun onCancel(message: CancelBolusResponse) {
         val bolusId = message.bolusId.takeIf { it != 0 }
+        val now = clock()
         if (message.wasCancelled()) {
-            holder.onEvidence(phase = SessionPhase.DONE, bolusId = bolusId)
-            outcome = BolusOutcome.Cancelled
+            finish(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now, bolusId)
         } else {
             Timber.w("bolus: 取消失败 status=%s reason=%s", message.status, message.reason)
-            holder.onEvidence(phase = SessionPhase.FAILED, bolusId = bolusId)
-            // -95 的原始 statusId / reasonId 一并落进结局，供结局页展示与排查。
-            outcome = BolusOutcome.Failed(
-                error = BolusError.NACK,
-                statusId = message.statusId,
-                reasonId = message.reasonId,
-                fromCancel = true,
+            // 泵没有确认停止：不能声称已停。用 UNKNOWN 保留「可能仍在输注」的不确定性，
+            // 结局仍标 fromCancel，供结局页给出断管指引。
+            finish(
+                BolusDeliveryState.UNKNOWN,
+                BolusOutcome.Failed(
+                    error = BolusError.NACK,
+                    statusId = message.statusId,
+                    reasonId = message.reasonId,
+                    fromCancel = true,
+                ),
+                now,
+                bolusId,
+            )
+        }
+    }
+
+    /**
+     * 落定结局：状态 + `finishedAtMillis` + outcome 一次写入，避免页面/通知看到半截状态。
+     */
+    private fun finish(
+        state: BolusDeliveryState,
+        result: BolusOutcome,
+        now: Long,
+        bolusId: Int? = null,
+    ) {
+        outcome = result
+        holder.update(now) {
+            it.copy(
+                state = state,
+                bolusId = bolusId ?: it.bolusId,
+                finishedAtMillis = now,
+                endObservedAtMillis = it.endObservedAtMillis ?: now,
+                outcome = result,
             )
         }
     }
@@ -235,5 +484,14 @@ class BolusSessionController(
 
     private companion object {
         const val EXTENDED_STATUS_NONE = 0
+
+        /** 0–10s 未确认 → UNCONFIRMED（提示检查泵，继续等）。 */
+        const val CONFIRM_UNCONFIRMED_MS = 10_000L
+
+        /** 60s 仍无开始证据 → UNKNOWN（不给重试）。 */
+        const val CONFIRM_UNKNOWN_MS = 60_000L
+
+        /** 延展预计结束后的兜底：5 分钟仍无 47/-91 → UNKNOWN（§4.1）。 */
+        const val EXTENDED_UNKNOWN_GRACE_MS = 5 * 60_000L
     }
 }

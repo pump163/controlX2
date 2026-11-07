@@ -18,6 +18,8 @@ data class CommandCapability(
  */
 data class PumpCapabilityProfile(
     val modelKey: String,
+    /** 面向用户的型号显示名（配置 `displayName`）；取不到时 UI 回落成「当前型号」。 */
+    val modelDisplayName: String? = null,
     val initiateNormalBolus: Boolean,
     val remoteExtendedBolusStart: Boolean,
     /**
@@ -55,6 +57,10 @@ data class PumpCapabilityProfile(
      */
     val extendedBitmask: Int,
     val historyBolusTypeBitmask: Map<String, Int>,
+    /** 立即段查询间隔（§4.9.3）；默认 10 秒。 */
+    val immediatePollIntervalMs: Long = 10_000L,
+    /** 延展段兜底查询间隔（§4.9.3）；默认 5 分钟。 */
+    val extendedPollIntervalMs: Long = 300_000L,
 ) {
     fun maxExtendedSeconds(ciqEnabled: Boolean?): Int =
         if (ciqEnabled == false) maxExtendedSecondsNonCiq else maxExtendedSecondsCiq
@@ -100,11 +106,14 @@ object PumpCapabilities {
         historyBolusTypeBitmask = mapOf(
             "NOW" to 1, "LATER" to 2, "OVERRIDE" to 4, "CORRECTION" to 8, "CARB" to 16,
         ),
+        immediatePollIntervalMs = 10_000L,
+        extendedPollIntervalMs = 300_000L,
     )
 
     /** 兜底：t:slim X2（已真机定论，见 HTTP取证与真机点检.md §9.9）。 */
     private val FALLBACK_X2 = FALLBACK_DEFAULT.copy(
         modelKey = X2,
+        modelDisplayName = "t:slim X2",
         remoteExtendedBolusStart = false,
         bolusIncrementMilliunits = 50,
         // X2 有屏，延展只能在泵本体发起；Mobi 无屏，故为 null（不渲染任何提示行）。
@@ -114,6 +123,7 @@ object PumpCapabilities {
     /** 兜底：Mobi（接受纯方波，未真机验证）。 */
     private val FALLBACK_MOBI = FALLBACK_DEFAULT.copy(
         modelKey = MOBI,
+        modelDisplayName = "Mobi",
         remoteExtendedBolusStart = true,
         remoteExtendedBolusVerified = false,
         bolusIncrementMilliunits = 50,
@@ -176,9 +186,11 @@ object PumpCapabilities {
         val ui = obj.optJSONObject("ui")
         val units = obj.optJSONObject("units")
         val encodings = obj.optJSONObject("encodings")
+        val polling = obj.optJSONObject("polling")
 
         return PumpCapabilityProfile(
             modelKey = key,
+            modelDisplayName = readNullableString(obj, "displayName", base.modelDisplayName),
             initiateNormalBolus = commands?.optBoolean("initiateNormalBolus", base.initiateNormalBolus)
                 ?: base.initiateNormalBolus,
             remoteExtendedBolusStart = commands
@@ -234,6 +246,12 @@ object PumpCapabilities {
             historyBolusTypeBitmask = readEncoding(
                 encodings, "historyBolusTypeBitmask", base.historyBolusTypeBitmask,
             ),
+            immediatePollIntervalMs = polling
+                ?.optLong("immediatePollIntervalMs", base.immediatePollIntervalMs)
+                ?: base.immediatePollIntervalMs,
+            extendedPollIntervalMs = polling
+                ?.optLong("extendedPollIntervalMs", base.extendedPollIntervalMs)
+                ?: base.extendedPollIntervalMs,
         )
     }
 

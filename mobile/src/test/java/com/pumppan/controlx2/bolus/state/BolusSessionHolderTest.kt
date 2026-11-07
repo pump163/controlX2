@@ -18,7 +18,7 @@ class BolusSessionHolderTest {
     @Test
     fun deliveringWithId_isActiveAndCancelReady() {
         holder.begin(
-            phase = SessionPhase.DELIVERING,
+            state = BolusDeliveryState.ACTIVE,
             bolusId = 42,
             expectedEndAtMillis = now + 60_000,
             now = now,
@@ -29,14 +29,14 @@ class BolusSessionHolderTest {
 
     @Test
     fun deliveringWithoutId_needsIdBeforeCancel() {
-        holder.begin(phase = SessionPhase.EXTENDED_RUNNING, bolusId = null, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = null, now = now)
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
         assertEquals(CancelRowState.NEEDS_ID, holder.cancelRowState(connected = true))
     }
 
     @Test
     fun disconnectedWithTrace_isUnknownAndReadOnly() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = false))
         assertEquals(CancelRowState.READ_ONLY, holder.cancelRowState(connected = false))
     }
@@ -49,7 +49,7 @@ class BolusSessionHolderTest {
 
     @Test
     fun reconciling_isReconciling() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         holder.markReconciling(true)
         assertEquals(CancelRowState.RECONCILING, holder.cancelRowState(connected = true))
         holder.markReconciling(false)
@@ -58,7 +58,7 @@ class BolusSessionHolderTest {
 
     @Test
     fun staleWindow_boundaryIsStillActive() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         now += BolusLimits.STALE_ACTIVE_WINDOW_SECONDS * 1000L
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
 
@@ -68,29 +68,42 @@ class BolusSessionHolderTest {
 
     @Test
     fun evidenceRefreshesStaleTimer() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         now += 599_000
-        holder.onEvidence(phase = SessionPhase.DELIVERING, now = now)
+        // 状态机内每条新证据都经由 holder.update 刷新 lastEvidenceAtMillis。
+        holder.update(now) { it }
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
     }
 
     @Test
-    fun expectedEndReached_isIdleAndRowHidden() {
+    fun expectedEndPassed_withoutEndEvidence_staysActiveUntilGraceThenUnknown() {
         holder.begin(
-            phase = SessionPhase.EXTENDED_RUNNING,
+            state = BolusDeliveryState.ACTIVE,
             bolusId = 42,
+            hasImmediateLeg = false,
             expectedEndAtMillis = now + 10_000,
             now = now,
         )
+        // 新模型：预计结束时刻不是结束判据（要 47 归零 / -91），过了仍按 ACTIVE 处理。
         now += 10_001
-        assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
+        assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
+        assertEquals(CancelRowState.READY, holder.cancelRowState(connected = true))
+
+        // 预计结束 + 5 分钟兜底仍无结束证据 → UNKNOWN。
+        now += 5 * 60_000L
+        assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
     }
 
     @Test
-    fun finishedPhases_areIdle() {
-        for (phase in listOf(SessionPhase.DONE, SessionPhase.ABORTED, SessionPhase.FAILED)) {
-            holder.begin(phase = phase, bolusId = 42, now = now)
+    fun finishedStates_areIdleAndRowHidden() {
+        // 旧 DONE / ABORTED / FAILED 对应新模型的「已落定」（finishedAtMillis 非空）。
+        val finished = listOf(
+            BolusDelivery(state = BolusDeliveryState.IDLE, outcome = BolusOutcome.Success),
+            BolusDelivery(state = BolusDeliveryState.CANCELLED, outcome = BolusOutcome.Cancelled),
+            BolusDelivery(state = BolusDeliveryState.IDLE, outcome = BolusOutcome.Failed(BolusError.NACK)),
+        )
+        for (delivery in finished) {
+            holder.set(delivery.copy(bolusId = 42, finishedAtMillis = now, lastEvidenceAtMillis = now))
             assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))
             assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
         }
@@ -98,7 +111,7 @@ class BolusSessionHolderTest {
 
     @Test
     fun cancelThrottle_threeAttemptsInFifteenSecondWindow() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now))
         assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now + 1_000))
         assertEquals(CancelDecision.Send(42), holder.requestCancel(connected = true, now = now + 2_000))
@@ -112,7 +125,7 @@ class BolusSessionHolderTest {
 
     @Test
     fun clear_resetsSessionAndReconciling() {
-        holder.begin(phase = SessionPhase.DELIVERING, bolusId = 42, now = now)
+        holder.begin(state = BolusDeliveryState.ACTIVE, bolusId = 42, now = now)
         holder.markReconciling(true)
         holder.clear()
         assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))

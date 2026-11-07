@@ -163,13 +163,9 @@ class MainActivity : ComponentActivity() {
 
     // S1/S2 收敛：泵侧大剂量报文消费与对账全部在协调器内部完成（LEGACY 下零请求、零 timer）；
     // 开关判断只在 BolusRouter，本 Activity 不含任何 v2 条件分支。
-    private val bolusEntry = BolusEntryCoordinator(
-        sendPumpCommands = { type, msgs -> sendPumpCommands(type, msgs) },
-        isPumpConnected = { dataStore.pumpConnected.value == true },
-        scope = applicationScope,
-        mode = { BolusRouter.controllerMode(this) },
-        notificationContext = this,
-    ).also { BolusRuntime.coordinator = it }
+    // 必须在 onCreate 里构造：Activity 构造期还没有 attach，此时取 applicationContext
+    // 会 NPE（mBase == null），BolusNotifications 的构造链会直接崩在启动阶段。
+    private lateinit var bolusEntry: BolusEntryCoordinator
     private val historyLogDb by lazy { HistoryLogDatabase.getDatabase(this) }
     private val historyLogRepo by lazy { HistoryLogRepo(historyLogDb.historyLogDao()) }
     // hack: the ViewModel references the current pumpSid, so that streaming works in the UI, which we store lazily in the app preferences
@@ -180,6 +176,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         Timber.d("mobile UIActivity onCreate $savedInstanceState")
         super.onCreate(savedInstanceState)
+        bolusEntry = BolusEntryCoordinator(
+            sendPumpCommands = { type, msgs -> sendPumpCommands(type, msgs) },
+            isPumpConnected = { dataStore.pumpConnected.value == true },
+            scope = applicationScope,
+            mode = { BolusRouter.controllerMode(this) },
+            notificationContext = this,
+        ).also { BolusRuntime.coordinator = it }
         setupTimber(
             "MUA",
             context = this,

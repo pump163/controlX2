@@ -1,12 +1,5 @@
 package com.pumppan.controlx2.bolus.state
 
-data class BolusSession(
-    val bolusId: Int? = null,
-    val phase: SessionPhase = SessionPhase.DRAFT,
-    val lastEvidenceAtMillis: Long = 0L,
-    val expectedEndAtMillis: Long? = null,
-)
-
 enum class BolusActivity {
     IDLE,
     ACTIVE,
@@ -44,18 +37,22 @@ enum class CancelStatus {
     /** 已发 `-96`，泵尚未给出停止证据（10 秒窗口内）。 */
     SENDING,
 
-    /** 泵已给出停止证据（`-95` wasCancelled / 48 STOPPED）。 */
+    /** 泵已给出停止证据（`-95` wasCancelled / `-91` STOPPED）。 */
     CONFIRMED,
 
     /** 5 秒内仍未确认停止 → 提示 Bolus Not Stopped、断开管路。 */
     FAILED,
 }
 
+/**
+ * 会话快照的唯一可变容器。状态语义全部在 [BolusSessionController]，
+ * 这里只负责持有、刷新证据时间戳、取消节流与三态判定。
+ */
 class BolusSessionHolder(
     private val limits: BolusLimits = BolusLimits.Default,
     private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
-    var session: BolusSession? = null
+    var session: BolusDelivery? = null
         private set
 
     var reconciling: Boolean = false
@@ -68,28 +65,31 @@ class BolusSessionHolder(
     private var lastCancelAtMillis = 0L
 
     fun begin(
-        phase: SessionPhase,
+        state: BolusDeliveryState,
         bolusId: Int? = null,
+        hasImmediateLeg: Boolean = true,
         expectedEndAtMillis: Long? = null,
         now: Long = clock(),
     ) {
-        session = BolusSession(bolusId, phase, now, expectedEndAtMillis)
+        session = BolusDelivery(
+            state = state,
+            bolusId = bolusId,
+            hasImmediateLeg = hasImmediateLeg,
+            startedAtMillis = now,
+            expectedEndAtMillis = expectedEndAtMillis,
+            lastEvidenceAtMillis = now,
+        )
     }
 
-    /** 收到任一泵侧证据（44 / 46 / -74 / -94 / -96 / 48 / 历史）时刷新时间戳。 */
-    fun onEvidence(
-        phase: SessionPhase? = null,
-        bolusId: Int? = null,
-        expectedEndAtMillis: Long? = null,
-        now: Long = clock(),
-    ) {
-        val current = session
-        session = BolusSession(
-            bolusId = bolusId ?: current?.bolusId,
-            phase = phase ?: current?.phase ?: SessionPhase.UNKNOWN,
-            lastEvidenceAtMillis = now,
-            expectedEndAtMillis = expectedEndAtMillis ?: current?.expectedEndAtMillis,
-        )
+    /** 直接替换快照（状态机内部使用）。 */
+    fun set(delivery: BolusDelivery?) {
+        session = delivery
+    }
+
+    /** 在现有快照上做一次原子更新；没有会话时不做任何事。 */
+    fun update(now: Long = clock(), block: (BolusDelivery) -> BolusDelivery) {
+        val current = session ?: return
+        session = block(current).copy(lastEvidenceAtMillis = now)
     }
 
     fun markReconciling(value: Boolean) {
@@ -108,9 +108,10 @@ class BolusSessionHolder(
         session = null
     }
 
-    fun isExpired(now: Long = clock()): Boolean {
-        val end = session?.expectedEndAtMillis ?: return true
-        return now > end
+    /** 新会话开始：清空上一笔的取消节流记录。 */
+    fun resetCancelTracking() {
+        cancelAttempts.clear()
+        lastCancelAtMillis = 0L
     }
 
     /** 三态活性：供「是否允许发起新的大剂量」等门控使用。 */
@@ -119,11 +120,17 @@ class BolusSessionHolder(
         if (reconciling) return BolusActivity.UNKNOWN
         if (!connected) return BolusActivity.UNKNOWN
         val current = session ?: return BolusActivity.IDLE
-        if (current.phase == SessionPhase.UNKNOWN) return BolusActivity.UNKNOWN
-        if (!isActivePhase(current.phase)) return BolusActivity.IDLE
-        if (current.expectedEndAtMillis != null && now > current.expectedEndAtMillis) {
-            return BolusActivity.IDLE
+        if (current.state == BolusDeliveryState.UNKNOWN) return BolusActivity.UNKNOWN
+        if (current.isFinished) return BolusActivity.IDLE
+
+        // 延展段只有 47 归零 / -91 才算结束；预计结束时刻过了先按 Unknown 处理，
+        // 不在预计时刻把会话判成 Idle（§4.9 结束判据）。
+        val expectedEnd = current.expectedEndAtMillis
+        if (expectedEnd != null && now > expectedEnd + EXTENDED_END_GRACE_MS) {
+            return BolusActivity.UNKNOWN
         }
+
+        if (!current.isLive) return BolusActivity.IDLE
         if (now - current.lastEvidenceAtMillis > limits.staleActiveWindowMillis) {
             return BolusActivity.UNKNOWN
         }
@@ -134,13 +141,30 @@ class BolusSessionHolder(
     fun cancelRowState(connected: Boolean, now: Long = clock()): CancelRowState {
         if (reconciling) return CancelRowState.RECONCILING
         val current = session ?: return CancelRowState.HIDDEN
-        if (current.phase == SessionPhase.UNKNOWN) return CancelRowState.READ_ONLY
-        if (!isActivePhase(current.phase)) return CancelRowState.HIDDEN
-        if (current.expectedEndAtMillis != null && now > current.expectedEndAtMillis) {
-            return CancelRowState.HIDDEN
+        if (current.isFinished) return CancelRowState.HIDDEN
+        return when (current.state) {
+            BolusDeliveryState.IDLE,
+            BolusDeliveryState.CANCELLED,
+            // 等确认期间与旧 AWAITING_PHONE 一致：不给取消入口（禁盲取消）。
+            BolusDeliveryState.CONFIRMING,
+            BolusDeliveryState.UNCONFIRMED,
+            -> CancelRowState.HIDDEN
+
+            // §4.9.2：60s 落 UNKNOWN 后不给重试入口，但**保留取消入口**；
+            // 断连时仍按只读处理，避免盲取消。
+            BolusDeliveryState.UNKNOWN ->
+                if (!connected) CancelRowState.READ_ONLY
+                else if (current.bolusId != null) CancelRowState.READY
+                else CancelRowState.NEEDS_ID
+
+            BolusDeliveryState.ACTIVE,
+            BolusDeliveryState.CANCELLING,
+            -> when {
+                !connected -> CancelRowState.READ_ONLY
+                current.bolusId != null -> CancelRowState.READY
+                else -> CancelRowState.NEEDS_ID
+            }
         }
-        if (!connected) return CancelRowState.READ_ONLY
-        return if (current.bolusId != null) CancelRowState.READY else CancelRowState.NEEDS_ID
     }
 
     /**
@@ -151,58 +175,55 @@ class BolusSessionHolder(
         if (!connected) return CancelDecision.Disconnected
         if (reconciling) return CancelDecision.Reconciling
         val current = session ?: return CancelDecision.NotActive
-        if (!isActivePhase(current.phase)) return CancelDecision.NotActive
-        if (current.expectedEndAtMillis != null && now > current.expectedEndAtMillis) {
-            return CancelDecision.NotActive
-        }
+        if (current.isFinished) return CancelDecision.NotActive
+        if (current.state !in CANCELABLE_STATES) return CancelDecision.NotActive
         val bolusId = current.bolusId ?: return CancelDecision.MissingBolusId
         cancelAttempts.removeAll { now - it >= CANCEL_THROTTLE_WINDOW_MS }
         if (cancelAttempts.size >= MAX_CANCEL_ATTEMPTS) return CancelDecision.Throttled
         cancelAttempts.add(now)
         lastCancelAtMillis = now
-        onEvidence(phase = SessionPhase.CANCELLING, bolusId = bolusId, now = now)
+        session = current.copy(
+            state = BolusDeliveryState.CANCELLING,
+            lastEvidenceAtMillis = now,
+        )
         return CancelDecision.Send(bolusId)
     }
 
     /**
      * S8a 取消三态（供取消页文案）：
-     * - 泵已给出停止证据（DONE / ABORTED）→ [CancelStatus.CONFIRMED]；
-     * - FAILED 或发出 `-96` 后满 [CANCEL_STOPPED_WORST_CASE_MS] 仍未停 → [CancelStatus.FAILED]；
+     * - 已落定结局且不是「取消失败」→ [CancelStatus.CONFIRMED]；
+     * - 取消失败（UNKNOWN）或发出 `-96` 后满 [CANCEL_STOPPED_WORST_CASE_MS] 仍未停 → [CancelStatus.FAILED]；
      * - 否则 [CancelStatus.SENDING]（手册 §9.9 的 10 秒确认窗口）。
      */
     fun cancelStatus(now: Long = clock()): CancelStatus {
         if (lastCancelAtMillis <= 0L) return CancelStatus.IDLE
         val current = session ?: return CancelStatus.IDLE
-        return when (current.phase) {
-            SessionPhase.DONE, SessionPhase.ABORTED -> CancelStatus.CONFIRMED
-            SessionPhase.FAILED -> CancelStatus.FAILED
-            else ->
-                if (now - lastCancelAtMillis >= CANCEL_STOPPED_WORST_CASE_MS) CancelStatus.FAILED
-                else CancelStatus.SENDING
+        if (current.isFinished) {
+            return if (current.state == BolusDeliveryState.UNKNOWN) CancelStatus.FAILED
+            else CancelStatus.CONFIRMED
+        }
+        if (current.state == BolusDeliveryState.UNKNOWN) return CancelStatus.FAILED
+        return if (now - lastCancelAtMillis >= CANCEL_STOPPED_WORST_CASE_MS) {
+            CancelStatus.FAILED
+        } else {
+            CancelStatus.SENDING
         }
     }
 
-    private fun isActivePhase(phase: SessionPhase): Boolean = when (phase) {
-        SessionPhase.DELIVERING,
-        SessionPhase.EXTENDED_RUNNING,
-        SessionPhase.CANCELLING,
-        -> true
-
-        SessionPhase.DRAFT,
-        SessionPhase.PERMITTING,
-        SessionPhase.AWAITING_PHONE,
-        SessionPhase.DONE,
-        SessionPhase.ABORTED,
-        SessionPhase.FAILED,
-        SessionPhase.UNKNOWN,
-        -> false
-    }
-
     private companion object {
+        val CANCELABLE_STATES = setOf(
+            BolusDeliveryState.ACTIVE,
+            BolusDeliveryState.CANCELLING,
+            BolusDeliveryState.UNKNOWN,
+        )
+
         const val MAX_CANCEL_ATTEMPTS = 3
         /** 设计文档 §S8a：15 秒窗口内最多 3 次；与下方 5 秒「停止兜底」不是同一个窗口。 */
         const val CANCEL_THROTTLE_WINDOW_MS = 15_000L
         /** 5 秒内仍拿不到停止证据就按「未停止」提示断开管路。 */
         const val CANCEL_STOPPED_WORST_CASE_MS = 5_000L
+
+        /** 延展段过了预计结束时刻仍无 47/-91 证据时的兜底窗口（§4.1 的 5 分钟）。 */
+        const val EXTENDED_END_GRACE_MS = 5 * 60_000L
     }
 }

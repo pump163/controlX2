@@ -21,6 +21,7 @@ import com.pumppan.controlx2.bolus.state.BolusForm
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusSource
+import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 
 /**
  * 第 3 步：校验与确认。
@@ -47,7 +48,7 @@ fun BolusConfirmPanel(
         SummaryRow(stringResource(R.string.bolus_v2_confirm_source), sourceName(state.source))
         SummaryRow(stringResource(R.string.bolus_v2_confirm_total), units(state.totalMilliunits, limits))
 
-        if (limits.remoteExtendedBolusStart && state.shape != BolusShape.NORMAL) {
+        if (limits.canStartRemoteExtended() && state.shape != BolusShape.NORMAL) {
             // 绝对值为主；百分比只作次要信息（派生显示，不进协议）。
             val percent = BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits)
             SummaryRow(

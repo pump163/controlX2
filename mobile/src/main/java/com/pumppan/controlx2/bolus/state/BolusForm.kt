@@ -23,9 +23,12 @@ object BolusForm {
     /**
      * 按百分比拆分总量。
      *
-     * 取整规则：立即段按 half-up 就近量化到 [increment]（泵的最小输注精度，默认 25 milliunits），
-     * 延后段 = 总量 − 立即段。总量为 [increment] 的倍数时，两段同在网格上且总和守恒；
+     * 取整规则（与预设 v1→v2 迁移同一条公式，`[com.pumppan.controlx2.bolus.preset.convertLegacyPreset]` 直接复用它）：
+     * `later = round(total × 延展占比 / 100)`，**延后段** half-up 量化到 [increment]（泵的最小输注精度），
+     * `now = total − later`。总量为 [increment] 的倍数时，两段同在网格上且总和守恒；
      * 否则由 [validate] 拦截（INCREMENT_NOT_ALIGNED）。
+     *
+     * 注意方向：[percent] 是**立即段**占比，延后段用 `100 − percent`。
      */
     fun splitByPercent(
         totalMilliunits: Int,
@@ -34,9 +37,9 @@ object BolusForm {
     ): BolusSplit {
         require(totalMilliunits >= 0) { "totalMilliunits must be >= 0" }
         require(percent in 0..100) { "percent must be in 0..100" }
-        val rawNow = (totalMilliunits * percent + 50) / 100
-        val now = quantizeToIncrement(rawNow, increment)
-        return BolusSplit(now, totalMilliunits - now)
+        val rawLater = (totalMilliunits.toLong() * (100 - percent) + 50) / 100
+        val later = quantizeToIncrement(rawLater.toInt(), increment).coerceIn(0, totalMilliunits)
+        return BolusSplit(totalMilliunits - later, later)
     }
 
     /** 就近量化到 [increment] 的整数倍（half-up）。 */
@@ -93,7 +96,7 @@ object BolusForm {
             BolusShape.SQUARE, BolusShape.DUAL -> {
                 // X2 固件忽略 -98 的延展字段（真机 6851/6852 定论），能力由配置声明；
                 // 不支持时直接报错并跳过后续延展校验，避免叠加噪音错误。
-                if (!limits.remoteExtendedBolusStart) {
+                if (!limits.canStartRemoteExtended()) {
                     errors += BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED
                     return errors
                 }

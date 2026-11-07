@@ -1,6 +1,8 @@
 package com.pumppan.controlx2.bolus
 
-import com.pumppan.controlx2.bolus.state.SessionPhase
+import com.pumppan.controlx2.bolus.state.BolusDelivery
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
+import com.pumppan.controlx2.bolus.state.BolusOutcome
 
 /** 大剂量入口的页面类别（§4.6.2）。 */
 enum class BolusEntryPage {
@@ -22,25 +24,28 @@ enum class BolusEntryPage {
 
 /**
  * 入口四态状态机的**单点映射**：导航栏「大剂量」落到哪个页面只看这里。
- * 业务代码不要在各处写 `when (phase)`。
+ * 唯一输入是 [BolusDelivery]（状态 + `expectedEndAtMillis` + `isExtendedRunning`），
+ * 业务代码不要在各处写 `when (state)`。
  */
-fun phaseToPage(phase: SessionPhase?): BolusEntryPage = when (phase) {
-    null,
-    SessionPhase.DRAFT,
-    SessionPhase.ABORTED,
-    SessionPhase.FAILED,
-    -> BolusEntryPage.DRAFT
+fun deliveryToPage(delivery: BolusDelivery?, outcome: BolusOutcome): BolusEntryPage {
+    if (delivery == null) return BolusEntryPage.DRAFT
+    if (delivery.isFinished) {
+        // 失败 / 中止要留在 DRAFT 显示结局行；完成与取消进完成页。
+        return if (outcome is BolusOutcome.Failed) BolusEntryPage.DRAFT else BolusEntryPage.DONE
+    }
+    return when (delivery.state) {
+        BolusDeliveryState.IDLE -> BolusEntryPage.DRAFT
 
-    SessionPhase.DELIVERING,
-    SessionPhase.CANCELLING,
-    -> BolusEntryPage.CANCEL
+        BolusDeliveryState.CONFIRMING,
+        BolusDeliveryState.UNCONFIRMED,
+        BolusDeliveryState.UNKNOWN,
+        -> BolusEntryPage.READONLY_CANCEL
 
-    SessionPhase.EXTENDED_RUNNING -> BolusEntryPage.EITHER_OR
+        BolusDeliveryState.ACTIVE ->
+            if (delivery.isExtendedRunning) BolusEntryPage.EITHER_OR else BolusEntryPage.CANCEL
 
-    SessionPhase.DONE -> BolusEntryPage.DONE
+        BolusDeliveryState.CANCELLING -> BolusEntryPage.CANCEL
 
-    SessionPhase.PERMITTING,
-    SessionPhase.AWAITING_PHONE,
-    SessionPhase.UNKNOWN,
-    -> BolusEntryPage.READONLY_CANCEL
+        BolusDeliveryState.CANCELLED -> BolusEntryPage.DONE
+    }
 }

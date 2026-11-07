@@ -25,7 +25,7 @@ import com.pumppan.controlx2.bolus.BolusRouter
 import com.pumppan.controlx2.bolus.BolusRuntime
 import com.pumppan.controlx2.bolus.state.BolusControllerMode
 import com.pumppan.controlx2.bolus.state.CancelDecision
-import com.pumppan.controlx2.bolus.state.SessionPhase
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.models.InsulinUnit
 import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
@@ -351,7 +351,7 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
         }
 
         // 取消中（等待泵确认停止）不允许重复点击。
-        if (holder.session?.phase == SessionPhase.CANCELLING) {
+        if (holder.session?.state == BolusDeliveryState.CANCELLING) {
             coordinator.refreshNotifications()
             return
         }

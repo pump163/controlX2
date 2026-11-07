@@ -1,17 +1,25 @@
 package com.pumppan.controlx2.bolus
 
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,10 +29,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.R
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusForm
@@ -32,6 +45,7 @@ import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusValidationError
 import com.pumppan.controlx2.bolus.state.CiqVersion
+import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -40,6 +54,10 @@ import kotlin.math.roundToInt
  *
  * 界面上不出现形状名：只有「总量」+「扩展大剂量」开关；打开后按「立即 : 延后」的百分比
  * 表达拆分（预设快捷项来自 [BolusLimits.extendedPercentPresets]），所有换算走 [BolusForm]。
+ *
+ * 扩展态下再分两态（仅型号支持远程发起延时出现）：
+ * - **百分比**：输入总量 + 立即/延展两个百分比（输入一个即锁死另一个），换算结果只读；
+ * - **剂量**：直接输入立即段 / 延后段的 U。
  */
 @Composable
 fun BolusShapePanel(
@@ -49,19 +67,56 @@ fun BolusShapePanel(
     limits: BolusLimits = BolusLimits.Default,
     ciqVersion: CiqVersion? = null,
     onChange: (BolusFlowState) -> Unit,
+    /**
+     * 是否按泵型号能力限制输入。
+     * 大剂量流程（默认 true）按 [canStartRemoteExtended] 置灰开关、隐藏双态；
+     * 预设编辑传入 false：只存数值、不预设泵型号，X2 上也能编辑方波/双波/百分比条目。
+     */
+    respectModelCapabilities: Boolean = true,
 ) {
+    val context = LocalContext.current
+    val prefs = remember { Prefs(context) }
+    // 百分比快捷项：固定 3 个、只能改值不能增删（与 12 条剂量预设不共用存储）。
+    var percentPresets by remember { mutableStateOf(prefs.bolusPercentPresets()) }
+    var editingPresetIndex by remember { mutableStateOf<Int?>(null) }
+    // 双态：false = 百分比（左），true = 剂量（右）；默认百分比。
+    var doseMode by rememberSaveable { mutableStateOf(false) }
+
+    val extendedSupported = if (respectModelCapabilities) limits.canStartRemoteExtended() else true
+    val extended = state.shape != BolusShape.NORMAL
+
+    /** 百分比提交：100:0 等于没有延展，提示并切回普通形态，不留下「延展时长 0」的畸形状态。 */
+    fun applyImmediatePercent(percent: Int) {
+        val safe = percent.coerceIn(0, 100)
+        if (safe >= 100) {
+            Toast.makeText(context, R.string.bolus_v2_percent_immediate_full, Toast.LENGTH_SHORT).show()
+            onChange(
+                state.copy(
+                    shape = BolusShape.NORMAL,
+                    nowMilliunits = state.totalMilliunits,
+                    laterMilliunits = 0,
+                    extendedSeconds = 0,
+                ),
+            )
+            return
+        }
+        onChange(state.withPercent(safe, limits))
+    }
+
     Column(Modifier) {
-        DecimalField(
-            label = stringResource(R.string.bolus_v2_field_total),
-            value = state.totalMilliunits,
-            scale = 1000,
-            increment = limits.bolusIncrementMilliunits,
-            onCommit = { onChange(state.withTotal(it, limits)) },
-        )
+        // 总量：普通/百分比模式输入；剂量模式下总量由两段相加，不再单独输入。
+        if (!extended || !doseMode) {
+            DecimalField(
+                label = stringResource(R.string.bolus_v2_field_total),
+                value = state.totalMilliunits,
+                scale = 1000,
+                increment = limits.bolusIncrementMilliunits,
+                onCommit = { onChange(state.withTotal(it, limits)) },
+            )
+        }
 
         Spacer(Modifier.height(12.dp))
 
-        val extendedSupported = limits.remoteExtendedBolusStart
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
@@ -77,51 +132,119 @@ fun BolusShapePanel(
                 modifier = Modifier.weight(1f),
             )
             Switch(
-                checked = state.shape != BolusShape.NORMAL,
+                checked = extended,
                 enabled = extendedSupported,
                 onCheckedChange = { if (extendedSupported) onChange(state.withExtended(it, limits)) },
             )
         }
 
-        // 提示文案来自能力配置且可空：X2 有值（请到泵本体操作）；Mobi 为 null（无屏，操作就在本应用内，
-        // 不加说明噪音）。为 null 时**不渲染任何提示行**，不要改成渲染空行。
+        // 提示只在「本型号不支持远程发起延展」时出现（Mobi 支持 → unsupportedHint 为 null，整行不渲染）。
+        // 型号名从 pump-capabilities.json 的 displayName 取；取不到回落「当前型号」，不在代码里写死型号。
         val unsupportedHint = limits.unsupportedHint
         if (!extendedSupported && unsupportedHint != null) {
             Spacer(Modifier.height(6.dp))
+            val modelName = limits.modelDisplayName
+                ?: stringResource(R.string.bolus_v2_current_model)
             Text(
-                text = unsupportedHint,
+                text = stringResource(R.string.bolus_v2_extended_unsupported_model, modelNameInSentence(modelName)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        if (state.shape != BolusShape.NORMAL && extendedSupported) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(
-                    R.string.bolus_v2_split_summary,
-                    formatDose(state.nowMilliunits, limits.bolusIncrementMilliunits),
-                    formatDose(state.laterMilliunits, limits.bolusIncrementMilliunits),
-                    BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits),
-                    100 - BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits),
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                limits.extendedPercentPresets.forEach { preset ->
-                    FilterChip(
-                        selected = state.percent == preset,
-                        onClick = { onChange(state.withPercent(preset, limits)) },
-                        label = { Text("$preset : ${100 - preset}") },
-                    )
-                }
+        // 双态开关与百分比视图只在型号支持远程发起延延时出现（X2 不渲染）。
+        if (extended && extendedSupported) {
+            Spacer(Modifier.height(12.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.bolus_v2_mode_percent),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = doseMode, onCheckedChange = { doseMode = it })
+                Text(
+                    text = stringResource(R.string.bolus_v2_mode_dose),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Spacer(Modifier.height(8.dp))
-            PercentField(value = state.percent, onCommit = { onChange(state.withPercent(it, limits)) })
+            if (doseMode) {
+                // 剂量态：直接按 U 输入两段；总量由两段相加，只读显示。
+                DecimalField(
+                    label = stringResource(R.string.bolus_v2_field_immediate),
+                    value = state.nowMilliunits,
+                    scale = 1000,
+                    increment = limits.bolusIncrementMilliunits,
+                    onCommit = { onChange(state.withNow(it)) },
+                )
+                Spacer(Modifier.height(8.dp))
+                DecimalField(
+                    label = stringResource(R.string.bolus_v2_field_later),
+                    value = state.laterMilliunits,
+                    scale = 1000,
+                    increment = limits.bolusIncrementMilliunits,
+                    onCommit = { onChange(state.withLater(it)) },
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(
+                        R.string.bolus_v2_total_summary,
+                        formatDose(state.totalMilliunits, limits.bolusIncrementMilliunits),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                // 百分比态：总量已在上面输入，这里只调占比与时长。
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    percentPresets.forEachIndexed { index, preset ->
+                        PercentPresetChip(
+                            percent = preset,
+                            selected = state.percent == preset,
+                            onClick = { applyImmediatePercent(preset) },
+                            onLongClick = { editingPresetIndex = index },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) {
+                        PercentField(
+                            label = stringResource(R.string.bolus_v2_field_percent),
+                            value = state.percent,
+                            onCommit = { applyImmediatePercent(it) },
+                        )
+                    }
+                    Box(Modifier.weight(1f)) {
+                        PercentField(
+                            label = stringResource(R.string.bolus_v2_field_later_percent),
+                            value = 100 - state.percent,
+                            onCommit = { applyImmediatePercent(100 - it) },
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                // 换算结果只读：这就是落盘的绝对值（mU）。
+                Text(
+                    text = stringResource(
+                        R.string.bolus_v2_split_summary,
+                        formatDose(state.nowMilliunits, limits.bolusIncrementMilliunits),
+                        formatDose(state.laterMilliunits, limits.bolusIncrementMilliunits),
+                        state.percent,
+                        100 - state.percent,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
             // UI 以分钟输入（15–480、1 分钟步进、默认 2 小时）；wire 仍传秒。
@@ -137,11 +260,86 @@ fun BolusShapePanel(
         errors.forEach { error ->
             Spacer(Modifier.height(6.dp))
             Text(
-                text = errorText(error, ciqEnabled),
+                text = errorText(error, ciqEnabled, ciqVersion, limits),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
         }
+    }
+
+    editingPresetIndex?.let { index ->
+        val initial = percentPresets[index]
+        var text by remember(index) { mutableStateOf(initial.toString()) }
+        AlertDialog(
+            onDismissRequest = { editingPresetIndex = null },
+            title = { Text(stringResource(R.string.bolus_v2_percent_preset_edit_title)) },
+            text = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.filter { c -> c.isDigit() }.take(3) },
+                    label = { Text(stringResource(R.string.bolus_v2_field_percent)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val value = text.toIntOrNull()?.coerceIn(0, 100) ?: initial
+                        prefs.setBolusPercentPreset(index, value)
+                        percentPresets = prefs.bolusPercentPresets()
+                        editingPresetIndex = null
+                    },
+                ) {
+                    Text(stringResource(R.string.setup_save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingPresetIndex = null }) {
+                    Text(stringResource(R.string.dashboard_cancel))
+                }
+            },
+        )
+    }
+}
+
+/**
+ * 型号名拼进句式：末位是字母或数字才补一个空格（`t:slim X2 不支持…`）。
+ * 回落值「当前型号」以汉字结尾，不加空格（`当前型号不支持…`）。
+ * 空格不写死在格式串里，两种取值读起来都自然。
+ */
+internal fun modelNameInSentence(modelName: String): String =
+    if (modelName.lastOrNull()?.isLetterOrDigit() == true) "$modelName " else modelName
+
+/** 百分比快捷 chip：短按选中，长按改值（只能改值，不能增删）。 */
+@Composable
+private fun PercentPresetChip(
+    percent: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            )
+            .then(
+                if (selected) Modifier.border(1.dp, MaterialTheme.colorScheme.primary, shape) else Modifier,
+            )
+            .pointerInput(percent) {
+                detectTapGestures(onTap = { onClick() }, onLongPress = { onLongClick() })
+            }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = "$percent : ${100 - percent}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -253,7 +451,7 @@ internal fun MinutesField(
 
 /** 百分比字段：0–100 的整数，模型里与 [BolusFlowState.percent] 同源。 */
 @Composable
-internal fun PercentField(value: Int, onCommit: (Int) -> Unit) {
+internal fun PercentField(label: String, value: Int, onCommit: (Int) -> Unit) {
     var text by rememberSaveable { mutableStateOf(value.toString()) }
     LaunchedEffect(value) {
         if (text.toIntOrNull() != value) text = value.toString()
@@ -266,7 +464,7 @@ internal fun PercentField(value: Int, onCommit: (Int) -> Unit) {
             val parsed = filtered.toIntOrNull()
             if (parsed != null) onCommit(parsed.coerceIn(0, 100)) else if (filtered.isBlank()) onCommit(0)
         },
-        label = { Text(stringResource(R.string.bolus_v2_field_percent)) },
+        label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.fillMaxWidth(),

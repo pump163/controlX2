@@ -9,6 +9,13 @@ import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 enum class CiqVersion { V1, V2 }
 
 /**
+ * **唯一**的延展发起能力校验：该机型能否从 App 远程发起延展/双波。
+ *
+ * 输入页开关、预设「应用」、确认页兜底、发送前校验都走这里，不在各调用点重复写型号分支。
+ */
+fun BolusLimits.canStartRemoteExtended(): Boolean = remoteExtendedBolusStart
+
+/**
  * 大剂量相关阈值的统一视图。数值实际来自 `assets/pump-capabilities.json`
  * （经 [PumpCapabilities] 加载），本文件的常量只作兜底与默认值。
  */
@@ -52,6 +59,8 @@ data class BolusLimits(
      * 为 null 时 UI **不渲染**提示行。
      */
     val unsupportedHint: String? = null,
+    /** 型号显示名（来自 `pump-capabilities.json` 的 `displayName`）；null 时 UI 回落「当前型号」。 */
+    val modelDisplayName: String? = null,
     val staleActiveWindowSeconds: Long = STALE_ACTIVE_WINDOW_SECONDS,
     val bolusResponseTimeoutSeconds: Long = BOLUS_RESPONSE_TIMEOUT_SECONDS,
     val cancelMaxAttempts: Int = CANCEL_MAX_ATTEMPTS,
@@ -126,6 +135,7 @@ data class BolusLimits(
                 remoteExtendedBolusStart = profile.remoteExtendedBolusStart,
                 remoteExtendedBolusVerified = profile.remoteExtendedBolusVerified,
                 unsupportedHint = profile.unsupportedHint,
+                modelDisplayName = profile.modelDisplayName,
             )
         }
 

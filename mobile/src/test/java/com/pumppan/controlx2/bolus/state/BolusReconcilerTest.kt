@@ -58,7 +58,7 @@ class BolusReconcilerTest {
         feed(emptyLast())
 
         assertEquals(BolusActivity.ACTIVE, reconciler.result)
-        assertEquals(SessionPhase.DELIVERING, holder.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, holder.session?.state)
         assertEquals(77, holder.session?.bolusId)
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
         assertEquals(CancelRowState.READY, holder.cancelRowState(connected = true))
@@ -74,7 +74,8 @@ class BolusReconcilerTest {
         feed(emptyLast())
 
         assertEquals(BolusActivity.ACTIVE, reconciler.result)
-        assertEquals(SessionPhase.EXTENDED_RUNNING, holder.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, holder.session?.state)
+        assertTrue(holder.session?.isExtendedRunning == true)
         val end = holder.session?.expectedEndAtMillis
         assertTrue("延展段应算出剩余时间", end != null && end > now)
     }
@@ -109,9 +110,9 @@ class BolusReconcilerTest {
 
         assertFalse(reconciler.running)
         assertEquals(BolusActivity.UNKNOWN, reconciler.result)
-        assertEquals(SessionPhase.UNKNOWN, holder.session?.phase)
+        assertEquals(BolusDeliveryState.UNKNOWN, holder.session?.state)
         assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.READ_ONLY, holder.cancelRowState(connected = true))
+        assertEquals(CancelRowState.NEEDS_ID, holder.cancelRowState(connected = true))
     }
 
     @Test
@@ -122,9 +123,9 @@ class BolusReconcilerTest {
 
         assertFalse(reconciler.running)
         assertEquals(BolusActivity.UNKNOWN, reconciler.result)
-        assertEquals(SessionPhase.UNKNOWN, holder.session?.phase)
+        assertEquals(BolusDeliveryState.UNKNOWN, holder.session?.state)
         assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.READ_ONLY, holder.cancelRowState(connected = true))
+        assertEquals(CancelRowState.NEEDS_ID, holder.cancelRowState(connected = true))
     }
 
     @Test
@@ -153,10 +154,12 @@ class BolusReconcilerTest {
         assertEquals(BolusActivity.IDLE, reconciler.result)
 
         controller.applyMessage(CurrentBolusStatusResponse(1, 88, 0, 2300, 0, 0))
-        assertEquals(SessionPhase.DELIVERING, holder.session?.phase)
+        assertEquals(BolusDeliveryState.ACTIVE, holder.session?.state)
         assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
 
-        controller.applyMessage(idleCurrent())
+        // 新模型：结束判据是 -91（状态 3 = 完成），不是 44 归零。
+        controller.applyMessage(LastBolusStatusV2Response(1, 88, 0, 2300, 3, 0, 0, 0, 2300))
+        assertEquals(BolusDeliveryState.IDLE, holder.session?.state)
         assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))
     }
 

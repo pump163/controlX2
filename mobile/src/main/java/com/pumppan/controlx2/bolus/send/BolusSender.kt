@@ -8,6 +8,7 @@ import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusValidationError
 import com.pumppan.controlx2.bolus.state.CiqVersion
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
+import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 
 /**
  * 一次大剂量的 wire 计划（S6 发送层）。
@@ -64,7 +65,7 @@ object BolusSender {
         ciqVersion: CiqVersion? = null,
     ): BolusPrepareResult {
         // 发送前的二次能力校验：延展形状必须有配置授权。
-        if (draft.shape != BolusShape.NORMAL && !profile.remoteExtendedBolusStart) {
+        if (draft.shape != BolusShape.NORMAL && !limits.canStartRemoteExtended()) {
             return BolusPrepareResult.Blocked(listOf(BolusValidationError.REMOTE_EXTENDED_NOT_SUPPORTED))
         }
         val errors = BolusForm.validate(draft, ciqEnabled, limits, ciqVersion)

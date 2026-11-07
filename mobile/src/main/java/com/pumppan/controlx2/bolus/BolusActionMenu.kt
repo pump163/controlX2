@@ -27,7 +27,7 @@ import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
 import com.pumppan.controlx2.bolus.state.CancelDecision
 import com.pumppan.controlx2.bolus.state.CancelRowState
 import com.pumppan.controlx2.bolus.state.CancelStatus
-import com.pumppan.controlx2.bolus.state.SessionPhase
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.ui.ActionRow
 import com.pumppan.controlx2.ui.NavigationRow
 import kotlinx.coroutines.delay
@@ -97,7 +97,7 @@ fun BolusActionMenu(
             CancelRowState.NEEDS_ID -> stringResource(R.string.bolus_v2_cancel_reason_needs_id)
             CancelRowState.READ_ONLY ->
                 if (!isConnected) stringResource(R.string.bolus_v2_cancel_reason_disconnected)
-                else if (session?.phase == SessionPhase.UNKNOWN) stringResource(R.string.bolus_v2_cancel_reason_unknown)
+                else if (session?.state == BolusDeliveryState.UNKNOWN) stringResource(R.string.bolus_v2_cancel_reason_unknown)
                 else stringResource(R.string.bolus_v2_cancel_reason_disconnected)
             CancelRowState.READY -> stringResource(R.string.bolus_v2_cancel_ready_sub)
             CancelRowState.HIDDEN -> stringResource(R.string.bolus_v2_status_idle)

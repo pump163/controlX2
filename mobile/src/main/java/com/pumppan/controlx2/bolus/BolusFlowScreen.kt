@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +45,7 @@ import com.pumppan.controlx2.bolus.preset.BolusPresetSaveResult
 import com.pumppan.controlx2.bolus.preset.BolusPresetSpec
 import com.pumppan.controlx2.bolus.preset.BolusPresetStore
 import com.pumppan.controlx2.bolus.send.BolusEvidenceLog
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.bolus.send.BolusPrepareResult
 import com.pumppan.controlx2.bolus.send.BolusSendPlan
 import com.pumppan.controlx2.bolus.send.BolusSender
@@ -56,6 +59,7 @@ import com.pumppan.controlx2.bolus.state.BolusShape
 import com.pumppan.controlx2.bolus.state.BolusValidationError
 import com.pumppan.controlx2.bolus.state.CiqVersion
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
+import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -113,10 +117,34 @@ fun BolusFlowScreen(
     }
     val scope = rememberCoroutineScope()
 
+    // 确认页兜底：正常路径进不来，但通知跳转 / 草稿恢复等入口可能带着延展形状直接落到确认页。
+    // 与「应用」用同一个能力函数；拦下时清掉延展段（不并入立即段），退回输入页并提示。
+    val extendedBlocked = state.shape != BolusShape.NORMAL && !limits.canStartRemoteExtended()
+    LaunchedEffect(state.step, extendedBlocked) {
+        if (state.step == BolusFlowStep.CONFIRM && extendedBlocked) {
+            val modelName = limits.modelDisplayName ?: context.getString(R.string.bolus_v2_current_model)
+            Toast.makeText(
+                context,
+                context.getString(R.string.bolus_v2_extended_unsupported_model, modelNameInSentence(modelName)),
+                Toast.LENGTH_LONG,
+            ).show()
+            onStateChange(
+                state.copy(
+                    step = BolusFlowStep.SHAPE,
+                    shape = BolusShape.NORMAL,
+                    laterMilliunits = 0,
+                    extendedSeconds = 0,
+                ),
+            )
+        }
+    }
+
     // S6 发送：pendingPlan 非空 → 发 -94 取 bolusId → 生产通道发送 -98。
     var pendingPlan by remember { mutableStateOf<BolusSendPlan?>(null) }
     var sendErrors by remember { mutableStateOf<List<BolusValidationError>>(emptyList()) }
     var sendFailureRes by remember { mutableStateOf<Int?>(null) }
+    // 小总量变形（立即段不足一步 → 实际只发纯方波）需用户确认后才进确认页。
+    var smallImmediateConfirm by remember { mutableStateOf(false) }
     val sendErrorText: String? =
         sendErrors.firstOrNull()?.let { errorText(it, ciqEnabled, ciqVersion, limits) }
             ?: sendFailureRes?.let { stringResource(it) }
@@ -171,11 +199,55 @@ fun BolusFlowScreen(
                     // 未验证型号的延展：只写本地取证日志（不上传）。
                     BolusEvidenceLog.arm(plan, permission.bolusId, bytes.size)
                     sendMessage(MessagePaths.TO_SERVER_BOLUS_REQUEST_PHONE, bytes)
+                    // 进入单一状态机的确认阶梯：0–10s / 10–60s / 60s → UNKNOWN。
+                    BolusRuntime.coordinator?.onBolusInitiated(
+                        bolusId = permission.bolusId,
+                        hasImmediateLeg = plan.totalVolumeMilliunits > 0,
+                        expectedEndAtMillis = if (plan.usesExtendedFields) {
+                            System.currentTimeMillis() + plan.extendedSeconds * 1000L
+                        } else {
+                            null
+                        },
+                    )
                     onStateChange(latestState.copy(step = BolusFlowStep.RESULT))
                 }
             }
         }
         pendingPlan = null
+    }
+
+    // 小总量变形提示：百分比换算后立即段被步进取整成 0、延展段 > 0，
+    // 用户以为在打双波、实际会落成纯方波；必须确认后才继续（不静默提交）。
+    if (smallImmediateConfirm) {
+        AlertDialog(
+            onDismissRequest = { smallImmediateConfirm = false },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.bolus_v2_small_immediate_warning,
+                        formatDose(limits.bolusIncrementMilliunits, limits.bolusIncrementMilliunits),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        smallImmediateConfirm = false
+                        when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
+                            is BolusAdvance.Ok -> onStateChange(result.state)
+                            is BolusAdvance.Invalid -> Unit
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.bolus_v2_confirm_continue))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { smallImmediateConfirm = false }) {
+                    Text(stringResource(R.string.dashboard_cancel))
+                }
+            },
+        )
     }
 
     Column(
@@ -265,9 +337,13 @@ fun BolusFlowScreen(
                         }
                         Button(
                             onClick = {
-                                when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
-                                    is BolusAdvance.Ok -> onStateChange(result.state)
-                                    is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
+                                if (needsSmallImmediateConfirm(state)) {
+                                    smallImmediateConfirm = true
+                                } else {
+                                    when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
+                                        is BolusAdvance.Ok -> onStateChange(result.state)
+                                        is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
+                                    }
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -318,23 +394,18 @@ fun BolusFlowScreen(
 private const val PERMISSION_POLL_MS = 200L
 private const val PERMISSION_TIMEOUT_MS = 30_000L
 
-/** 结局页等待泵侧证据的最长时间。 */
-private const val OUTCOME_TIMEOUT_MS = 60_000L
-
-/** S7 结局页：Success / Cancelled / Failed(NACK·ALARM·TIMEOUT·DISCONNECTED)。 */
+/**
+ * S7 结局页：全部由单一输注状态驱动（不再有 60s 看门狗）。
+ * CONFIRMING / UNCONFIRMED 先复用既有的「已发出，等待确认」文案；
+ * 精确的「未确认开始输注，请检查…」提示留给 S7 文案集合，本轮不新增字符串。
+ */
 @Composable
 private fun BolusResultPanel() {
     val outcome = BolusRuntime.coordinator?.outcomeState?.value ?: BolusOutcome.Pending
+    val delivery = BolusRuntime.coordinator?.sessionState?.value
     val connected by LocalDataStore.current.pumpConnected.observeAsState()
-    var timedOut by remember { mutableStateOf(false) }
-    LaunchedEffect(outcome) {
-        timedOut = false
-        if (outcome is BolusOutcome.Pending) {
-            delay(OUTCOME_TIMEOUT_MS)
-            timedOut = true
-        }
-    }
     val failed = outcome as? BolusOutcome.Failed
+    val state = delivery?.state
     val text = when {
         outcome is BolusOutcome.Success -> stringResource(R.string.bolus_v2_outcome_success)
         outcome is BolusOutcome.Cancelled -> stringResource(R.string.bolus_v2_outcome_cancelled)
@@ -343,12 +414,16 @@ private fun BolusResultPanel() {
             stringResource(R.string.bolus_v2_outcome_failed_cancel)
         failed != null -> failureText(failed.error)
         connected == false -> stringResource(R.string.bolus_v2_outcome_failed_disconnected)
-        timedOut -> stringResource(R.string.bolus_v2_outcome_failed_timeout)
+        state == BolusDeliveryState.UNKNOWN -> stringResource(R.string.bolus_v2_outcome_failed_timeout)
+        state == BolusDeliveryState.CANCELLING -> stringResource(R.string.bolus_v2_page_cancelling)
+        state == BolusDeliveryState.ACTIVE -> stringResource(R.string.bolus_v2_page_delivering)
         else -> stringResource(R.string.bolus_v2_send_sent)
     }
     val color = when {
-        failed != null || connected == false || timedOut -> MaterialTheme.colorScheme.error
-        outcome is BolusOutcome.Cancelled -> MaterialTheme.colorScheme.onSurfaceVariant
+        failed != null || connected == false || state == BolusDeliveryState.UNKNOWN ->
+            MaterialTheme.colorScheme.error
+        outcome is BolusOutcome.Cancelled || state == BolusDeliveryState.CANCELLING ->
+            MaterialTheme.colorScheme.onSurfaceVariant
         else -> MaterialTheme.colorScheme.onSurface
     }
     Text(text, style = MaterialTheme.typography.bodyLarge, color = color)
@@ -390,3 +465,13 @@ private fun stepTitle(step: BolusFlowStep): Int = when (step) {
     BolusFlowStep.CONFIRM -> R.string.bolus_v2_step_confirm
     BolusFlowStep.RESULT -> R.string.bolus_v2_step_result
 }
+
+/**
+ * 小总量变形：百分比换算后「立即段 = 0 而延展段 > 0」——用户以为在打双波，实际落成纯方波。
+ * percent 为 0 / 100 是明确的纯方波或无延展，不打扰；只在中间占比时提示。
+ */
+private fun needsSmallImmediateConfirm(state: BolusFlowState): Boolean =
+    state.shape != BolusShape.NORMAL &&
+        state.percent in 1..99 &&
+        state.nowMilliunits == 0 &&
+        state.laterMilliunits > 0

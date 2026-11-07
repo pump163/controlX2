@@ -19,7 +19,7 @@ class BolusFormTest {
     @Test
     fun splitByPercent_roundsToIncrement() {
         assertEquals(BolusSplit(200, 200), BolusForm.splitByPercent(400, 50))
-        assertEquals(BolusSplit(250, 225), BolusForm.splitByPercent(475, 50))
+        assertEquals(BolusSplit(225, 250), BolusForm.splitByPercent(475, 50))
         assertEquals(BolusSplit(300, 100), BolusForm.splitByPercent(400, 75))
     }
 
@@ -107,9 +107,9 @@ class BolusFormTest {
 
     @Test
     fun splitByPercent_x2Grid_usesFiftyMilliunits() {
-        // X2 档（50）：400@70% → 立即 300 / 延后 100（half-up 到 50 网格）。
+        // X2 档（50）：延后段先 half-up 到 50 网格，立即段取总量减延后段。
         assertEquals(BolusSplit(300, 100), BolusForm.splitByPercent(400, 70, 50))
-        assertEquals(BolusSplit(250, 200), BolusForm.splitByPercent(450, 50, 50))
+        assertEquals(BolusSplit(200, 250), BolusForm.splitByPercent(450, 50, 50))
         assertEquals(BolusSplit(300, 150), BolusForm.splitByPercent(450, 70, 50))
 
         for (total in listOf(400, 500, 24_950, 25_000)) {

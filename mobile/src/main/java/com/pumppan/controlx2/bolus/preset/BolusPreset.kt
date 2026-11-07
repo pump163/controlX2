@@ -82,4 +82,10 @@ data class BolusPreset(
     /** 「应用」：预填草稿并直接进入第 3 步（确认页），不经过第 2 步。 */
     fun appliedState(limits: BolusLimits = BolusLimits.Default): BolusFlowState =
         prefilledState(limits).copy(step = BolusFlowStep.CONFIRM)
+
+    /**
+     * 型号不支持远程延展时的降级分支：**丢弃延后段**，只保留立即段（变成普通大剂量）。
+     * 注意不要用 [BolusFlowState.withShape]：那会把延后段并入立即段，等于把延展量一次性推进去。
+     */
+    fun immediateOnly(): BolusPreset = copy(laterMilliunits = 0, durationMinutes = 0)
 }

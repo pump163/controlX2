@@ -219,4 +219,64 @@ adb exec-out run-as com.jwoglom.controlx2 cat files/debugLog-xxx.txt > debugLog.
 7. pumpx2 是升级到 1.9.2 还是只在 pumppan 本地打补丁；升级后 `resetInstance` 语义与接口是否变化。
 8. 所有候选方案均不得触发 `removeBond`：确认现有偏好与恢复流程中不存在隐式解绑，且重连后不会要求重新输入泵端配对 code。
 9. ① 与库内重连的优先级：是禁用库内重连（`onPumpDisconnected` 返回 `false`）由 App 全权接管，还是保留库重连只补看门狗；两种方案的日志指标需先定义。
-</content>
+
+## 9. 路线决策（2026-11-07，挂起）
+
+**决策**：放弃「先打补丁」路线（有界退避、连接失败后 5s 重试、取消 `manual_reinit_required` / `await_user` 永久停手那一套，暂不实施）；选定**直接升级 pumpx2 到 1.9.3**作为唯一路线。当前挂起，本轮不动手。
+
+用户理由（原样引用）：
+
+> 1) 迟早要升；2) 升级后本来也要改我们自己的重连逻辑，现有逻辑明显有问题，先升级再改程序更合理，否则先按旧版改完，升级后发现问题还得重改一遍。
+
+### 9.1 本决策取代的旧结论
+
+- §6 建议路线第 1–3 条（先做 ①、④ 产品化、用日志决定 ②）不再执行。
+- §6 第 5 条「pumpx2 升级单独立项」形式保留，但升级由「单独立项」升为**唯一路线**。
+- §8 第 7 条（升级 1.9.2 还是本地打补丁）已由本决策回答：**1.9.3**。
+- §5 的方案 ①②③④⑤ 保留为参考，不再是实施序列。
+
+### 9.2 升级的已知阻塞：`BolusType` 语义重构
+
+2026-11-02 曾试升 1.9.3，编译失败并回滚（详见 `docs/feature/泵能力收敛与自建挡板方案_main.md` §2.1）。
+
+- 旧枚举：`FOOD1(1) / CORRECTION(2) / EXTENDED(4) / FOOD2(8)`
+- 新枚举：`NOW(1) / LATER(2) / OVERRIDE(4) / CORRECTION(8) / CARB(16) / EATING_SOON_MODE(32) / QUEUED(64)`
+- 上游注释写明旧映射无法解释真实泵数据（issue #78）。数值位的含义已经变了，`FOOD1→NOW`、`FOOD2→?` **不是 1:1 映射**，不能盲改。
+
+需要移植的调用点（按当前代码）：
+
+| 位置 | 现状 | 迁移要点 |
+|---|---|---|
+| `mobile/src/main/java/com/jwoglom/controlx2/MainActivity.kt:445-509` :: `sendServiceBolusRequest` | 以 `FOOD2` 为基值；`fromCarbs > 0` 加 `FOOD1`；`corrVolume > 0` 加 `CORRECTION`；`:501` 用 `toBitmask` 拼 `InitiateBolusRequest` 位掩码 | 按泵真实语义重新定义请求掩码；X2 普通大剂量只发 `totalVolume`，掩码不能照搬旧三元组；必须真机抓包验证 |
+| `wear/src/main/java/com/jwoglom/controlx2/MainActivity.kt:155-206` | 同样的 `FOOD2` 基值 + `FOOD1`/`CORRECTION` + `toBitmask` | 与手机端同源，必须同步改，否则两端行为不一致 |
+| `db/src/test/java/com/jwoglom/controlx2/db/historylog/HistoryLogItemTest.kt:23` | 断言 `setOf(BolusType.FOOD1)` | 仅编译/测试适配；读历史应直接看数值（1/2/4/8/16），不要照新枚举解读 |
+| `mobile/src/main/java/com/pumppan/controlx2/bolus/state/PumpCapabilities.kt:98-101,234` 与 `assets/pump-capabilities.json` | 配置键仍是 `FOOD1/FOOD2`；`requestBitmask` 与 `historyBolusTypeBitmask` 分离 | 配置键是否改名、历史掩码是否继续按数值存，属语义决策，不是编译修复 |
+| `mobile/src/main/java/com/pumppan/controlx2/bolus/send/BolusSender.kt:74-77,136-137` | 用 `requestBitmask["FOOD2"]`，兜底 `8`；延展用实测 `12` | 升级后兜底值与键名都要重新对照；`12` 是实测值，不得用 `BolusType#toBitmask` 推导 |
+| `Debug.kt` | 2026-11-02 报错记录提到；当前树未检出 `FOOD1/FOOD2` 字面量 | 升级时以编译器为准，逐个清 |
+
+判断标准：位掩码是**发给泵的请求字段**，改错等于给泵发不同语义的剂量请求，所以「改版本号即完成」不成立。
+
+### 9.3 升级后仍要改的程序逻辑（升级本身不解决）
+
+1.9.2 起包含上游 PR #153（Tandem Mobi 连接稳定性），但它不覆盖下列我方/配置侧行为：
+
+1. **重连退避无上限**：`onDisconnectedPeripheral` 250ms × 1.5 无 cap，长时间离泵会把间隔拖到小时级；仍需有界退避。
+2. **永久停手**：`manual_reinit_required`（120s 内 3 次 `INITIAL_AUTH_NO_REPLY`）与 `await_user`（配对不完整）应在有限次后转为可恢复状态 + UI 重试，而不是 `return` 后不再重连。
+3. **pending connection 丢失不重试**：1.9.0 的 `onConnectionFailed` 只上报不重试；升级后要确认上游 5s 重试是否覆盖所有失败路径（含 `cancelConnection` 之后）。
+4. **旧实例未 teardown**：`resetInstance()` 在 app 树零调用，`stop()` 只 `stopScan + close`；升级后要确认 `getInstance/resetInstance` 语义，并在重建前显式 teardown，避免旧 autoConnect 注册残留 / 重复连接。
+
+顺序约束：先让升级落地并通过编译与真机验证，再做上述逻辑改动；否则两轮改动叠加，无法二分定位。
+
+### 9.4 回滚点
+
+- 分支：`pumppan`
+- 当前 HEAD：`c5f29dfdc5c8f72ed15d6d7f7ffb7d6120125120`（2026-11-07 00:17:25 +0800，`docs(handoff): 记录通知每秒刷新的耗电疑点…`）
+- 当前 pumpx2 版本：根 `build.gradle:5` `pumpx2_version = "1.9.0"`，`use_local_pumpx2` 默认 `false`
+- 工作区当前不干净：`M mobile/src/main/java/com/jwoglom/controlx2/MainActivity.kt`（其他会话改动）与两个未跟踪的 bug 文档。回滚只能按文件回退（回退 `build.gradle` 与移植提交），**不要** `git reset --hard` / `git clean`，否则会误删他人改动。
+- 首次升级失败的现场记录：`docs/feature/泵能力收敛与自建挡板方案_main.md` §2.1。
+
+### 9.5 挂起期间不做的事
+
+- 不实施有界退避、5s 重试、取消永久停手等任何补丁；
+- 不修改 `_tmp_pumpx2`；
+- 不动其他会话正在修改的文件（当前为 `mobile/src/main/java/com/jwoglom/controlx2/MainActivity.kt`）。

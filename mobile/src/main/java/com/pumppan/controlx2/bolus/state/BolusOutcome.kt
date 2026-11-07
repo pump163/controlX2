@@ -1,18 +1,5 @@
 package com.pumppan.controlx2.bolus.state
 
-enum class SessionPhase {
-    DRAFT,
-    PERMITTING,
-    AWAITING_PHONE,
-    DELIVERING,
-    EXTENDED_RUNNING,
-    CANCELLING,
-    DONE,
-    ABORTED,
-    FAILED,
-    UNKNOWN,
-}
-
 enum class BolusError {
     NACK,
     ALARM,

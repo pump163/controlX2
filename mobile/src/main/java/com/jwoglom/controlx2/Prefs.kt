@@ -283,6 +283,21 @@ class Prefs(val context: Context) {
     }
 
     /**
+     * 延展大剂量输入页的百分比快捷项：**固定 3 个**（只能改值、不能增删），默认 0 / 50 / 75。
+     * 与 12 条剂量预设（Room `bolus_presets`）不是一类数据，不共用库表。
+     */
+    fun bolusPercentPresets(): List<Int> = listOf(
+        prefs().getInt("bolus-percent-preset-1", 0),
+        prefs().getInt("bolus-percent-preset-2", 50),
+        prefs().getInt("bolus-percent-preset-3", 75),
+    ).map { it.coerceIn(0, 100) }
+
+    fun setBolusPercentPreset(index: Int, percent: Int) {
+        if (index !in 0..2) return
+        prefs().edit().putInt("bolus-percent-preset-${index + 1}", percent.coerceIn(0, 100)).commit()
+    }
+
+    /**
      * Pump model name for Nightscout device identification
      */
     fun pumpModelName(): String? {

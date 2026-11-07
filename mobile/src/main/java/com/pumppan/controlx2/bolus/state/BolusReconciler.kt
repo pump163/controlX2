@@ -134,7 +134,7 @@ class BolusReconciler(
             }
 
             else -> {
-                holder.begin(phase = SessionPhase.UNKNOWN, now = now)
+                holder.begin(BolusDeliveryState.UNKNOWN, now = now)
                 BolusActivity.UNKNOWN
             }
         }

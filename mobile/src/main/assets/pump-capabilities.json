@@ -25,6 +25,10 @@
     "ui": {
       "unsupportedHint": null
     },
+    "polling": {
+      "immediatePollIntervalMs": 10000,
+      "extendedPollIntervalMs": 300000
+    },
     "units": {
       "wireDuration": "seconds",
       "historyExtendedDurationRequested": "minutes"
@@ -60,6 +64,7 @@
   },
   "models": {
     "TSLIM_X2": {
+      "displayName": "t:slim X2",
       "evidence": {
         "remoteExtendedBolusStart": "false：-98 wire 25–36 字节（extendedVolume/extendedSeconds/extended3）被 X2 固件忽略。真机 6852 total=1000/ext=700/sec=3600/mask=3 被接受，但 66 totalBolusSize=1、280 mask=1 now=1000 later=0 dur=0、46 恒零。官方 App 调用点延展三参写死 0,0,0；库内延展用例全标 Mobi_Extended。见 HTTP取证与真机点检.md §9.9.1 / §9.9.2。",
         "extendedBolusStatusRead": "true：46 / -74 只读正常（泵本体双波 6850 时 duration=3600 秒、requestedVolume=700，取消后归零）。见 §9.9.4。",
@@ -121,6 +126,7 @@
       }
     },
     "MOBI": {
+      "displayName": "Mobi",
       "evidence": {
         "remoteExtendedBolusStart": "true：上游实证（Mobi 501 真实抓包 + 泵侧回写）——-98 wire totalVolume=立即段、extendedVolume=延后段、extendedSeconds=秒、extended3=0；totalVolume=0 纯方波合法，8h/28800s 也被接受；bitmask=12 直接发。本项目本身未真机验证（verified=false），待第三方回传；见 HTTP取证与真机点检.md §9.9.5。",
         "verified": "false：本项目未做 Mobi 真机验证（上游有 501 抓包实证）。仅用于 UI 实验提示与本地取证日志，**不参与能否发送的判定**；闸门只看 remoteExtendedBolusStart。",

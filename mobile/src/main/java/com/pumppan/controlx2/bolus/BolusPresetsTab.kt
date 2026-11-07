@@ -36,6 +36,7 @@ import com.pumppan.controlx2.bolus.preset.BolusPresetSpec
 import com.pumppan.controlx2.bolus.preset.BolusPresetStore
 import com.pumppan.controlx2.bolus.preset.toggleSelection
 import com.pumppan.controlx2.bolus.state.BolusLimits
+import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 import kotlinx.coroutines.launch
 
 /**
@@ -65,6 +66,8 @@ fun BolusPresetsTab(
     // 单选（null = 未选中）；删除/应用可用性只看它。
     var selectedPresetId by rememberSaveable { mutableStateOf<Long?>(null) }
     var deletingPreset by remember { mutableStateOf<BolusPreset?>(null) }
+    // 「应用」能力闸门：条目本身照常可编辑/可选中，只在用出去的那一刻拦。
+    var blockedPreset by remember { mutableStateOf<BolusPreset?>(null) }
     LaunchedEffect(store) { presets = store.list() }
 
     val presetErrorText: String? = when (presetError) {
@@ -166,6 +169,9 @@ fun BolusPresetsTab(
                                     R.string.bolus_v2_preset_unset_hint,
                                     Toast.LENGTH_SHORT,
                                 ).show()
+                            } else if (preset.extendedEnabled && !limits.canStartRemoteExtended()) {
+                                // 型号不支持远程发起延展：不置灰条目，只在「应用」时拦下并给两个出口。
+                                blockedPreset = preset
                             } else {
                                 // 应用：交出预填草稿（直接定位到确认页），由上层切标签并打开流程。
                                 selectedPresetId = null
@@ -210,6 +216,50 @@ fun BolusPresetsTab(
 
                         else -> presetError = result
                     }
+                }
+            },
+        )
+    }
+
+    // 延展不可用的「应用」拦截：立即段 > 0 时才给「改为立即段」，纯方波只有取消。
+    blockedPreset?.let { preset ->
+        AlertDialog(
+            onDismissRequest = { blockedPreset = null },
+            title = {
+                Text(
+                    stringResource(
+                        R.string.bolus_v2_preset_extended_blocked_title,
+                        limits.modelDisplayName ?: stringResource(R.string.bolus_v2_current_model),
+                    ),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (preset.immediateMilliunits > 0) {
+                            R.string.bolus_v2_preset_extended_blocked_text
+                        } else {
+                            R.string.bolus_v2_preset_extended_blocked_only_cancel
+                        },
+                    ),
+                )
+            },
+            confirmButton = {
+                if (preset.immediateMilliunits > 0) {
+                    TextButton(
+                        onClick = {
+                            blockedPreset = null
+                            selectedPresetId = null
+                            onApply(preset.immediateOnly())
+                        },
+                    ) {
+                        Text(stringResource(R.string.bolus_v2_preset_apply_immediate_only))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { blockedPreset = null }) {
+                    Text(stringResource(R.string.profile_cancel))
                 }
             },
         )

@@ -45,6 +45,8 @@ import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.pumpx2.pump.messages.Message
 import androidx.compose.runtime.livedata.observeAsState
+import com.pumppan.controlx2.bolus.state.BolusDelivery
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
@@ -53,11 +55,10 @@ import com.pumppan.controlx2.bolus.state.BolusTab
 import com.pumppan.controlx2.bolus.state.BolusTabSession
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
-import com.pumppan.controlx2.bolus.state.SessionPhase
 import kotlinx.coroutines.delay
 
 /**
- * v2 大剂量分区：顶部三标签（大剂量 / 向导 / 预设），默认「大剂量」，与 [phaseToPage] 映射配合。
+ * v2 大剂量分区：顶部三标签（大剂量 / 向导 / 预设），默认「大剂量」，与 [deliveryToPage] 映射配合。
  *
  * - **草稿单例**：唯一一份草稿放在 [BolusTabSession.draft]，标签只记来源标量；
  *   切标签、切高度档位都复用同一份，不新建第二份。
@@ -80,8 +81,9 @@ fun BolusV2Section(
     var panelMode by rememberSaveable {
         mutableStateOf(BolusPanelMode.fromPref(prefs.bolusPanelMode()))
     }
-    val phase = BolusRuntime.coordinator?.sessionState?.value?.phase
-    val page = phaseToPage(phase)
+    val delivery = BolusRuntime.coordinator?.sessionState?.value
+    val outcome = BolusRuntime.coordinator?.outcomeState?.value ?: BolusOutcome.Pending
+    val page = deliveryToPage(delivery, outcome)
 
     // 相位非 DRAFT 时收回流程页并销毁草稿（§4.7）；进行中的输注由状态机页面照常展示，不清会话。
     LaunchedEffect(page) {
@@ -157,7 +159,7 @@ fun BolusV2Section(
                         BolusTabPage(
                             session = session,
                             page = page,
-                            phase = phase,
+                            delivery = delivery,
                             limits = limits,
                             profile = profile,
                             onSectionBack = onBack,
@@ -191,7 +193,7 @@ fun BolusV2Section(
 private fun BolusTabPage(
     session: BolusTabSession,
     page: BolusEntryPage,
-    phase: SessionPhase?,
+    delivery: BolusDelivery?,
     limits: BolusLimits,
     profile: PumpCapabilityProfile,
     onSectionBack: () -> Unit,
@@ -256,7 +258,7 @@ private fun BolusTabPage(
                 onBack = onSectionBack,
                 sendPumpCommands = sendPumpCommands,
                 showNewBolus = false, // 立即段在打 / 正在取消：不给新输入入口
-                headerText = phaseHeader(phase),
+                headerText = stateHeader(delivery),
                 hiddenText = stringResource(R.string.bolus_v2_cancel_pending),
             )
 
@@ -265,7 +267,7 @@ private fun BolusTabPage(
                 onBack = onSectionBack,
                 sendPumpCommands = sendPumpCommands,
                 showNewBolus = true, // 二选一：取消 / 追加普通大剂量
-                headerText = phaseHeader(phase),
+                headerText = stateHeader(delivery),
                 newBolusTitle = stringResource(R.string.bolus_v2_action_extra_now),
                 newBolusSubtitle = stringResource(R.string.bolus_v2_action_extra_now_sub),
             )
@@ -275,7 +277,7 @@ private fun BolusTabPage(
                 onBack = onSectionBack,
                 sendPumpCommands = sendPumpCommands,
                 showNewBolus = false,
-                headerText = phaseHeader(phase),
+                headerText = stateHeader(delivery),
                 hiddenText = stringResource(R.string.bolus_v2_cancel_pending),
             )
 
@@ -378,17 +380,17 @@ private fun BolusDonePage() {
 }
 
 @Composable
-private fun phaseHeader(phase: SessionPhase?): String = when (phase) {
-    SessionPhase.DELIVERING -> stringResource(R.string.bolus_v2_page_delivering)
-    SessionPhase.CANCELLING -> stringResource(R.string.bolus_v2_page_cancelling)
-    SessionPhase.EXTENDED_RUNNING -> stringResource(R.string.bolus_v2_page_extended_running)
-    SessionPhase.UNKNOWN -> stringResource(R.string.bolus_v2_page_unknown)
-    SessionPhase.PERMITTING, SessionPhase.AWAITING_PHONE ->
+private fun stateHeader(delivery: BolusDelivery?): String = when {
+    delivery == null -> stringResource(R.string.dashboard_bolus)
+    delivery.isExtendedRunning -> stringResource(R.string.bolus_v2_page_extended_running)
+    delivery.state == BolusDeliveryState.ACTIVE -> stringResource(R.string.bolus_v2_page_delivering)
+    delivery.state == BolusDeliveryState.CANCELLING -> stringResource(R.string.bolus_v2_page_cancelling)
+    delivery.state == BolusDeliveryState.UNKNOWN -> stringResource(R.string.bolus_v2_page_unknown)
+    delivery.state == BolusDeliveryState.CONFIRMING ||
+        delivery.state == BolusDeliveryState.UNCONFIRMED ->
         stringResource(R.string.bolus_v2_page_pending)
 
-    null, SessionPhase.DRAFT, SessionPhase.DONE,
-    SessionPhase.ABORTED, SessionPhase.FAILED,
-    -> stringResource(R.string.dashboard_bolus)
+    else -> stringResource(R.string.dashboard_bolus)
 }
 
 private const val DONE_DISMISS_MS = 4_000L
