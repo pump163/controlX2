@@ -235,13 +235,13 @@
 
 ### 4.7 人工录入血糖（指尖）的单位换算
 
-> 本节讨论**人工录入的血糖值**（指尖血、血糖仪读数）以及**用指尖值校准 CGM 传感器**。前提先纠正：当前唯一的血糖输入框是**大剂量向导（bolus wizard）的矫正血糖输入**，不是指尖血糖录入入口；上游向导本身未完成、只搭了架子，不能当作既有能力（§4.7.1）。因此本节分两块：先核查 pumpx2 有没有校准指令（§4.7.2），再给「将来新增指尖录入/校准界面」必须遵守的换算规则（§4.7.3 起）。
+> 本节讨论**人工录入的血糖值**（指尖血、血糖仪读数）以及**用指尖值校准 CGM 传感器**。前提先纠正：当前唯一的血糖输入框是**大剂量向导（bolus wizard）的校正血糖输入**，不是指尖血糖录入入口；上游向导本身未完成、只搭了架子，不能当作既有能力（§4.7.1）。因此本节分两块：先核查 pumpx2 有没有校准指令（§4.7.2），再给「将来新增指尖录入/校准界面」必须遵守的换算规则（§4.7.3 起）。
 
 #### 4.7.1 代码现状（2026-11-04 核实）
 
 | 环节 | 事实 | 锚点 |
 |---|---|---|
-| 录入入口 | 只有大剂量向导的**矫正血糖框**（副标题 `BG` / `Entered` / `CGM`）；它服务本次剂量计算，**不是「记录指尖血糖」入口**，也没有独立的指尖录入页面/按钮 | `BolusWindow.kt :: BolusWindow`；`BolusEntryFormRegion.kt :: BolusEntryFormRegion` |
+| 录入入口 | 只有大剂量向导的**校正血糖框**（副标题 `BG` / `Entered` / `CGM`）；它服务本次剂量计算，**不是「记录指尖血糖」入口**，也没有独立的指尖录入页面/按钮 | `BolusWindow.kt :: BolusWindow`；`BolusEntryFormRegion.kt :: BolusEntryFormRegion` |
 | 向导完成度 | 输入确实进 `BolusCalculatorBuilder`，并随 `InitiateBolusRequest`（units / carbs / bg / iob / food / corr）发给泵；但 UI 仍有 `TODO: invalid logic for attributing override vs pre-filled units`，计算与归因未收尾，**不能当可信计算来源** | `BolusWindow.kt :: recalculate()`、`:: buildBolusCalculator()`；`MainActivity.kt :: sendServiceBolusRequest` |
 | 输入框类型 | 该框为**整数输入**（只保留 0–9，`KeyboardType.Number`），小数点会被过滤 | `IntegerOutlinedText.kt :: IntegerOutlinedText` |
 | 输入缓存 | 输入串存在 `dataStore.bolusGlucoseRawValue`（String LiveData）；另用 `glucoseHumanEntered: Int?` 标记是否人工输入 | `DataStore.kt :: bolusGlucoseRawValue`；`BolusWindow.kt :: glucoseHumanEntered` |
@@ -251,7 +251,7 @@
 | 本地存储 | `pumpdata_historylog` 只有 `typeId + cargo`，不展开血糖字段；泵侧 `BGHistoryLog` 的 `bg / cgmCalibration / bgSourceId / bgSourceType` 都封在 `cargo` 里，主代码**从未解析或展示**（`CgmReadingHistoryLogs` 只列 Dexcom / FSL / Gx） | `HistoryLogItem.kt`；`DashboardCgmChart.kt :: CgmReadingHistoryLogs`；`HistoryLogFetcherIntegrationTest.kt`（唯一出现 `BGHistoryLog` 的地方） |
 | 文案 | 只有 `bolus_bg_unit_abbrev` / `bolus_entered_unit_abbrev` / `bolus_cgm_unit_abbrev`，无「指尖血糖」独立文案 | `strings.xml` |
 
-结论：**当前没有「人工录入指尖血糖」的独立入口与存储**。唯一能填血糖的地方是大剂量向导的矫正血糖框，它只服务本次剂量计算、不落库，且向导本身未完成；泵侧 `BGHistoryLog` 是只读数据、当前不展示。下面的换算规则适用于**将来新增的指尖录入/校准界面**；§4.7.5 那 5 条缺陷属于大剂量向导血糖框的独立修复线，不阻塞本目标。
+结论：**当前没有「人工录入指尖血糖」的独立入口与存储**。唯一能填血糖的地方是大剂量向导的校正血糖框，它只服务本次剂量计算、不落库，且向导本身未完成；泵侧 `BGHistoryLog` 是只读数据、当前不展示。下面的换算规则适用于**将来新增的指尖录入/校准界面**；§4.7.5 那 5 条缺陷属于大剂量向导血糖框的独立修复线，不阻塞本目标。
 
 #### 4.7.2 pumpx2 校准能力核查（2026-11-04 结论）
 

@@ -3,15 +3,21 @@ package com.pumppan.controlx2.bolus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BolusCalcDataSnapshotRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQIOBRequest
@@ -67,8 +74,7 @@ import com.pumppan.controlx2.bolus.wizard.WizardPumpParams
 import com.pumppan.controlx2.bolus.wizard.WizardSnapshot
 import com.pumppan.controlx2.bolus.wizard.WizardSnapshots
 import com.pumppan.controlx2.bolus.wizard.WizardUnavailableReason
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
 import java.util.Locale
 import kotlinx.coroutines.delay
 
@@ -294,6 +300,7 @@ fun BolusWizardTab(
                 carbsText = wizard.carbsText,
                 bgText = wizard.bgText,
                 bgUnit = wizard.bgUnit,
+                unitLocked = wizard.unitLocked,
                 bgFromCgm = wizard.bgFromCgm,
                 bgCgmAtMillis = wizard.bgCgmAtMillis,
                 paramsStale = snapshot.paramsStale,
@@ -314,6 +321,9 @@ fun BolusWizardTab(
                 },
                 onUnitChange = { unit ->
                     BolusWizardRuntime.update { it.withBgUnit(unit, config) }
+                },
+                onUnitLockChange = { locked ->
+                    BolusWizardRuntime.update { it.withUnitLock(locked) }
                 },
                 params = snapshot.params,
                 onRetry = {
@@ -364,7 +374,9 @@ fun BolusWizardTab(
                     onBack = { BolusWizardRuntime.update { it.backToInput() } },
                     onConfirm = {
                         val draft = BolusFlowState(
-                            step = BolusFlowStep.CONFIRM,
+                            // 先落到带「扩展」开关的剂量输入段（SHAPE），确认页在它之后；
+                            // 直接跳 CONFIRM 会跳过扩展开关，等于替用户决定不用扩展。
+                            step = BolusFlowStep.SHAPE,
                             source = BolusSource.CALC,
                             shape = BolusShape.NORMAL,
                             nowMilliunits = wizard.actualTotalMilliunits,
@@ -384,6 +396,7 @@ private fun WizardInputPage(
     carbsText: String,
     bgText: String,
     bgUnit: GlucoseUnit,
+    unitLocked: Boolean,
     bgFromCgm: Boolean,
     bgCgmAtMillis: Long?,
     paramsStale: Boolean,
@@ -399,6 +412,7 @@ private fun WizardInputPage(
     onCarbsChange: (String) -> Unit,
     onBgChange: (String) -> Unit,
     onUnitChange: (GlucoseUnit) -> Unit,
+    onUnitLockChange: (Boolean) -> Unit,
     params: WizardPumpParams?,
     onRetry: () -> Unit,
     onCalculate: (carbsGrams: Int?, bgMgdl: Int?) -> Unit,
@@ -448,14 +462,32 @@ private fun WizardInputPage(
     ) {
         FilterChip(
             selected = bgUnit == GlucoseUnit.MG_DL,
+            enabled = !unitLocked,
             onClick = { onUnitChange(GlucoseUnit.MG_DL) },
             label = { Text(stringResource(R.string.bolus_v2_wizard_unit_mgdl)) },
         )
         FilterChip(
             selected = bgUnit == GlucoseUnit.MMOL_L,
+            enabled = !unitLocked,
             onClick = { onUnitChange(GlucoseUnit.MMOL_L) },
             label = { Text(stringResource(R.string.bolus_v2_wizard_unit_mmol)) },
         )
+        Spacer(Modifier.weight(1f))
+        IconToggleButton(
+            checked = unitLocked,
+            onCheckedChange = onUnitLockChange,
+        ) {
+            Icon(
+                imageVector = if (unitLocked) Icons.Filled.Lock else Icons.Outlined.LockOpen,
+                contentDescription = stringResource(
+                    if (unitLocked) {
+                        R.string.bolus_v2_wizard_unit_unlock
+                    } else {
+                        R.string.bolus_v2_wizard_unit_lock
+                    },
+                ),
+            )
+        }
     }
 
     OutlinedTextField(
@@ -487,19 +519,31 @@ private fun WizardInputPage(
             label = stringResource(R.string.bolus_v2_wizard_icr),
             value = String.format(Locale.US, "%.2f", params.carbRatioGramsPerUnit),
         )
+        // 单位只在 label 里写一次；value 只放数字，避免「校正系数（mg/dL 每 U） 27 mg/dL」这类重复。
         WizardRow(
-            label = stringResource(R.string.bolus_v2_wizard_isf),
-            value = params.isfMgdlPerUnit.toString(),
+            label = stringResource(R.string.bolus_v2_wizard_isf, unitLabel(bgUnit)),
+            value = isfText(params.isfMgdlPerUnit, bgUnit),
         )
         WizardRow(
-            label = stringResource(R.string.bolus_v2_wizard_target),
-            value = params.targetBgMgdl.toString(),
+            label = stringResource(R.string.bolus_v2_wizard_target, unitLabel(bgUnit)),
+            value = BolusWizardGlucose.format(params.targetBgMgdl, bgUnit),
         )
         // IOB 独立时效：泵参数过期不连带作废；界面如实标注来源与时间。
+        // 行内只放数值，来源 / 不可用原因另起一行全宽小字；长句不再挤占 label 的宽度。
         WizardRow(
             label = stringResource(R.string.bolus_v2_wizard_iob),
-            value = iobText(iob, iobUnavailable, nowMillis),
+            value = iobValueText(iob),
             warn = iob == null,
+        )
+        Text(
+            text = iobNoteText(iob, iobUnavailable, nowMillis),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (iob == null) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.padding(top = 2.dp),
         )
 
         if (paramsStale) {
@@ -676,17 +720,27 @@ private fun WizardResultPage(
         }
         FormulaSegment(
             label = stringResource(R.string.bolus_v2_wizard_result_iob_deducted),
-            expression = sourceLine,
-            value = if (result.iobStale) {
-                unavailableLine
-            } else {
-                stringResource(
-                    R.string.bolus_v2_wizard_formula_iob,
-                    formatDose(result.iobDeductedMilliunits, increment),
-                )
-            },
+            // 不可用原因是长句：放进下方全宽小字，右侧数值位只放剂量，避免把 label 挤成竖排。
+            expression = if (result.iobStale) "$origin · $unavailableLine" else sourceLine,
+            value = stringResource(
+                R.string.bolus_v2_wizard_formula_iob,
+                formatDose(if (result.iobStale) 0 else result.iobDeductedMilliunits, increment),
+            ),
             muted = result.iobStale,
             warn = result.iobStale,
+        )
+    }
+
+    // 上游口径：IOB 只并入血糖校正段，碳水段不动；超出的部分无处可扣，剂量不变，只提示。
+    if (result.iobExcessMilliunits > 0) {
+        Text(
+            text = stringResource(
+                R.string.bolus_v2_wizard_iob_exceeds_correction,
+                String.format(Locale.US, "%.2f", result.iobExcessMilliunits / 1000.0),
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 
@@ -754,17 +808,20 @@ private fun WizardResultPage(
         value = String.format(Locale.US, "%.2f", params.carbRatioGramsPerUnit),
     )
     WizardRow(
-        label = stringResource(R.string.bolus_v2_wizard_result_isf),
-        value = isfText(params.isfMgdlPerUnit, bgUnit) + " " + unitLabel(bgUnit),
+        label = stringResource(R.string.bolus_v2_wizard_isf, unitLabel(bgUnit)),
+        value = isfText(params.isfMgdlPerUnit, bgUnit),
     )
     WizardRow(
-        label = stringResource(R.string.bolus_v2_wizard_result_target),
+        label = stringResource(R.string.bolus_v2_wizard_target, unitLabel(bgUnit)),
         value = BolusWizardGlucose.format(params.targetBgMgdl, bgUnit),
     )
 
     if (result.belowLow) {
         Text(
-            text = stringResource(R.string.bolus_v2_wizard_low_bg, config.lowBgMgdl),
+            text = stringResource(
+                R.string.bolus_v2_wizard_low_bg,
+                BolusWizardGlucose.format(config.lowBgMgdl, bgUnit) + " " + unitLabel(bgUnit),
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(top = 8.dp),
@@ -887,13 +944,21 @@ private fun unavailableText(reason: WizardUnavailableReason, config: WizardConfi
     }
 
 /**
- * IOB 输入页文案：只陈述可确认的事实。
- * - 可用：数值 +「本次查询 / 缓存 · N 分钟前」；
- * - 不可用：按原因分开 —— A 查不到 / 超窗口 →「本次不可用」；B 输注中 →「可能不准确」。
+ * IOB 行内的数值：单位已写在 label「活性胰岛素（U）」里，这里只放数字；
+ * 不可用时给占位符，原因由 [iobNoteText] 单独用一行陈述。
+ */
+private fun iobValueText(iob: WizardIob?): String =
+    if (iob == null) "—" else String.format(Locale.US, "%.2f", iob.milliunits / 1000.0)
+
+/**
+ * IOB 行的来源 / 不可用原因：只陈述可确认的事实。
+ * - 可用：「本次查询 / 缓存 · N 分钟前」；
+ * - 不可用按原因分开 —— A 查不到 / 超窗口 →「本次不可用」；B 输注中 →「可能不准确」。
  * 两种不可用都不显示数值，避免用户把不可信的值当成本次读数。
+ * 单独成行是为了让长句获得整行宽度，而不是把 label 挤成一行一个字。
  */
 @Composable
-private fun iobText(
+private fun iobNoteText(
     iob: WizardIob?,
     iobUnavailable: WizardIobUnavailableReason?,
     nowMillis: Long,
@@ -915,12 +980,7 @@ private fun iobText(
         },
     )
     val ago = agoText((nowMillis - iob.atMillis).coerceAtLeast(0L))
-    return stringResource(
-        R.string.bolus_v2_wizard_iob_with_source,
-        String.format(Locale.US, "%.2f", iob.milliunits / 1000.0),
-        source,
-        ago,
-    )
+    return stringResource(R.string.bolus_v2_wizard_iob_source, source, ago)
 }
 
 /** 错误只陈述事实：格式不对 / 超出范围，不推测原因、不给修改建议。 */
@@ -954,8 +1014,12 @@ private fun bgSupportText(
 
     WizardFieldStatus.EMPTY -> bgRangeHint(unit, config)
     WizardFieldStatus.INVALID -> when (field.issue) {
-        WizardFieldIssue.ABOVE_MAX -> stringResource(R.string.bolus_v2_wizard_error_above, bgMaxText(unit, config))
-        WizardFieldIssue.BELOW_MIN -> stringResource(R.string.bolus_v2_wizard_error_below, bgMinText(unit, config))
+        WizardFieldIssue.ABOVE_MAX ->
+            stringResource(R.string.bolus_v2_wizard_error_above, bgMaxText(unit, config) + " " + unitLabel(unit))
+
+        WizardFieldIssue.BELOW_MIN ->
+            stringResource(R.string.bolus_v2_wizard_error_below, bgMinText(unit, config) + " " + unitLabel(unit))
+
         WizardFieldIssue.DECIMAL_NOT_ALLOWED -> stringResource(R.string.bolus_v2_wizard_error_decimal_mgdl)
         else -> stringResource(R.string.bolus_v2_wizard_error_number)
     }
@@ -966,7 +1030,7 @@ private fun bgRangeHint(unit: GlucoseUnit, config: WizardConfig): String =
     stringResource(
         R.string.bolus_v2_wizard_bg_range,
         bgMinText(unit, config),
-        bgMaxText(unit, config),
+        bgMaxText(unit, config) + " " + unitLabel(unit),
     )
 
 private fun bgMinText(unit: GlucoseUnit, config: WizardConfig): String = when (unit) {
@@ -1007,9 +1071,10 @@ private fun filterNumberInput(raw: String, decimals: Boolean): String {
     }.take(8)
 }
 
+/** 血糖预填 / 读数时刻：走 shared 的 [shortTime24]，与其它大剂量时间同源（24 小时制）。 */
 private fun timeText(atMillis: Long?): String {
     if (atMillis == null) return ""
-    return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(atMillis))
+    return shortTime24(Instant.ofEpochMilli(atMillis))
 }
 
 /** 只陈述事实的剂量错误提示：不说「看起来像什么」，也不替用户取整。 */

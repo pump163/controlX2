@@ -10,7 +10,7 @@ import timber.log.Timber
  * 一次向导计算的结果（毫单位整型，UI 只做一位小数显示）。
  *
  * 这些数值就是结果页公式的全部数据源：**展示层不得再算一遍**，
- * 只能把这里给出的数排版成「餐食 / 矫正 / 已扣活性 / 建议」四段。
+ * 只能把这里给出的数排版成「餐食 / 校正 / 已扣活性 / 建议」四段。
  *
  * - [correctionMilliunits] 是**扣过 IOB 之后**实际参与计算的校正量，可能为负（低血糖分支）。
  * - [correctionGrossMilliunits] 是扣 IOB 之前的校正量，公式里「(BG − 目标) ÷ ISF」那一段。
@@ -42,8 +42,13 @@ data class WizardCalcResult(
     val carbsGrams: Int? = null,
     /** 参与计算的血糖（整数 mg/dL）；`null` = 未填。 */
     val glucoseMgdl: Int? = null,
-    /** 血糖落在 [lowBg, 目标] 之间：本笔不做矫正（不是「校正 0」的算式）。 */
+    /** 血糖落在 [lowBg, 目标] 之间：本笔不做校正（不是「校正 0」的算式）。 */
     val correctionInRange: Boolean = false,
+    /**
+     * IOB 大于校正段、没有地方可扣的超出量（≥ 0）。只用于提示，**不改变剂量**：
+     * 上游只把 IOB 并入血糖校正段，碳水段不参与扣减。
+     */
+    val iobExcessMilliunits: Int = 0,
 )
 
 /**
@@ -58,13 +63,17 @@ data class WizardCalcInput(
 )
 
 /**
- * 碳水计算器的纯计算部分，规则按 Tandem 口径：
+ * 大剂量计算器的纯计算部分，规则按 Tandem 口径：
  *
  * - 食物量 = 碳水 / ICR。
  * - 血糖高于目标：校正 = (BG − 目标) / ISF，**再扣 IOB**，扣完小于 0 按 0。
  * - 血糖在目标与低血糖阈值之间：不校正、不扣 IOB。
  * - 血糖低于阈值：校正为负，且 IOB 继续参与扣减（总量可能低于食物量，最低 0）。
  * - 读不到实时血糖：只按食物量计算（「空」不等于 0）。
+ *
+ * IOB 的扣减位置不是本机自定：pumpx2 `BolusCalculator` 把 `addedFromBG` 与 `addedFromIOB`
+ * 合并成一段，合并结果为负时记 `NO_POSITIVE_BG_CORRECTION`（校正段记 0），碳水段不参与。
+ * 本实现照此执行，并把「IOB 超出校正段」的余额留在 [WizardCalcResult.iobExcessMilliunits] 供界面提示。
  *
  * IOB 一律取上游原始值，本机**不重算、不按时间外推、不扣基础率**。时效 / 输注否决
  * 由快照层给出（[WizardIob] 为 `null` 即本次不可用）：不可用就当它不存在（不扣减），
@@ -109,6 +118,11 @@ object BolusWizardCalculator {
         val grossCorrectionU = grossCorrectionUnits(glucose, params)
         val correctionU = correctionUnits(glucose, params, config, iobU)
         val iobApplied = glucose != null && (glucose > params.targetBgMgdl || glucose < config.lowBgMgdl)
+        val iobExcessU = if (glucose != null && glucose > params.targetBgMgdl) {
+            max(0.0, iobU - max(0.0, grossCorrectionU))
+        } else {
+            0.0
+        }
         val rawTotalU = foodU + correctionU
 
         return WizardCalcResult(
@@ -133,6 +147,7 @@ object BolusWizardCalculator {
             correctionInRange = glucose != null &&
                 glucose >= config.lowBgMgdl &&
                 glucose <= params.targetBgMgdl,
+            iobExcessMilliunits = milliunits(iobExcessU),
         )
     }
 

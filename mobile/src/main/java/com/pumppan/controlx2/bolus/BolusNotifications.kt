@@ -12,7 +12,7 @@ import com.jwoglom.controlx2.MainActivity
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.pump.confirmBolusRequestBaseNotification
 import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
-import com.jwoglom.controlx2.shared.util.shortTime
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
@@ -288,21 +288,14 @@ class BolusNotifications(
         startTimeText = null
     }
 
+    // 通知里的开始 / 预计结束时刻与页面同源：统一走 shortTime24（24 小时制）。
     private fun formatPumpTime(pumpTimestampSeconds: Long): String =
-        shortTime(
+        shortTime24(
             pumpTimeToLocalTz(Dates.fromJan12008EpochSecondsToDate(pumpTimestampSeconds)),
-            appContext.getString(R.string.units_m),
-            appContext.getString(R.string.units_am),
-            appContext.getString(R.string.units_pm),
         )
 
     private fun formatLocalMillis(millis: Long): String =
-        shortTime(
-            java.time.Instant.ofEpochMilli(millis),
-            appContext.getString(R.string.units_m),
-            appContext.getString(R.string.units_am),
-            appContext.getString(R.string.units_pm),
-        )
+        shortTime24(java.time.Instant.ofEpochMilli(millis))
 
     private fun isLiveState(state: BolusDeliveryState): Boolean = when (state) {
         BolusDeliveryState.ACTIVE, BolusDeliveryState.CANCELLING -> true

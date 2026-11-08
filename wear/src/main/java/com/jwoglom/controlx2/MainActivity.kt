@@ -46,6 +46,7 @@ import com.jwoglom.controlx2.shared.enums.DeviceRole
 import com.jwoglom.controlx2.shared.util.setupTimber
 import com.jwoglom.controlx2.util.StatePrefs
 import com.jwoglom.controlx2.shared.util.shortTime
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.controlx2.util.UpdateComplication
@@ -417,7 +418,7 @@ class MainActivity : ComponentActivity() {
                 dataStore.cartridgeRemainingUnits.value = message.currentInsulinAmount
             }
             is LastBolusStatusAbstractResponse -> {
-                dataStore.lastBolusStatus.value = this.getString(R.string.app_twodecimal_u_at_stime, twoDecimalPlaces1000Unit(message.deliveredVolume), shortTime(pumpTimeToLocalTz(message.timestampInstant)))
+                dataStore.lastBolusStatus.value = this.getString(R.string.app_twodecimal_u_at_stime, twoDecimalPlaces1000Unit(message.deliveredVolume), shortTime24(pumpTimeToLocalTz(message.timestampInstant)))
                 dataStore.lastBolusStatusResponse.value = message
             }
             is HomeScreenMirrorResponse -> {

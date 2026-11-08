@@ -559,7 +559,7 @@
     <string name="bolus_v2_outcome_detail">Pump returned: status=%1$d, reason=%2$d</string>
     <string name="bolus_v2_entry_manual">Enter dose manually</string>
     <string name="bolus_v2_entry_manual_sub">Type insulin units yourself.</string>
-    <string name="bolus_v2_entry_calc">Carb calculator</string>
+    <string name="bolus_v2_entry_calc">Bolus calculator</string>
     <string name="bolus_v2_entry_calc_sub">Not available yet.</string>
     <string name="bolus_v2_entry_preset">Preset</string>
     <string name="bolus_v2_entry_preset_sub">No presets</string>
@@ -599,7 +599,7 @@
     <string name="bolus_v2_confirm_total">Total</string>
     <string name="bolus_v2_source_manual">Manual</string>
     <string name="bolus_v2_source_preset">Preset</string>
-    <string name="bolus_v2_source_calc">Carb calculator</string>
+    <string name="bolus_v2_source_calc">Bolus calculator</string>
     <string name="bolus_v2_confirm_over_max">Total exceeds the pump\'s max bolus setting (%1$s). Continue anyway?</string>
     <string name="bolus_v2_confirm_continue">Continue</string>
     <string name="bolus_v2_confirm_now_small_warning">Immediate part is below this model\'s minimum: the pump may reject it.</string>
@@ -1294,14 +1294,16 @@
     <string name="bolus_notif_action_cancel">Cancel bolus</string>
     <string name="bolus_notif_action_dismiss">Dismiss</string>
 
-    <!-- 向导（碳水计算器） -->
-    <string name="bolus_v2_wizard_title">Carb calculator</string>
-    <string name="bolus_v2_wizard_intro">Estimates a dose from carbs and glucose. You still confirm before anything is sent.</string>
+    <!-- 向导（大剂量计算器） -->
+    <string name="bolus_v2_wizard_title">Bolus calculator</string>
+    <string name="bolus_v2_wizard_intro">Estimates a dose from carbs and blood glucose. Parameters used (ICR, ISF, SGV and so on) all come from the pump profile and messages. Consult a medical professional; you still confirm before anything is sent.</string>
     <string name="bolus_v2_wizard_clear">Clear</string>
     <string name="bolus_v2_wizard_carbs">Carbs (g)</string>
     <string name="bolus_v2_wizard_carbs_max">Maximum %1$d g</string>
     <string name="bolus_v2_wizard_unit_mgdl">mg/dL</string>
     <string name="bolus_v2_wizard_unit_mmol">mmol/L</string>
+    <string name="bolus_v2_wizard_unit_lock">Lock units</string>
+    <string name="bolus_v2_wizard_unit_unlock">Unlock units</string>
     <string name="bolus_v2_wizard_bg">Blood glucose</string>
     <string name="bolus_v2_wizard_bg_prefill">Prefilled from CGM at %1$s; editable</string>
     <string name="bolus_v2_wizard_bg_manual">Manual entry</string>
@@ -1311,15 +1313,15 @@
     <string name="bolus_v2_wizard_bg_range">Range %1$s–%2$s</string>
     <string name="bolus_v2_wizard_params">Pump settings</string>
     <string name="bolus_v2_wizard_icr">Carb ratio (g/U)</string>
-    <string name="bolus_v2_wizard_isf">Correction factor (mg/dL per U)</string>
-    <string name="bolus_v2_wizard_target">Target BG (mg/dL)</string>
+    <string name="bolus_v2_wizard_isf">Correction factor (%1$s per U)</string>
+    <string name="bolus_v2_wizard_target">Target BG (%1$s)</string>
     <string name="bolus_v2_wizard_iob">Insulin on board (U)</string>
     <string name="bolus_v2_wizard_result_title">Estimated dose</string>
     <string name="bolus_v2_wizard_result_food">From carbs</string>
     <string name="bolus_v2_wizard_result_correction">Correction</string>
     <string name="bolus_v2_wizard_result_zero">The calculation is 0 U; nothing can be delivered.</string>
     <string name="bolus_v2_wizard_result_clamped">Low glucose with insulin on board; the dose was reduced to 0 U.</string>
-    <string name="bolus_v2_wizard_low_bg">Glucose is below %1$d mg/dL.</string>
+    <string name="bolus_v2_wizard_low_bg">Glucose is below %1$s.</string>
     <string name="bolus_v2_wizard_to_confirm">Next: confirm</string>
     <string name="bolus_v2_wizard_back">Back</string>
     <string name="bolus_v2_wizard_next">Next</string>
@@ -1343,6 +1345,7 @@
     <string name="bolus_v2_wizard_iob_stale_inline">Expired; not deducted</string>
     <string name="bolus_v2_wizard_iob_unavailable">Insulin on board unavailable for this calculation; not deducted</string>
     <string name="bolus_v2_wizard_iob_infusion_risk">A recent bolus was delivered, or a bolus is being delivered now; insulin on board may be inaccurate and was not deducted</string>
+    <string name="bolus_v2_wizard_iob_exceeds_correction">Insulin on board exceeded the correction by %1$s U; the excess was not deducted from the carbs.</string>
     <string name="bolus_v2_wizard_iob_source">%1$s · %2$s</string>
     <string name="bolus_v2_wizard_iob_source_with_raw">%1$s · %2$s · IOB %3$s U</string>
     <string name="bolus_v2_wizard_iob_from_pump">pump</string>
@@ -1356,8 +1359,6 @@
     <string name="bolus_v2_wizard_query_reading">Reading pump parameters…</string>
     <string name="bolus_v2_wizard_query_failed">Timed out reading pump parameters; nothing was calculated.</string>
     <string name="bolus_v2_wizard_result_iob_deducted">IOB deducted</string>
-    <string name="bolus_v2_wizard_result_isf">Correction factor</string>
-    <string name="bolus_v2_wizard_result_target">Target glucose</string>
     <string name="bolus_v2_wizard_suggested">Suggested</string>
     <string name="bolus_v2_wizard_actual_label">Actual dose (U)</string>
     <string name="bolus_v2_wizard_actual_hint">Leave blank to use the suggested dose</string>

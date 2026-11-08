@@ -83,6 +83,25 @@ fun shortTime(
     return "${date}${hr}:${String.format("%02d", zoned.minute)}${ampm}"
 }
 
+/**
+ * 大剂量相关界面的**唯一**时刻格式化入口（24 小时制）。
+ *
+ * 与 [shortTime] 的日期前缀规则保持一致：跨天（≥1 天）时前缀 `M/d `；
+ * 但时刻统一为 `HH:mm`，不再拼 `am` / `pm` —— 中文「%H:%M 下午」是把英文 12 小时制
+ * 后缀直接搬到中文语序里，读着别扭；`14:05` 也更精确。
+ * 中英界面都用 24 小时制：同一功能内统一优先，且英文向导原本就是 `HH:mm`，
+ * 不为了英文习惯再把大剂量时间改回 12 小时制。
+ */
+fun shortTime24(time: Instant): String {
+    val zoned = time.atZone(ZoneId.systemDefault())
+    val diff = Duration.between(time, Instant.now())
+    val date = when (diff.toDays() >= 1 || diff.toDays() <= -1) {
+        true -> "${zoned.month.value}/${zoned.dayOfMonth} "
+        else -> ""
+    }
+    return "${date}${String.format("%02d", zoned.hour)}:${String.format("%02d", zoned.minute)}"
+}
+
 fun twoDecimalPlaces(decimal: Double): String {
     return String.format("%.2f", decimal)
 }

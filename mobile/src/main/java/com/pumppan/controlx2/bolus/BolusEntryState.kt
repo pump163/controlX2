@@ -45,3 +45,14 @@ fun deliveryToPage(delivery: BolusDelivery?, outcome: BolusOutcome): BolusEntryP
         BolusDeliveryState.CANCELLED -> BolusEntryPage.DONE
     }
 }
+
+/**
+ * 入口页相位是否允许发起新的大剂量：只有**没有进行中输注**的空闲 / 已完成才允许。
+ *
+ * 「大剂量」页的新增入口与「向导」页的确认按钮共用这一判定（单点），
+ * 避免两处各自解释相位：DONE 表示这一笔已经结束（[BolusDelivery.isFinished]），
+ * 不是「上一次大剂量尚未结束」；只有 CANCEL / READONLY_CANCEL（进行中 / 申请中 / 状态未知）
+ * 才不允许发起新的一笔。
+ */
+fun BolusEntryPage.allowsNewFlow(): Boolean =
+    this == BolusEntryPage.DRAFT || this == BolusEntryPage.DONE

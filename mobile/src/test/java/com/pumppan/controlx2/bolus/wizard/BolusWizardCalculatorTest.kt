@@ -153,7 +153,7 @@ class BolusWizardCalculatorTest {
 
     @Test
     fun normalizeInput_clampsCarbsAndRounds() {
-        assertEquals(300, BolusWizardCalculator.normalizeInput(350.0, null, config).carbsGrams)
+        assertEquals(config.maxCarbsGrams, BolusWizardCalculator.normalizeInput(config.maxCarbsGrams + 50.0, null, config).carbsGrams)
         assertEquals(0, BolusWizardCalculator.normalizeInput(-5.0, null, config).carbsGrams)
         assertEquals(61, BolusWizardCalculator.normalizeInput(60.5, null, config).carbsGrams)
     }
@@ -225,7 +225,7 @@ class BolusWizardCalculatorTest {
         val result = BolusWizardCalculator.calculate(null, 180.0, params, config)
         assertNull(result.carbsGrams)
         assertEquals(0, result.foodMilliunits)
-        // 未填碳水不影响校正段：只做矫正
+        // 未填碳水不影响校正段：只做校正
         assertEquals(1_200, result.correctionMilliunits) // (180−120)/50 = 1.2U
     }
 

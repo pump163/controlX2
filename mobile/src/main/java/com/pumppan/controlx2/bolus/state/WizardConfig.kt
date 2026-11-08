@@ -18,7 +18,7 @@ data class FingerstickRange(
 )
 
 /**
- * 向导（碳水计算器）的机型配置。**全部数值来自 `assets/pump-capabilities.json`**，
+ * 向导（大剂量计算器）的机型配置。**全部数值来自 `assets/pump-capabilities.json`**，
  * 本文件只保留兜底默认值，业务代码不得写死阈值。
  *
  * - `fingerstick`：手动指血输入范围（20–600 mg/dL）。
@@ -32,8 +32,14 @@ data class FingerstickRange(
  */
 data class WizardConfig(
     val enabled: Boolean = true,
-    /** 碳水输入上限（克）；超出即三态里的「非法」。 */
-    val maxCarbsGrams: Int = 300,
+    /**
+     * 碳水输入上限（克）；超出即三态里的「非法」。
+     *
+     * **临时护栏，无手册依据**：Tandem 手册里没有碳水录入上限（手册唯一的 `300` 是 ICR 范围
+     * 1:1–1:300 g/U）；pumpx2 与上游也都没有该常量。当前值只是待实测的临时护栏，
+     * 真值在 `pump-capabilities.json` 的 `wizard.maxCarbsGrams` 里，实测后再调。
+     */
+    val maxCarbsGrams: Int = 1000,
     /** 手动指血输入范围（与传感器无关）。 */
     val fingerstick: FingerstickRange = FingerstickRange(),
     /** 未知传感器型号时的 CGM 预填范围（保守交集 40–400）。 */

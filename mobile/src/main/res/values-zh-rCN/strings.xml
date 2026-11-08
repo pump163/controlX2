@@ -553,7 +553,7 @@
     <string name="bolus_v2_outcome_detail">泵返回：status=%1$d，reason=%2$d</string>
     <string name="bolus_v2_entry_manual">直接输入剂量</string>
     <string name="bolus_v2_entry_manual_sub">自己填写胰岛素单位。</string>
-    <string name="bolus_v2_entry_calc">碳水计算</string>
+    <string name="bolus_v2_entry_calc">大剂量计算</string>
     <string name="bolus_v2_entry_calc_sub">尚未开放。</string>
     <string name="bolus_v2_entry_preset">预设</string>
     <string name="bolus_v2_entry_preset_sub">暂无预设</string>
@@ -593,7 +593,7 @@
     <string name="bolus_v2_confirm_total">总量</string>
     <string name="bolus_v2_source_manual">手工输入</string>
     <string name="bolus_v2_source_preset">预设</string>
-    <string name="bolus_v2_source_calc">碳水计算</string>
+    <string name="bolus_v2_source_calc">大剂量计算</string>
     <string name="bolus_v2_confirm_over_max">总量超过泵的单次上限（%1$s），仍要继续吗？</string>
     <string name="bolus_v2_confirm_continue">继续</string>
     <string name="bolus_v2_confirm_now_small_warning">立即段低于该型号最小值：泵可能拒绝该立即部分。</string>
@@ -1288,14 +1288,16 @@
     <string name="bolus_notif_action_cancel">取消大剂量</string>
     <string name="bolus_notif_action_dismiss">关闭通知</string>
 
-    <!-- 向导（碳水计算器） -->
-    <string name="bolus_v2_wizard_title">碳水计算器</string>
-    <string name="bolus_v2_wizard_intro">按碳水与血糖估算剂量；发送前仍需你确认。</string>
+    <!-- 向导（大剂量计算器） -->
+    <string name="bolus_v2_wizard_title">大剂量计算器</string>
+    <string name="bolus_v2_wizard_intro">按碳水与血糖估算剂量：本计算器所用参数（ICR、ISF、SGV 等）均来自泵的配置文件及报文，请咨询专业医疗人士，发送前仍需你确认。</string>
     <string name="bolus_v2_wizard_clear">清空</string>
     <string name="bolus_v2_wizard_carbs">碳水（克）</string>
     <string name="bolus_v2_wizard_carbs_max">上限 %1$d 克</string>
     <string name="bolus_v2_wizard_unit_mgdl">mg/dL</string>
     <string name="bolus_v2_wizard_unit_mmol">mmol/L</string>
+    <string name="bolus_v2_wizard_unit_lock">锁定单位</string>
+    <string name="bolus_v2_wizard_unit_unlock">解锁单位</string>
     <string name="bolus_v2_wizard_bg">血糖</string>
     <string name="bolus_v2_wizard_bg_prefill">已用 %1$s 的 CGM 值预填，可修改</string>
     <string name="bolus_v2_wizard_bg_manual">手工输入</string>
@@ -1305,15 +1307,15 @@
     <string name="bolus_v2_wizard_bg_range">范围 %1$s–%2$s</string>
     <string name="bolus_v2_wizard_params">泵内参数</string>
     <string name="bolus_v2_wizard_icr">碳水系数（g/U）</string>
-    <string name="bolus_v2_wizard_isf">校正系数（mg/dL 每 U）</string>
-    <string name="bolus_v2_wizard_target">目标血糖（mg/dL）</string>
-    <string name="bolus_v2_wizard_iob">体内胰岛素（U）</string>
+    <string name="bolus_v2_wizard_isf">校正系数（%1$s 每 U）</string>
+    <string name="bolus_v2_wizard_target">目标血糖（%1$s）</string>
+    <string name="bolus_v2_wizard_iob">活性胰岛素（U）</string>
     <string name="bolus_v2_wizard_result_title">估算结果</string>
     <string name="bolus_v2_wizard_result_food">碳水部分</string>
     <string name="bolus_v2_wizard_result_correction">校正部分</string>
     <string name="bolus_v2_wizard_result_zero">计算结果为 0 U，无法输注。</string>
     <string name="bolus_v2_wizard_result_clamped">低血糖叠加体内胰岛素，总量已截到 0 U。</string>
-    <string name="bolus_v2_wizard_low_bg">血糖低于 %1$d mg/dL。</string>
+    <string name="bolus_v2_wizard_low_bg">血糖低于 %1$s。</string>
     <string name="bolus_v2_wizard_to_confirm">下一步：确认</string>
     <string name="bolus_v2_wizard_back">返回</string>
     <string name="bolus_v2_wizard_next">下一步</string>
@@ -1331,12 +1333,13 @@
     <string name="bolus_v2_wizard_formula_food">%1$s g ÷ %2$s g/U</string>
     <string name="bolus_v2_wizard_formula_food_missing">未填碳水，本笔不计餐食</string>
     <string name="bolus_v2_wizard_formula_correction">(%1$s − %2$s) ÷ %3$s %4$s/U</string>
-    <string name="bolus_v2_wizard_formula_correction_missing">未填血糖，本笔不做矫正</string>
+    <string name="bolus_v2_wizard_formula_correction_missing">未填血糖，本笔不做校正</string>
     <string name="bolus_v2_wizard_formula_correction_in_range">血糖未高于目标，本笔不校正</string>
     <string name="bolus_v2_wizard_formula_iob">− %1$s U</string>
     <string name="bolus_v2_wizard_iob_stale_inline">已过期，本次未扣除</string>
     <string name="bolus_v2_wizard_iob_unavailable">活性胰岛素本次不可用，本次未扣除</string>
     <string name="bolus_v2_wizard_iob_infusion_risk">最近输注过大剂量，或有正在输注的大剂量，活性胰岛素可能不准确，本次未扣除</string>
+    <string name="bolus_v2_wizard_iob_exceeds_correction">活性胰岛素比校正量多 %1$s U，超出部分未从碳水段扣除。</string>
     <string name="bolus_v2_wizard_iob_source">%1$s · %2$s</string>
     <string name="bolus_v2_wizard_iob_source_with_raw">%1$s · %2$s · 原始 IOB %3$s U</string>
     <string name="bolus_v2_wizard_iob_from_pump">泵</string>
@@ -1350,8 +1353,6 @@
     <string name="bolus_v2_wizard_query_reading">正在从泵读取参数…</string>
     <string name="bolus_v2_wizard_query_failed">读取泵参数超时，本次未计算。</string>
     <string name="bolus_v2_wizard_result_iob_deducted">已扣活性</string>
-    <string name="bolus_v2_wizard_result_isf">矫正系数</string>
-    <string name="bolus_v2_wizard_result_target">目标血糖</string>
     <string name="bolus_v2_wizard_suggested">建议</string>
     <string name="bolus_v2_wizard_actual_label">实际剂量（U）</string>
     <string name="bolus_v2_wizard_actual_hint">留空则沿用建议剂量</string>

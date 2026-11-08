@@ -25,7 +25,7 @@ import com.pumppan.controlx2.bolus.state.canStartRemoteExtended
 
 /**
  * 第 3 步：校验与确认。
- * - 来源类型行按 [BolusSource] 显示（手工 / 预设 / 碳水计算）。
+ * - 来源类型行按 [BolusSource] 显示（手工 / 预设 / 大剂量计算）。
  * - 延展相关行只在能力允许远程延展时渲染（X2 不显示这些行）。
  * - 超过泵的 Max Bolus 设置时**不硬拦**，只给「返回 / 继续」两个选择。
  */
@@ -173,7 +173,7 @@ private fun SummaryRow(label: String, value: String) {
     }
 }
 
-/** 来源类型：手工 / 预设 / 碳水计算。 */
+/** 来源类型：手工 / 预设 / 大剂量计算。 */
 @Composable
 private fun sourceName(source: BolusSource): String = when (source) {
     BolusSource.MANUAL -> stringResource(R.string.bolus_v2_source_manual)

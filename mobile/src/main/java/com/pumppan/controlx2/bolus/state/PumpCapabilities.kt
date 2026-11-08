@@ -84,7 +84,7 @@ data class PumpCapabilityProfile(
     val endingPageDismissMs: Long = 15_000L,
     /** 百分比快捷项默认值（仅作为 Prefs 的首次默认，之后以用户编辑为准）。 */
     val extendedPercentPresets: List<Int> = listOf(0, 50, 75),
-    /** 向导（碳水计算器）的阈值与上报开关；配置缺失时用 [WizardConfig.Default]。 */
+    /** 向导（大剂量计算器）的阈值与上报开关；配置缺失时用 [WizardConfig.Default]。 */
     val wizard: WizardConfig = WizardConfig.Default,
 ) {
     fun maxExtendedSeconds(ciqEnabled: Boolean?): Int =

@@ -34,6 +34,8 @@ data class BolusWizardState(
      */
     val bgMgdl: Int? = null,
     val bgUnit: GlucoseUnit = GlucoseUnit.MG_DL,
+    /** 单位锁定：锁定后不允许切换 mg/dL / mmol/L，点锁图标解锁。 */
+    val unitLocked: Boolean = false,
     /** 用户是否动过血糖框。没动过才允许 CGM 预填，动过就绝不覆盖。 */
     val bgTouched: Boolean = false,
     /** 当前血糖是否来自 CGM 预填（只用于界面标注来源）。 */
@@ -69,13 +71,16 @@ data class BolusWizardState(
      * 文本不可解析（空 / 非法）时原样保留，不擅自改写用户输入。
      */
     fun withBgUnit(unit: GlucoseUnit, config: WizardConfig): BolusWizardState {
-        if (unit == bgUnit) return this
+        if (unitLocked || unit == bgUnit) return this
         val canonical = bgMgdl
         return copy(
             bgUnit = unit,
             bgText = canonical?.let { BolusWizardGlucose.format(it, unit) } ?: bgText,
         )
     }
+
+    /** 锁定 / 解锁单位切换；只挡后续切换，不改当前单位与已排版文本。 */
+    fun withUnitLock(locked: Boolean): BolusWizardState = copy(unitLocked = locked)
 
     /** CGM 有实时值且用户没动过血糖框时才预填；越界 / 过期由快照层判成不可用。 */
     fun prefillFromCgm(glucose: WizardGlucose): BolusWizardState {

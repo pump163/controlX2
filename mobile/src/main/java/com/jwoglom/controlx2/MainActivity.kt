@@ -61,6 +61,7 @@ import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
 import com.jwoglom.controlx2.shared.util.setupTimber
 import com.jwoglom.controlx2.shared.util.triggerAppReload
 import com.jwoglom.controlx2.shared.util.shortTime
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.controlx2.shared.util.extractPumpSid
@@ -953,7 +954,7 @@ class MainActivity : ComponentActivity() {
             is LastBolusStatusAbstractResponse -> {
 
                 dataStore.lastBolusStatus.value = if (message.timestamp > 0)
-                    "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime(pumpTimeToLocalTz(message.timestampInstant), this.getString(R.string.units_m), this.getString(R.string.units_am), this.getString(R.string.units_pm))}"
+                    "${twoDecimalPlaces1000Unit(message.deliveredVolume)}u at ${shortTime24(pumpTimeToLocalTz(message.timestampInstant))}"
                 else
                     null
                 dataStore.lastBolusStatusResponse.value = message

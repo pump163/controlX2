@@ -33,7 +33,7 @@
     },
     "wizard": {
       "enabled": true,
-      "maxCarbsGrams": 300,
+      "maxCarbsGrams": 1000,
       "fingerstick": {
         "mgdlMin": 20,
         "mgdlMax": 600,

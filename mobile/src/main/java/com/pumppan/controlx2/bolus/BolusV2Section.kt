@@ -185,8 +185,9 @@ fun BolusV2Section(
                             session = session,
                             limits = limits,
                             profile = profile,
-                            // 只有处于可起草相位才允许把结果交给确认页；硬约束：输注中不给入口。
-                            canStartFlow = page == BolusEntryPage.DRAFT,
+                            // 是否允许把结果交给确认页：与「大剂量」页新增入口同一判定（[allowsNewFlow]），
+                            // 只看泵状态推出的页面相位 —— DONE（已完成 / 已取消）允许，不再误报「尚未结束」。
+                            canStartFlow = page.allowsNewFlow(),
                             onSessionChange = { session = it },
                             sendPumpCommands = sendPumpCommands,
                         )
@@ -278,8 +279,9 @@ private fun BolusTabPage(
         )
         // 硬约束：只有空闲（DRAFT）/ 已完成（DONE）才允许进输入页；任何进行中的相位
         // （申请中 / 已确认 / 输注中 / 取消中 / 状态未知）都不给入口，也不允许程序性进入。
+        // 与向导标签的 canStartFlow 共用 [allowsNewFlow]，两边不再各写一套判定。
         val startFlow = {
-            if (page == BolusEntryPage.DRAFT || page == BolusEntryPage.DONE) {
+            if (page.allowsNewFlow()) {
                 onSessionChange(session.startFlow(BolusTab.BOLUS))
             }
         }

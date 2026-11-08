@@ -13,7 +13,7 @@ import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.jwoglom.controlx2.shared.util.pumpTimeToLocalTz
-import com.jwoglom.controlx2.shared.util.shortTime
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.pumpx2.pump.messages.helpers.Dates
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusReminderStrength
@@ -29,7 +29,7 @@ import java.time.Instant
  *
  * 剂量缺失或已超过 24 小时 → 整行不渲染，不留占位。
  * 展示强度：2 小时内警示色 + 加粗；2–24 小时弱化；更早不显示。
- * 时间用绝对时间（`pumpTimeToLocalTz` + `shortTime`），不做相对时间刷新。
+ * 时间用绝对时间（`pumpTimeToLocalTz` + [shortTime24] 的 24 小时制），不做相对时间刷新。
  */
 @Composable
 fun LastBolusReminder(modifier: Modifier = Modifier) {
@@ -60,12 +60,8 @@ fun LastBolusReminder(modifier: Modifier = Modifier) {
         buildBolusReminder(volume, localTimestamp, Instant.now())
     } ?: return
 
-    val timeText = shortTime(
-        localTimestamp,
-        stringResource(R.string.units_m),
-        stringResource(R.string.units_am),
-        stringResource(R.string.units_pm),
-    )
+    // 大剂量时间统一走 shared 的 shortTime24（24 小时制）；不再向格式化函数传 am/pm 资源。
+    val timeText = shortTime24(localTimestamp)
     val strong = reminder.strength == BolusReminderStrength.STRONG
 
     Text(
