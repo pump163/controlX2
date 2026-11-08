@@ -7,4 +7,5 @@ sealed class Screen(
     object PumpSetup : Screen("PumpSetup")
     object AppSetup : Screen("AppSetup")
     object Landing : Screen("Landing")
+    object SettingsSelfCheck : Screen("SettingsSelfCheck")
 }

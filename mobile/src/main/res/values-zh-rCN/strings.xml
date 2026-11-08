@@ -1361,4 +1361,25 @@
     <string name="bolus_v2_wizard_ago_hours">%1$d 小时 %2$d 分钟前</string>
     <string name="bolus_v2_wizard_ago_hours_only">%1$d 小时前</string>
     <string name="bolus_v2_confirm_suggested_vs_actual">建议 / 实际</string>
+    <string name="settings_self_check">设置自检</string>
+    <string name="settings_self_check_subtitle">检查蓝牙、通知、电池与省电设置</string>
+    <string name="settings_self_check_icon">设置自检图标</string>
+    <string name="self_check_refresh">重新检测</string>
+    <string name="self_check_back">返回</string>
+    <string name="self_check_status_ok">已设置</string>
+    <string name="self_check_status_missing">未设置</string>
+    <string name="self_check_status_not_applicable">本条不适用于本机</string>
+    <string name="self_check_item_bluetooth">蓝牙</string>
+    <string name="self_check_item_notification">通知</string>
+    <string name="self_check_item_battery">电池优化白名单</string>
+    <string name="self_check_item_power_save">系统省电模式</string>
+    <string name="self_check_item_location_permission">位置权限</string>
+    <string name="self_check_item_location_switch">定位总开关</string>
+    <string name="self_check_hint_bluetooth">关闭时无法连接泵，实时值、历史同步与报警全部失效。</string>
+    <string name="self_check_hint_notification">关闭时前台服务通知不可见；Android 13 及以上没有通知权限时前台服务无法启动，夜间报警也收不到。</string>
+    <string name="self_check_hint_battery">被电池优化时，熄屏静置后进程会被冻结，泵报文与自动重连都会停摆。</string>
+    <string name="self_check_hint_power_save">省电模式会限制后台任务与网络，重连和数据同步变慢（不阻断使用）。</string>
+    <string name="self_check_hint_location">Android 11 及以下，蓝牙扫描需要位置权限且定位总开关打开，否则断线后扫不到泵。</string>
+    <string name="self_check_hint_location_not_applicable">Android 12 及以上使用蓝牙扫描权限，不需要位置权限与定位总开关。</string>
+    <string name="self_check_footer">厂商自启动、后台清理与内存优化无法由 App 检测，如遇异常请按关键词搜「自启动」「后台运行」自行确认。</string>
 </resources>

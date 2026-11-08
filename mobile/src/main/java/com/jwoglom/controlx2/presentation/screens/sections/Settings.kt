@@ -339,6 +339,23 @@ fun Settings(
                         navController?.navigate(Screen.AppSetup.route)
                     },
                 )
+                SettingsRowDivider()
+            }
+
+            item {
+                ActionRow(
+                    title = context.getString(R.string.settings_self_check),
+                    subtitle = context.getString(R.string.settings_self_check_subtitle),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = context.getString(R.string.settings_self_check_icon),
+                        )
+                    },
+                    onClick = {
+                        navController?.navigate(Screen.SettingsSelfCheck.route)
+                    },
+                )
             }
 
             item {

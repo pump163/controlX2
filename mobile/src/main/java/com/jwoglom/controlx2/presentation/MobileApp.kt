@@ -21,6 +21,7 @@ import com.jwoglom.controlx2.presentation.screens.AppSetup
 import com.jwoglom.controlx2.presentation.screens.FirstLaunch
 import com.jwoglom.controlx2.presentation.screens.Landing
 import com.jwoglom.controlx2.presentation.screens.PumpSetup
+import com.jwoglom.controlx2.presentation.screens.SettingsSelfCheck
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.shared.util.SendType
 
@@ -59,6 +60,12 @@ fun MobileApp(
                 AppSetup(
                     navController = navController,
                     sendMessage = sendMessage,
+                )
+            }
+
+            composable(Screen.SettingsSelfCheck.route) {
+                SettingsSelfCheck(
+                    navController = navController,
                 )
             }
 

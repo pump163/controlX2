@@ -1367,4 +1367,25 @@
     <string name="bolus_v2_wizard_ago_hours">%1$d h %2$d min ago</string>
     <string name="bolus_v2_wizard_ago_hours_only">%1$d h ago</string>
     <string name="bolus_v2_confirm_suggested_vs_actual">Suggested vs actual</string>
+    <string name="settings_self_check">Settings self-check</string>
+    <string name="settings_self_check_subtitle">Check Bluetooth, notifications, battery and power-saving settings</string>
+    <string name="settings_self_check_icon">Settings self-check icon</string>
+    <string name="self_check_refresh">Recheck</string>
+    <string name="self_check_back">Back</string>
+    <string name="self_check_status_ok">Set up</string>
+    <string name="self_check_status_missing">Not set</string>
+    <string name="self_check_status_not_applicable">Not applicable to this device</string>
+    <string name="self_check_item_bluetooth">Bluetooth</string>
+    <string name="self_check_item_notification">Notifications</string>
+    <string name="self_check_item_battery">Battery optimization allowlist</string>
+    <string name="self_check_item_power_save">System power saving</string>
+    <string name="self_check_item_location_permission">Location permission</string>
+    <string name="self_check_item_location_switch">Location services</string>
+    <string name="self_check_hint_bluetooth">When off, the pump cannot be reached; live values, history sync and alarms all stop.</string>
+    <string name="self_check_hint_notification">When off, the foreground service notification is hidden; on Android 13+ without notification permission the foreground service cannot start and overnight alarms are lost.</string>
+    <string name="self_check_hint_battery">When battery-optimized, the process is frozen after the screen turns off and the pump stops sending data or reconnecting.</string>
+    <string name="self_check_hint_power_save">Power saving restricts background work and network, so reconnects and sync become slow (it does not block use).</string>
+    <string name="self_check_hint_location">On Android 11 and below, Bluetooth scanning needs location permission and location services enabled; otherwise the pump cannot be found after a disconnect.</string>
+    <string name="self_check_hint_location_not_applicable">Android 12 and above uses the Bluetooth scan permission, so location permission and location services are not needed.</string>
+    <string name="self_check_footer">Vendor auto-start, background cleanup and memory optimization cannot be detected by the app. If issues persist, search for "auto-start" or "background activity" in system settings.</string>
 </resources>
