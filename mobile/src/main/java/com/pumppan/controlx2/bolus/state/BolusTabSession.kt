@@ -42,6 +42,13 @@ data class BolusTabSession(
     fun applyPreset(state: BolusFlowState, origin: BolusTab = BolusTab.PRESETS): BolusTabSession =
         copy(tab = BolusTab.BOLUS, origin = origin, draft = state)
 
+    /**
+     * 向导交接：同样是「唯一草稿」槽位，来源记「向导」，退出流程后回到向导标签
+     * （那里原样保留着输入，便于核对算错的输入）。与预设交接的唯一差别是来源标签。
+     */
+    fun applyWizard(state: BolusFlowState): BolusTabSession =
+        applyPreset(state, origin = BolusTab.WIZARD)
+
     fun updateDraft(state: BolusFlowState): BolusTabSession = copy(draft = state)
 
     /** 相位不再是 DRAFT（开始输注 / 结局）：收回草稿页并销毁草稿；输注状态由状态机照常展示。 */

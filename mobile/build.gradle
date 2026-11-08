@@ -7,6 +7,28 @@ plugins {
     id 'io.github.takahirom.roborazzi'
 }
 
+// Robolectric 的 android-all jar 目录。来源优先级：
+//   1. `-ProbolectricDependencyDir=...` / gradle.properties
+//   2. local.properties 的 `robolectric.dependency.dir`（本机配置，不进版本库）
+//   3. CI 环境沿用旧的 ~/.robolectric
+// 三者都没有就不启用离线模式，走 Robolectric 默认下载行为。
+// 仓库里不写任何绝对路径。
+def robolectricDependencyDir = project.findProperty('robolectricDependencyDir')?.toString()?.trim()
+if (robolectricDependencyDir == null || robolectricDependencyDir.isEmpty()) {
+    def localPropertiesFile = rootProject.file('local.properties')
+    if (localPropertiesFile.exists()) {
+        def localProperties = new Properties()
+        localPropertiesFile.withInputStream { localProperties.load(it) }
+        robolectricDependencyDir = localProperties.getProperty('robolectric.dependency.dir')?.trim()
+    }
+}
+if ((robolectricDependencyDir == null || robolectricDependencyDir.isEmpty())
+        && System.getenv('CI') == 'true') {
+    robolectricDependencyDir = "${System.getProperty('user.home')}/.robolectric"
+}
+def robolectricOfflineDir = (robolectricDependencyDir && new File(robolectricDependencyDir).isDirectory())
+        ? robolectricDependencyDir : null
+
 android {
     signingConfigs {
         release {
@@ -76,9 +98,9 @@ android {
                 // bcprov-jdk18on is added as testImplementation to provide
                 // BouncyCastle classes without the JAR signer conflict.
                 classpath = classpath.filter { !it.name.startsWith('bcprov-jdk14') }
-                if (System.getenv('CI') == 'true') {
+                if (robolectricOfflineDir != null) {
                     systemProperty 'robolectric.offline', 'true'
-                    systemProperty 'robolectric.dependency.dir', "${System.getProperty('user.home')}/.robolectric"
+                    systemProperty 'robolectric.dependency.dir', robolectricOfflineDir
                 }
             }
         }

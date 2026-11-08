@@ -31,6 +31,45 @@
       ],
       "endingPageDismissMs": 15000
     },
+    "wizard": {
+      "enabled": true,
+      "maxCarbsGrams": 300,
+      "fingerstick": {
+        "mgdlMin": 20,
+        "mgdlMax": 600,
+        "mmolMin": 1.1,
+        "mmolMax": 33.3
+      },
+      "cgmPrefill": {
+        "default": {
+          "minMgdl": 40,
+          "maxMgdl": 400
+        },
+        "bySensor": {
+          "DEXCOM_G6": {
+            "minMgdl": 40,
+            "maxMgdl": 400
+          },
+          "DEXCOM_G7": {
+            "minMgdl": 40,
+            "maxMgdl": 400
+          },
+          "LIBRE": {
+            "minMgdl": 40,
+            "maxMgdl": 500
+          }
+        }
+      },
+      "lowBgMgdl": 70,
+      "snapshotStaleMillis": 120000,
+      "cgmStaleMillis": 300000,
+      "iobStaleAfterMs": 180000,
+      "recentInfusionVetoMillis": 300000,
+      "fetchThrottleMillis": 10000,
+      "reportCarbsToPump": false,
+      "reportBgToPump": false,
+      "reportIobToPump": false
+    },
     "polling": {
       "immediatePollIntervalMs": 10000,
       "extendedPollIntervalMs": 300000,

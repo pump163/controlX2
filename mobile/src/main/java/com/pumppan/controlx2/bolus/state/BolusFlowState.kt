@@ -21,6 +21,10 @@ data class BolusFlowState(
     val extendedSeconds: Int = 0,
     /** 普通/方波/双波切换时立即段占比；普通形状下不参与计算。 */
     val percent: Int = DEFAULT_PERCENT,
+    /** 向导交接过来的计算依据；手工 / 预设路径为 null。 */
+    val calc: BolusCalcPayload? = null,
+    /** 向导算出的建议剂量；用户改写后与 [nowMilliunits] 对照显示。手工 / 预设路径为 null。 */
+    val suggestedMilliunits: Int? = null,
 ) {
     val totalMilliunits: Int get() = nowMilliunits + laterMilliunits
 
@@ -30,6 +34,7 @@ data class BolusFlowState(
         extendedSeconds = extendedSeconds,
         shape = shape,
         source = source,
+        calc = calc,
     )
 
     /** 来源由入口标签决定（手工 / 预设 / 向导），只改来源、不改变当前相位。 */
@@ -138,9 +143,33 @@ data class BolusFlowState(
                     state.laterMilliunits,
                     state.extendedSeconds,
                     state.percent,
+                    state.calc?.let { calc ->
+                        listOf(
+                            calc.foodMilliunits,
+                            calc.correctionMilliunits,
+                            calc.carbsGrams,
+                            // 用 -1 表示「没有血糖」，避免把 null 塞进 saveable 列表。
+                            calc.bgMgdl ?: -1,
+                            calc.iobMilliunits,
+                        )
+                    } ?: emptyList<Int>(),
+                    // 用 -1 表示「建议值未改写」。
+                    state.suggestedMilliunits ?: -1,
                 )
             },
             restore = { saved ->
+                val rawCalc = saved.getOrNull(7) as? List<*>
+                val calc = rawCalc
+                    ?.takeIf { it.size == 5 }
+                    ?.let {
+                        BolusCalcPayload(
+                            foodMilliunits = it[0] as Int,
+                            correctionMilliunits = it[1] as Int,
+                            carbsGrams = it[2] as Int,
+                            bgMgdl = (it[3] as Int).takeIf { bg -> bg >= 0 },
+                            iobMilliunits = it[4] as Int,
+                        )
+                    }
                 BolusFlowState(
                     step = BolusFlowStep.valueOf(saved[0] as String),
                     source = BolusSource.valueOf(saved[1] as String),
@@ -149,6 +178,8 @@ data class BolusFlowState(
                     laterMilliunits = saved[4] as Int,
                     extendedSeconds = saved[5] as Int,
                     percent = saved[6] as Int,
+                    calc = calc,
+                    suggestedMilliunits = (saved.getOrNull(8) as? Int)?.takeIf { it >= 0 },
                 )
             },
         )

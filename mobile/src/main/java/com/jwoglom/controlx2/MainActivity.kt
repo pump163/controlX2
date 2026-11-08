@@ -105,6 +105,9 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBasalStatu
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBatteryV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse.CurrentBolusStatus
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentEGVGuiDataResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GetSavedG7PairingCodeResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.GlobalMaxBolusSettingsResponse
@@ -117,7 +120,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusRespons
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
+import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
@@ -447,16 +450,19 @@ class MainActivity : ComponentActivity() {
         val numCarbs = params.carbsGrams
         val bgValue = params.glucoseMgdl
 
-        val bolusTypes = mutableListOf(BolusDeliveryHistoryLog.BolusType.FOOD2)
+        // 请求侧掩码取自 pump-capabilities.json（encodings.requestBitmask.values）。
+        // 禁止用库内 BolusType 推导：1.9.3 起该枚举语义已重构（CORRECTION 2→8），按名字改会静默改变发给泵的字节。
+        val requestBitmask = PumpCapabilities.forModel(null).requestBitmask
+        var bolusTypeBitmask = requestBitmask["FOOD2"] ?: 8
 
         val foodVolume = InsulinUnit.from1To1000(unitBreakdown.fromCarbs)
         if (foodVolume > 0) {
-            bolusTypes.add(BolusDeliveryHistoryLog.BolusType.FOOD1)
+            bolusTypeBitmask = bolusTypeBitmask or (requestBitmask["FOOD1"] ?: 1)
         }
 
         var corrVolume = InsulinUnit.from1To1000(unitBreakdown.fromBG) + InsulinUnit.from1To1000(unitBreakdown.fromIOB)
         if (corrVolume > 0) {
-            bolusTypes.add(BolusDeliveryHistoryLog.BolusType.CORRECTION)
+            bolusTypeBitmask = bolusTypeBitmask or (requestBitmask["CORRECTION"] ?: 2)
         } else {
             corrVolume = 0 // negative correction volume is not passed through
         }
@@ -498,7 +504,7 @@ class MainActivity : ComponentActivity() {
         val bolusRequest = InitiateBolusRequest(
             numUnits,
             bolusId,
-            BolusDeliveryHistoryLog.BolusType.toBitmask(*bolusTypes.toTypedArray()),
+            bolusTypeBitmask,
             foodVolume,
             corrVolume,
             numCarbs,
@@ -908,6 +914,7 @@ class MainActivity : ComponentActivity() {
             }
             is ControlIQIOBResponse -> {
                 dataStore.iobUnits.value = InsulinUnit.from1000To1(message.pumpDisplayedIOB)
+                dataStore.iobUpdatedAtMillis.value = System.currentTimeMillis()
             }
             is ControlIQInfoAbstractResponse -> {
                 dataStore.controlIQMode.value = when (message.currentUserModeType) {
@@ -950,6 +957,11 @@ class MainActivity : ComponentActivity() {
                 else
                     null
                 dataStore.lastBolusStatusResponse.value = message
+                // 泵历史里的「最近一笔大剂量」：记录时刻落在向导否决窗口内时，IOB 视为不可靠。
+                if (message.timestamp > 0) {
+                    dataStore.lastInfusionAtMillis.value =
+                        pumpTimeToLocalTz(message.timestampInstant).toEpochMilli()
+                }
             }
             is HomeScreenMirrorResponse -> {
                 dataStore.controlIQStatus.value = when (message.apControlStateIcon) {
@@ -1032,6 +1044,12 @@ class MainActivity : ComponentActivity() {
             is CurrentEGVGuiDataResponse -> {
                 dataStore.cgmReading.value = message.cgmReading
                 dataStore.cgmDelta.value = message.trendRate
+                // 向导只认「有真实读数」的 CGM；不可用 / 无效时把时间置空，让它按读不到处理，
+                // 不做 LastBG 回落（用户 2026-11-08 口径）。
+                val usable = message.egvStatus == CurrentEGVGuiDataResponse.EGVStatus.VALID ||
+                    message.egvStatus == CurrentEGVGuiDataResponse.EGVStatus.LOW ||
+                    message.egvStatus == CurrentEGVGuiDataResponse.EGVStatus.HIGH
+                dataStore.cgmReadingAt.value = if (usable) System.currentTimeMillis() else null
             }
             is GetSavedG7PairingCodeResponse -> {
                 dataStore.savedG7PairingCode.value = message.pairingCode
@@ -1039,6 +1057,7 @@ class MainActivity : ComponentActivity() {
             is BolusCalcDataSnapshotResponse -> {
                 if (!cached) {
                     dataStore.bolusCalcDataSnapshot.value = message
+                    dataStore.bolusCalcDataSnapshotAt.value = System.currentTimeMillis()
                 }
             }
             is LastBGResponse -> {
@@ -1067,6 +1086,8 @@ class MainActivity : ComponentActivity() {
                     message.bolusId, message.status, message.statusType ?: "UNKNOWN", message.statusTypeId
                 )
                 dataStore.bolusInitiateResponse.value = message
+                // 本机发送的大剂量：不论泵是否接受，都按「刚有输注动作」保守处理。
+                dataStore.lastInfusionAtMillis.value = System.currentTimeMillis()
                 runOnUiThread { bolusConfirmDialog?.dismiss() }
             }
             is CancelBolusResponse -> {
@@ -1079,6 +1100,21 @@ class MainActivity : ComponentActivity() {
             }
             is CurrentBolusStatusResponse -> {
                 dataStore.bolusCurrentResponse.value = message
+                // 泵真相层：正在准备 / 正在输注的大剂量会让 IOB 与建议剂量方向性失真。
+                dataStore.bolusDelivering.value = message.bolusId != 0 &&
+                    (message.status == CurrentBolusStatus.REQUESTING ||
+                        message.status == CurrentBolusStatus.DELIVERING)
+                dataStore.bolusStatusUpdatedAtMillis.value = System.currentTimeMillis()
+            }
+            is ExtendedBolusStatusResponse -> {
+                dataStore.extendedBolusActive.value = message.bolusStatus != 0 &&
+                    message.bolusId != 0 && message.duration > 0
+                dataStore.extendedBolusUpdatedAtMillis.value = System.currentTimeMillis()
+            }
+            is ExtendedBolusStatusV2Response -> {
+                dataStore.extendedBolusActive.value = message.bolusStatus != 0 &&
+                    message.bolusId != 0 && message.duration > 0
+                dataStore.extendedBolusUpdatedAtMillis.value = System.currentTimeMillis()
             }
             is TimeSinceResetResponse -> {
                 dataStore.timeSinceResetResponse.value = message

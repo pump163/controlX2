@@ -21,6 +21,8 @@ data class BolusDraft(
     val extendedSeconds: Int = 0,
     val shape: BolusShape = BolusShape.NORMAL,
     val source: BolusSource = BolusSource.MANUAL,
+    /** 向导算出的中间量；只有 `source = CALC` 时有值。是否写进 `-98` 由机型配置决定。 */
+    val calc: BolusCalcPayload? = null,
 ) {
     val totalMilliunits: Int get() = nowMilliunits + laterMilliunits
 }

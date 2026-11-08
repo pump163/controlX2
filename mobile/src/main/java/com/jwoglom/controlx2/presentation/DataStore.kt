@@ -63,6 +63,18 @@ class DataStore {
     val batteryPercent = MutableLiveData<Int>()
     val batteryCharging = MutableLiveData<Boolean>()
     val iobUnits = MutableLiveData<Double>()
+    /** 最近一条 `ControlIQIOBResponse` 的本地到达时刻；用于向导判定 IOB 是否在有效窗口内。 */
+    val iobUpdatedAtMillis = MutableLiveData<Long>()
+    /** 最近一次输注记录的时刻（本机发送的，或泵历史里新增的）；向导据此判「近 5 分钟有输注」。 */
+    val lastInfusionAtMillis = MutableLiveData<Long>()
+    /** 泵真相层：`45` 显示大剂量正在输注（REQUESTING / DELIVERING 且带 bolusId）。 */
+    val bolusDelivering = MutableLiveData<Boolean>()
+    /** 最近一条大剂量当前状态（`45`）的本地到达时刻。 */
+    val bolusStatusUpdatedAtMillis = MutableLiveData<Long>()
+    /** 泵真相层：`47` / `-73` 显示**延展**正在输注（bolusStatus≠0 且带 bolusId、duration>0）。 */
+    val extendedBolusActive = MutableLiveData<Boolean>()
+    /** 最近一条延展状态（`47` / `-73`）的本地到达时刻。 */
+    val extendedBolusUpdatedAtMillis = MutableLiveData<Long>()
     val cartridgeRemainingUnits = MutableLiveData<Int>()
     val cartridgeRemainingEstimate = MutableLiveData<Boolean>()
     val lastBolusStatus = MutableLiveData<String>()
@@ -86,6 +98,8 @@ class DataStore {
     val cgmSessionExpireExact = MutableLiveData<String>()
     val cgmTransmitterStatus = MutableLiveData<String>()
     val cgmReading = MutableLiveData<Int>()
+    /** 实时 CGM 读数**收到**的本地时间；EGV 状态不可用时置空。向导据此判「读不到 / 过期」。 */
+    val cgmReadingAt = MutableLiveData<Long>()
     val cgmDelta = MutableLiveData<Int>()
     val cgmStatusText = MutableLiveData<String>()
     val cgmHighLowState = MutableLiveData<String>()
@@ -97,6 +111,8 @@ class DataStore {
     val idpManager = MutableLiveData<IDPManager>(IDPManager())
 
     val bolusCalcDataSnapshot = MutableLiveData<BolusCalcDataSnapshotResponse>()
+    /** 泵参数快照**收到**的本地时间（只在非缓存回包时写入）；向导据此判过期。 */
+    val bolusCalcDataSnapshotAt = MutableLiveData<Long>()
     val bolusCalcLastBG = MutableLiveData<LastBGResponse>()
     val maxBolusAmount = MutableLiveData<Int>()
 
@@ -177,6 +193,12 @@ class DataStore {
         batteryPercent.logOnChange("batteryPercent")
         batteryCharging.logOnChange("batteryCharging")
         iobUnits.logOnChange("iobUnits")
+        iobUpdatedAtMillis.logOnChange("iobUpdatedAtMillis")
+        lastInfusionAtMillis.logOnChange("lastInfusionAtMillis")
+        bolusDelivering.logOnChange("bolusDelivering")
+        bolusStatusUpdatedAtMillis.logOnChange("bolusStatusUpdatedAtMillis")
+        extendedBolusActive.logOnChange("extendedBolusActive")
+        extendedBolusUpdatedAtMillis.logOnChange("extendedBolusUpdatedAtMillis")
         cartridgeRemainingUnits.logOnChange("cartridgeRemainingUnits")
         cartridgeRemainingEstimate.logOnChange("cartridgeRemainingEstimate")
         lastBolusStatus.logOnChange("lastBolusStatus")
@@ -200,6 +222,7 @@ class DataStore {
         cgmSessionExpireExact.logOnChange("cgmSessionExpireExact")
         cgmTransmitterStatus.logOnChange("cgmTransmitterStatus")
         cgmReading.logOnChange("cgmReading")
+        cgmReadingAt.logOnChange("cgmReadingAt")
         cgmDelta.logOnChange("cgmDelta")
         cgmStatusText.logOnChange("cgmStatusText")
         cgmHighLowState.logOnChange("cgmHighLowState")
@@ -212,6 +235,7 @@ class DataStore {
 
 
         bolusCalcDataSnapshot.logOnChange("bolusCalcDataSnapshot")
+        bolusCalcDataSnapshotAt.logOnChange("bolusCalcDataSnapshotAt")
         bolusCalcLastBG.logOnChange("bolusCalcLastBG")
         maxBolusAmount.logOnChange("maxBolusAmount")
 

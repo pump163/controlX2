@@ -55,10 +55,12 @@ import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.BolusPanelMode
+import com.pumppan.controlx2.bolus.state.BolusSource
 import com.pumppan.controlx2.bolus.state.BolusTab
 import com.pumppan.controlx2.bolus.state.BolusTabSession
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
+import com.pumppan.controlx2.bolus.wizard.BolusWizardRuntime
 import kotlinx.coroutines.delay
 
 /**
@@ -90,8 +92,12 @@ fun BolusV2Section(
     val page = deliveryToPage(delivery, outcome)
 
     // 相位非 DRAFT 时收回流程页并销毁草稿（§4.7）；进行中的输注由状态机页面照常展示，不清会话。
+    // 向导来源的草稿被收回 = 已成功发送：向导输入随之清空（跨标签保留到此结束）。
     LaunchedEffect(page) {
-        if (page != BolusEntryPage.DRAFT && session.draft != null) session = session.clearDraft()
+        if (page != BolusEntryPage.DRAFT && session.draft != null) {
+            if (session.draft?.source == BolusSource.CALC) BolusWizardRuntime.clear()
+            session = session.clearDraft()
+        }
     }
 
     val dataStore = LocalDataStore.current
@@ -175,7 +181,15 @@ fun BolusV2Section(
                     }
 
                     BolusTab.WIZARD -> tabStateHolder.SaveableStateProvider(BolusTab.WIZARD.name) {
-                        BolusWizardPlaceholder()
+                        BolusWizardTab(
+                            session = session,
+                            limits = limits,
+                            profile = profile,
+                            // 只有处于可起草相位才允许把结果交给确认页；硬约束：输注中不给入口。
+                            canStartFlow = page == BolusEntryPage.DRAFT,
+                            onSessionChange = { session = it },
+                            sendPumpCommands = sendPumpCommands,
+                        )
                     }
 
                     BolusTab.PRESETS -> tabStateHolder.SaveableStateProvider(BolusTab.PRESETS.name) {
@@ -285,29 +299,6 @@ private fun BolusTabPage(
                 showNewBolus = false,
             )
         }
-    }
-}
-
-/** 「向导」标签占位：只有页标题 + 一句「功能建设中」，不放任何按钮或半成品。 */
-@Composable
-private fun BolusWizardPlaceholder() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.bolus_v2_tab_wizard),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(R.string.bolus_v2_wizard_building),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
-        )
     }
 }
 

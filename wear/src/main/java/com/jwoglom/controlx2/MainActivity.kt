@@ -84,7 +84,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBGResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TimeSinceResetResponse
-import com.jwoglom.pumpx2.pump.messages.response.historyLog.BolusDeliveryHistoryLog
+import com.jwoglom.controlx2.shared.BolusRequestBitmask
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -152,16 +152,18 @@ class MainActivity : ComponentActivity() {
                 val numCarbs = params.carbsGrams
                 val bgValue = params.glucoseMgdl
 
-                val bolusTypes = mutableListOf(BolusDeliveryHistoryLog.BolusType.FOOD2)
+                // 请求侧掩码固定取 pump-capabilities.json（default.encodings.requestBitmask.values）的整数值。
+                // 禁止用库内 BolusType 推导：1.9.3 起该枚举语义已重构（CORRECTION 2→8），按名字改会静默改变字节。
+                var bolusTypeBitmask = BolusRequestBitmask.FOOD2
 
                 val foodVolume = InsulinUnit.from1To1000(unitBreakdown.fromCarbs)
                 if (foodVolume > 0) {
-                    bolusTypes.add(BolusDeliveryHistoryLog.BolusType.FOOD1)
+                    bolusTypeBitmask = bolusTypeBitmask or BolusRequestBitmask.FOOD1
                 }
 
                 var corrVolume = InsulinUnit.from1To1000(unitBreakdown.fromBG) + InsulinUnit.from1To1000(unitBreakdown.fromIOB)
                 if (corrVolume > 0) {
-                    bolusTypes.add(BolusDeliveryHistoryLog.BolusType.CORRECTION)
+                    bolusTypeBitmask = bolusTypeBitmask or BolusRequestBitmask.CORRECTION
                 } else {
                     corrVolume = 0 // negative correction volume is not passed through
                 }
@@ -203,7 +205,7 @@ class MainActivity : ComponentActivity() {
                 val bolusRequest = InitiateBolusRequest(
                     numUnits,
                     bolusId,
-                    BolusDeliveryHistoryLog.BolusType.toBitmask(*bolusTypes.toTypedArray()),
+                    bolusTypeBitmask,
                     foodVolume,
                     corrVolume,
                     numCarbs,

@@ -84,6 +84,8 @@ data class PumpCapabilityProfile(
     val endingPageDismissMs: Long = 15_000L,
     /** 百分比快捷项默认值（仅作为 Prefs 的首次默认，之后以用户编辑为准）。 */
     val extendedPercentPresets: List<Int> = listOf(0, 50, 75),
+    /** 向导（碳水计算器）的阈值与上报开关；配置缺失时用 [WizardConfig.Default]。 */
+    val wizard: WizardConfig = WizardConfig.Default,
 ) {
     fun maxExtendedSeconds(ciqEnabled: Boolean?): Int =
         if (ciqEnabled == false) maxExtendedSecondsNonCiq else maxExtendedSecondsCiq
@@ -212,6 +214,7 @@ object PumpCapabilities {
         val polling = obj.optJSONObject("polling")
         val timing = obj.optJSONObject("timing")
         val notifications = obj.optJSONObject("notifications")
+        val wizard = obj.optJSONObject("wizard")
 
         return PumpCapabilityProfile(
             modelKey = key,
@@ -313,8 +316,57 @@ object PumpCapabilities {
             extendedPercentPresets = readIntList(
                 ui, "extendedPercentPresets", base.extendedPercentPresets,
             ),
+            wizard = parseWizard(wizard, base.wizard),
         )
     }
+
+    /** 读取 `wizard` 段；缺键沿用兜底，不写死任何阈值。 */
+    private fun parseWizard(obj: JSONObject?, base: WizardConfig): WizardConfig {
+        if (obj == null) return base
+        val finger = obj.optJSONObject("fingerstick")
+        val cgm = obj.optJSONObject("cgmPrefill")
+        val bySensor = mutableMapOf<String, CgmPrefillRange>()
+        cgm?.optJSONObject("bySensor")?.let { sensors ->
+            sensors.keys().forEach { key ->
+                sensors.optJSONObject(key)?.let {
+                    bySensor[key.uppercase()] = parseCgmRange(it, base.cgmPrefillDefault)
+                }
+            }
+        }
+        val fingerBase = base.fingerstick
+        return WizardConfig(
+            enabled = obj.optBoolean("enabled", base.enabled),
+            maxCarbsGrams = obj.optInt("maxCarbsGrams", base.maxCarbsGrams),
+            fingerstick = FingerstickRange(
+                mgdlMin = finger?.optInt("mgdlMin", fingerBase.mgdlMin) ?: fingerBase.mgdlMin,
+                mgdlMax = finger?.optInt("mgdlMax", fingerBase.mgdlMax) ?: fingerBase.mgdlMax,
+                mmolMin = finger?.optDouble("mmolMin", fingerBase.mmolMin) ?: fingerBase.mmolMin,
+                mmolMax = finger?.optDouble("mmolMax", fingerBase.mmolMax) ?: fingerBase.mmolMax,
+            ),
+            cgmPrefillDefault = cgm?.optJSONObject("default")
+                ?.let { parseCgmRange(it, base.cgmPrefillDefault) }
+                ?: base.cgmPrefillDefault,
+            cgmPrefillBySensor = bySensor,
+            lowBgMgdl = obj.optInt("lowBgMgdl", base.lowBgMgdl),
+            snapshotStaleMillis = obj.optLong("snapshotStaleMillis", base.snapshotStaleMillis),
+            cgmStaleMillis = obj.optLong("cgmStaleMillis", base.cgmStaleMillis),
+            iobStaleAfterMs = obj.optLong("iobStaleAfterMs", base.iobStaleAfterMs),
+            recentInfusionVetoMillis = obj.optLong(
+                "recentInfusionVetoMillis",
+                base.recentInfusionVetoMillis,
+            ),
+            fetchThrottleMillis = obj.optLong("fetchThrottleMillis", base.fetchThrottleMillis),
+            reportCarbsToPump = obj.optBoolean("reportCarbsToPump", base.reportCarbsToPump),
+            reportBgToPump = obj.optBoolean("reportBgToPump", base.reportBgToPump),
+            reportIobToPump = obj.optBoolean("reportIobToPump", base.reportIobToPump),
+        )
+    }
+
+    private fun parseCgmRange(obj: JSONObject, base: CgmPrefillRange): CgmPrefillRange =
+        CgmPrefillRange(
+            minMgdl = obj.optInt("minMgdl", base.minMgdl),
+            maxMgdl = obj.optInt("maxMgdl", base.maxMgdl),
+        )
 
     private fun readIntList(obj: JSONObject?, key: String, base: List<Int>): List<Int> {
         val array = obj?.optJSONArray(key) ?: return base

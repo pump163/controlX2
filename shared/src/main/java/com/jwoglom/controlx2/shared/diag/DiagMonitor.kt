@@ -213,8 +213,8 @@ object DiagMonitor {
     private fun readEnabledFlag(): Boolean =
         runCatching {
             appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getBoolean(KEY_ENABLED, false)
-        }.getOrDefault(false)
+                .getBoolean(KEY_ENABLED, true)
+        }.getOrDefault(true)
 
     private fun setEnabledInternal(value: Boolean, persist: Boolean) {
         if (value == enabled) return

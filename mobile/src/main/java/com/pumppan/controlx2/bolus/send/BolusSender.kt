@@ -31,6 +31,13 @@ data class BolusSendPlan(
     /** 客户端兜底校验值（不是泵下限），仅用于取证日志的能力快照。 */
     val clientMinExtendedCheckMilliunits: Int,
     val maxExtendedSeconds: Int,
+    /**
+     * `-98` 的 carbs / bg / iob 字段。**默认 0，不上报**：不在泵上留下可追溯的医疗记录。
+     * 只有机型配置的 `wizard.report*ToPump` 打开时才会从 [BolusDraft.calc] 取值。
+     */
+    val carbsGrams: Int = 0,
+    val bgMgdl: Int = 0,
+    val iobMilliunits: Long = 0L,
 ) {
     /** 是否真的填了延展三字段（决定走 11 参还是 8 参构造器）。 */
     val usesExtendedFields: Boolean
@@ -77,6 +84,10 @@ object BolusSender {
             if (extended) profile.extendedBitmask
             else profile.requestBitmask["FOOD2"] ?: DEFAULT_FOOD2_BITMASK
 
+        // 医疗记录口径：默认全部为 0；开关在机型配置里，不在这里写死。
+        val calc = draft.calc
+        val report = profile.wizard
+
         return BolusPrepareResult.Ready(
             BolusSendPlan(
                 modelKey = profile.modelKey,
@@ -90,6 +101,13 @@ object BolusSender {
                 minImmediateMilliunits = profile.minImmediateMilliunits,
                 clientMinExtendedCheckMilliunits = profile.clientMinExtendedCheckMilliunits,
                 maxExtendedSeconds = profile.maxExtendedSeconds(ciqEnabled),
+                carbsGrams = if (calc != null && report.reportCarbsToPump) calc.carbsGrams else 0,
+                bgMgdl = if (calc != null && report.reportBgToPump) calc.bgMgdl ?: 0 else 0,
+                iobMilliunits = if (calc != null && report.reportIobToPump) {
+                    calc.iobMilliunits.toLong()
+                } else {
+                    0L
+                },
             ),
         )
     }
@@ -113,9 +131,9 @@ object BolusSender {
                 plan.bolusTypeBitmask,
                 0L, // foodVolume
                 0L, // correctionVolume
-                0, // carbs
-                0, // bg
-                0L, // iob
+                plan.carbsGrams,
+                plan.bgMgdl,
+                plan.iobMilliunits,
                 plan.extendedVolumeMilliunits.toLong(),
                 plan.extendedSeconds.toLong(),
                 0L, // extended3：未验证字段，恒 0
@@ -127,9 +145,9 @@ object BolusSender {
                 plan.bolusTypeBitmask,
                 0L,
                 0L,
-                0,
-                0,
-                0L,
+                plan.carbsGrams,
+                plan.bgMgdl,
+                plan.iobMilliunits,
             )
         }
     }.getOrNull()

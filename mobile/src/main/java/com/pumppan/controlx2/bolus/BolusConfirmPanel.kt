@@ -50,6 +50,19 @@ fun BolusConfirmPanel(
         SummaryRow(stringResource(R.string.bolus_v2_confirm_source), sourceName(state.source))
         SummaryRow(stringResource(R.string.bolus_v2_confirm_total), units(state.totalMilliunits, limits))
 
+        // 向导的建议值被改写过：把对照留在确认页，避免用户改完就忘了改了什么。
+        val suggested = state.suggestedMilliunits
+        if (suggested != null && suggested != state.totalMilliunits) {
+            SummaryRow(
+                stringResource(R.string.bolus_v2_confirm_suggested_vs_actual),
+                stringResource(
+                    R.string.bolus_v2_wizard_suggested_vs_actual,
+                    units(suggested, limits),
+                    units(state.totalMilliunits, limits),
+                ),
+            )
+        }
+
         if (limits.canStartRemoteExtended() && state.shape != BolusShape.NORMAL) {
             // 绝对值为主；百分比只作次要信息（派生显示，不进协议）。
             val percent = BolusForm.percentOf(state.nowMilliunits, state.totalMilliunits)
