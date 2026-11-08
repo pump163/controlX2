@@ -280,3 +280,480 @@ adb exec-out run-as com.jwoglom.controlx2 cat files/debugLog-xxx.txt > debugLog.
 - 不实施有界退避、5s 重试、取消永久停手等任何补丁；
 - 不修改 `_tmp_pumpx2`；
 - 不动其他会话正在修改的文件（当前为 `mobile/src/main/java/com/jwoglom/controlx2/MainActivity.kt`）。
+
+---
+
+### 9.6 1.9.3 升级实施记录（2026-11-08）
+
+**版本**：`build.gradle:5` `pumpx2_version` `1.9.0 → 1.9.3`（三个制品 `pumpx2-android / pumpx2-messages / pumpx2-shared` 均在 jitpack 可解析，POM 用 GET 探测为 200）。
+
+**掩码策略（硬约束）**：
+
+- 请求侧（`InitiateBolusRequest.bolusTypeBitmask`）**一律取 `pump-capabilities.json` 中 `encodings.requestBitmask.values` 的整数值**，禁止用库内枚举推导。
+- `mobile/.../MainActivity.kt`：`PumpCapabilities.forModel(null).requestBitmask` → `FOOD2=8` 为基，`FOOD1=1`、`CORRECTION=2` 按需或上（与升级前字节完全一致）。
+- `wear/.../MainActivity.kt`：wear 模块读不到 mobile 的 asset，改用 `shared/.../BolusRequestBitmask.kt` 中固化的同名常量（值同上，文件内注明必须与 JSON 保持一致）。**这是唯一一处没有直接从 JSON 读取的地方**，若后续调整 JSON 需同步该文件。
+- 这样做的原因：1.9.3 的 `CORRECTION` 从 `2` 变成 `8`，按旧名硬编译会让发给泵的掩码从 `11` 变成 `9/17` 之类，属于静默改变剂量请求语义。
+
+**`BolusDeliveryHistoryLog.BolusType` 新旧映射（仅影响历史记录解释）**：
+
+| 位值 | 1.9.0 | 1.9.3 |
+|---|---|---|
+| 1 | `FOOD1` | `NOW` |
+| 2 | `CORRECTION` | `LATER` |
+| 4 | `EXTENDED` | `OVERRIDE` |
+| 8 | `FOOD2` | `CORRECTION` |
+| 16 | — | `CARB` |
+| 32 | — | `EATING_SOON_MODE` |
+| 64 | — | `QUEUED` |
+
+上游在 `BolusDeliveryHistoryLog` 的 Javadoc 中给出的理由是 **issue #78**：旧的四值映射无法解释真实泵历史日志中的位组合；新映射按日志证据重定义，属于解释修正。**因此升级后历史页/Nightscout 里的 `types:` 文本会变（如 `FOOD2` → `NOW`），这是预期变化，不代表数据损坏**。受影响显示点：`ProcessBolus.kt:146-148`（写入 Nightscout notes）、`VicoCgmChart.kt:555`（图表标签）。
+
+**代码改动点**：`mobile/.../MainActivity.kt`（掩码 + import）、`wear/.../MainActivity.kt`（掩码 + import）、`shared/.../BolusRequestBitmask.kt`（新增）、`db/.../HistoryLogItemTest.kt`（`FOOD1` → `CARB`）。`BolusPermission*` 相关类 1.9.3 零变化。
+
+**未启用**：`TandemPump.enablePeriodicConnectionPriorityReassert()` 保持关闭（opt-in），先只验证 1.9.3 自带的 5s 重试链，一次只动一个变量。
+
+**回滚点**：`build.gradle:5` 改回 `1.9.0` + revert 上述 4 个文件即可；无 DB schema 变更，无需重新配对。
+
+## 10. 现场取证小结（2026-11-08）
+
+> 本次现场：用户离开手机去吃饭期间泵与手机拉开距离，回来约 40 分钟后仍未恢复。
+> 定性：「超距掉线」是蓝牙必然而非 bug；**bug 是「回到范围后不恢复」**。
+> 证据标注：**[已证实]** = 源码或系统/应用日志直接可见；**[推断]** = 证据链推出但无直接观测。
+> 全程只读取证，未卸载/重装/清数据/重启进程/主动重连/对泵发指令。
+
+### 10.1 结论
+
+**[已证实] 重连链在第一次失败后即终止，且没有任何机制把它重新点着。**
+
+- `TandemBluetoothHandler.onDisconnectedPeripheral` 是唯一排重连的地方：断开后 `postDelayed(immediateConnectToPeripheral, reconnectDelay)`，随后 `reconnectDelay *= 1.5`（1.9.0 handler 第 862-867 行）。
+- `TandemBluetoothHandler.onConnectionFailed` **只调用** `tandemPump.onPumpCriticalError(BT_CONNECTION_FAILED)`，**不排任何重试**（1.9.0 handler 第 812-817 行）。
+- 本次正好走到这一格：断开 → 250ms 后唯一一次 autoConnect → 该次连接建立失败（`CONNECTION_FAILED_ESTABLISHMENT`）→ 链终止 → 40 分钟内零尝试。
+- 把链重新点着的**唯一入口是 `startScan()`**，其触发源实测只有 `onBluetoothAdapterStateChanged(STATE_ON)`；`MainActivity.onResume` 无重连，`CommService.onStartCommand` 有 `if (started) return START_STICKY` 幂等守卫，`periodicUpdateTask`（5 分钟）只发查询、`lastPeripheral == null` 时仅上报 `pump-not-connected null_peripheral`。
+- 本次恢复靠的是**系统设置关开蓝牙**，不是 App 自愈：`dumpsys bluetooth_manager` 记录 `11-08 12:53:52 Enabled due to APPLICATION_REQUEST by com.android.settings`，App 日志同刻出现适配器状态 13→10→11→12 后 `startScan`。
+
+**[推断] 本次断连的直接诱因是超距**：断开签名是 `CONNECTION_TIMEOUT` 与 `CHARACTERISTIC_WRITE_FAILED`，与用户「离开手机、距离拉远」的描述吻合；但 Android 不暴露 RSSI/距离，无法直接证明。
+
+### 10.2 时间线（设备本地时间 UTC+8，与采样一致）
+
+| 时间 | 事件 | 证据 |
+|---|---|---|
+| 12:10 前后 | 泵数据流停止，`lastMessageTime` 停在 12:10 | [已证实] 应用日志最后一个 rx；HTTP 采样同值 |
+| 12:14:19 | `disconnected ... CONNECTION_TIMEOUT (reconnectDelay: 250 ms **reason=INITIAL_AUTH_NO_REPLY**)`；写 AUTHORIZATION 失败（`CHARACTERISTIC_WRITE_FAILED`，TRANSIENT） | [已证实] 应用日志 |
+| 12:14:19 | `ReconnectBackoff event=initial_auth_no_reply action=retry failuresInWindow=1 maxRetryCount=3`（未到停手阈值） | [已证实] 应用日志 |
+| 12:14:20 | 唯一一次重连：`Already bonded ...` → `autoConnectPeripheral` | [已证实] 应用日志 |
+| 12:14:44 | `connection ... failed with status CONNECTION_FAILED_ESTABLISHMENT` → `BT_CONNECTION_FAILED` → **此后无任何连接尝试** | [已证实] 应用日志（全文件无后续连接记录） |
+| 12:14–12:53 | 40 分钟空窗；期间 12:36:46 仅有一次 `periodicUpdateTask` → `pump not saved peripheral` → `pump-not-connected null_peripheral`，**不重连** | [已证实] 应用日志 |
+| 12:53:27 | 用户把 App 调前台：`CommService onStartCommand ... 0 7` → `CommService onStartCommand when already running, ignoring` | [已证实] 应用日志；前台动作为 [推断] |
+| 12:53:50–54 | 系统设置关/开蓝牙（`13→10→11→12`），`STATE_ON` 触发 `startScan()` | [已证实] 应用日志 + `dumpsys bluetooth_manager`（`APPLICATION_REQUEST by com.android.settings`）；手动操作为 [推断] |
+| 12:53:56–58 | `Already bonded` → 连接 → `initial pump connection established` → `JpakeAuth DONE` → `pump-connected` | [已证实] 应用日志 |
+| 之后 | 12:56:44 断开→12:56:55 恢复；12:59 再次断开；13:18:58 / 13:19:24 / 13:19:33 继续「断开→重连」循环（近距时能成环，因为 `onConnectedPeripheral` 会把 `reconnectDelay` 重置为 250ms） | [已证实] 应用日志 |
+
+### 10.3 排除项（这些都不是元凶，已证伪）
+
+| 怀疑项 | 结论 | 证据 |
+|---|---|---|
+| 服务被系统回收 / 自停 | **[已证伪]** 服务全程存活 | `ServiceRecord{23f8c08 .../.CommService}`：`isForeground=true foregroundId=1 types=00000010`、`startForegroundCount=1`；`createTime` ≈10:20（=进程启动），`restartTime` ≈12:01（**早于 12:10**）；`startRequested=true callStart=true` |
+| FGS `startForeground` 失败 | **[已证伪]** 无失败记录，`startForegroundCount=1`，通知 id=1 一直在 | `dumpsys activity services` + `dumpsys notification --noredact` |
+| 进程被 lowmemorykiller / oom 回收 | **[已证伪]** 无 `am_kill`/`lmkd` 记录；`oom adj curRaw=200`，`mHasForegroundServices=true`，`trimMemoryLevel=0`，`reportLowMemory=false`，`isFrozen=false` | 系统事件缓冲 + `dumpsys activity processes` |
+| ANR | **[已证伪]** 全缓冲无 `am_anr` | 系统事件缓冲（11-07 15:14 → 13:29） |
+| Doze / 省电导致停摆 | **[已证伪]** 设备 `deviceIdle=false`、`powerSave=false`；虽未进电池白名单，但不影响本结论 | `/api/diag/state` + `dumpsys deviceidle` |
+| `fgsRunning=false`（用户最初的最硬观察） | **[已证伪]** 这是 `DiagMonitor` 关闭时 `snapshot()/emptySnapshot()` 的**默认值**，与真实状态无关；同时 `connected=false`、`linkState=OFF` 也都是同类默认值 | `DiagMonitor.kt` 源码 + `enabled:false` 端点返回 |
+| 00:08 的 MainActivity 启动崩溃（`BolusEntryCoordinator.pushState` 空 `MutableState` NPE） | **[已证实] 与本次断连无关**：崩溃仅发生在 11-08 00:08:20 与 00:08:23 两次（`am_crash` 6646 / 7625），相距 12 小时；之后 00:28:55、10:20:18 两次 `am_proc_start` 均无崩溃，12:53:27 前台打开也被日志证明未崩溃，13:30 抓取时 `foregroundActivities=true`。已由 bolus 侧修复提交解决（会话记录引用 `8F9B2767`；**注意**：本仓库 `git log --all` 未命中该 hash，引用前需在修复分支核对） | `dumpsys dropbox` 8 条 `data_app_crash`、`-b crash` 缓冲、`-b events` 的 `am_crash/am_proc_start` |
+
+补充：[已证实] 唯一一次 `INITIAL_AUTH_NO_REPLY` 的 `failuresInWindow=1`（阈值 3），本次**没有**触发 `ReconnectPaused ... manual_reinit_required`；全日志也无该字样。永久停手路径属于另一条独立风险，不是本场元凶。
+
+### 10.4 未取到的证据（设计缺陷）
+
+**[已证实] 本次断连没有被临时监控录到。**
+
+- `GET /api/diag/state` → `enabled:false, incidentCount:0, liveBytes:0`；
+- `adb shell run-as com.jwoglom.controlx2 ls files/diag` → `No such file or directory`（`dir` 字段指向的目录根本未创建）；
+- 原因：`DiagMonitor` 开关默认关闭（`getBoolean(KEY_ENABLED, false)`），且 5 个 diag 端点全是只读 `GET`，无写端点；`enabled` 是进程内 `@Volatile` 字段，只在 `initialize()` 读一次 prefs，外部改 XML 需重启进程才生效（违反本次硬约束），故**无法远程开启**。
+
+**这是临时取证设施的设计缺陷**：一个只为抓「偶发、不可预期」现场的设施，默认关闭等于默认不工作；唯一可用的持久记录是应用自身的 `files/debugLog-MUA.txt`（本次已全量导出，见 10.5）。
+
+### 10.5 证据文件清单（工作区外取证目录 `_tmp_pumpx2/`）
+
+| 文件（时间戳均为导出时刻） | 用途 |
+|---|---|
+| `crash_logcat_20261108_132856.txt` | `-b crash` 全量；含 11-08 00:08:20 / 00:08:23 崩溃栈，用于证明崩溃时间与本次无关 |
+| `dropbox_data_app_crash_20261108_132902.txt` | `dumpsys dropbox --print data_app_crash` 共 8 条；含 Process-Runtime / Foreground，用于绝对时间与进程运行时长 |
+| `logcat_events_20261108_132920.txt` | 系统事件缓冲（9.8MB，覆盖 11-07 15:14→13:29）；`am_crash` / `am_proc_start` / `am_kill` / `notification_enqueue`，是「何时崩、何时被杀、何时启动」的权威来源 |
+| `activity_services_20261108_133024.txt` | `dumpsys activity services`：FGS/`startForegroundCount`/`createTime`/`restartTime`，证明服务未被杀 |
+| `activity_processes_20261108_133024.txt` | `dumpsys activity processes`：oom adj 200、TOP/fg、未冻结、`mHasForegroundServices`，证明进程未被回收 |
+| `notification_20261108_133034.txt` | `dumpsys notification --noredact`：常驻通知 id=1 及其文案，佐证 FGS 与状态文本 |
+| `bluetooth_manager_20261108_133034.txt` | `dumpsys bluetooth_manager`：`12:53:52 Enabled due to APPLICATION_REQUEST by com.android.settings` 与适配器状态机记录，证明恢复靠外部关开蓝牙 |
+| `ps_20261108_133034.txt` | `ps -A`：pid 5411 存活 |
+| `applog_full_20261108_133034.txt` | 应用 `debugLog-MUA.txt` 全量（26MB，已确认包含 04:14:19Z 那段）；本次断连/重连/扫描的唯一逐事件记录 |
+| `applog_tail30000_20261108_133034.txt` | 同一日志的 30000 行切片（6MB），便于快速检索，作为全量文件的冗余副本 |
+
+### 10.6 两条待决路线（不替用户选择）
+
+**路线 A：App 层看门狗（不动 pumpx2 版本）**
+
+- 做法：在 `CommService`/`PumpCommHandler` 加一个与 pumpx2 重连链无关的看门狗——在「屏幕点亮 / 回前台 / 周期心跳 / `BluetoothAdapter STATE_ON`」时检查 `lastPeripheral` 与连接状态；若处于「已断开且无 pending 尝试」则重发 `INIT_PUMP_COMM`（`PumpCommHandler.kt:669-709` 会新建 `Pump` + handler + `startScan()`）。
+- 代价：要碰 `TandemBluetoothHandler.getInstance` 静态单例语义（`resetInstance` 在 app 树零调用，`stop()` 只 `stopScan + close`），存在旧 autoConnect 注册残留 / 重复连接风险；不解决 `manual_reinit_required` / `await_user` 的永久停手语义；优点是 1.9.0 兼容、改动面小、可快速出包验证。
+
+**路线 B：升级 pumpx2 1.9.3**
+
+- 做法：按 §9 已定路线升级，获得上游 5s 重试与连接硬化（1.9.2 起含 PR #153）。
+- 代价：`BolusType` 语义重构是硬阻塞（2026-11-02 试升编译失败已回滚，见 `docs/feature/泵能力收敛与自建挡板方案_main.md` §2.1）；需同步改手机端/wear/配置/测试共 6 处调用点，位掩码必须真机抓包验证（改错等于给泵发不同语义的剂量请求）；且升级本身**不覆盖**我方问题——有界退避、取消永久停手、`onConnectionFailed` 全路径覆盖、旧实例 teardown 仍需另行修改（§9.3）。
+
+两条路线都不是「改个开关」的量级；本小结只记录证据与代价，不给出取舍。
+
+## 11. 1.9.3 现场验证：149 秒恢复与可复用判据（2026-11-08 下午）
+
+> 现场：pumppan release，pumpx2 1.9.3，`diag_monitor_enabled` 默认开，session `42b1600a`，pid 8945。
+> 证据来源：`/api/diag/{state,incident,latest}`、`files/debugLog-MUA.txt`、`dumpsys bluetooth_manager` / `deviceidle`，全程只读采集。
+
+### 11.1 验证动作与结果概览（设备本地时间 UTC+8）
+
+| 阶段 | 时间 | 结果 |
+| --- | --- | --- |
+| 近距离基线（升级后首次连接） | 14:03:30 → 14:05:17 | 正常，存活 106s，MTU 247，INIT 完成 |
+| 带手机走远，超距掉线 | 14:05:17.305 | `CONNECTION_TIMEOUT`（statusCode 8） |
+| 远离期间 | 14:05:17 → 14:07:46 | 只有一次重连动作，autoConnect 挂着，**149s 后自行 latch** |
+| 边缘 / 返回过程 | 14:07:51 → 14:18:39 | 连上即掉，共 17 轮，单轮最长存活 26s |
+| 用户停止走动、手机贴近泵 | 14:19:22 起 | 至 14:26:37 连续 7min18s 无断，`incidentCount` 停在 10 |
+
+### 11.2 判据 A：断开 → 重新连上耗时（可复用测量法）
+
+**测量方法**（1.9.3 及以上版本）：
+
+1. 终点也可用应用层信号：`initial pump connection established`（出现即 INIT 完成，UI 可正常刷新）。
+2. 起点取 `TandemBluetoothHandler: disconnected ... ` 行（带 `reconnectDelay: xxx ms reason=...`）。
+3. 终点取 `TandemBluetoothHandler: connected to '<pump name>'` 行。
+4. 两者的时间差即「断开 → 重新连上耗时」；若期间出现多次 `connected to`，按最后一次能稳定存活 > 60s 的算。
+
+**本次实测值：149 秒**（14:05:17.305 → 14:07:46.304）。
+
+**可复用阈值**（用于验收与看门狗设计，非最终决策）：
+
+- > 60s：用户能明显感到「坏了」。
+- > 120s：用户大概率会去关开蓝牙或杀进程（本次 1.9.0 事故就是如此）。
+- 因此「分离结束后 ≤ 60s 自行恢复」应作为验收线；「≤ 120s」只是底线。
+
+**该 149 秒里发生了什么**（这一段决定了看门狗该挂在哪）：
+
+- `immediateConnectToPeripheral` 只执行了 **一次**（INFO 级 `Already bonded to Tandem peripheral` 只出现一条；`running immediateConnectToPeripheral` 是 `Timber.d`，被文件日志过滤，不能用它判断）。
+- 地址过滤扫描全程 **零命中**（`PUMP-DISCOVERED` 0 条），最终是 `autoConnectPeripheral` 在 149s 时 latch 成功。
+- 期间没有任何周期性动作，也没有任何错误回调。
+
+### 11.3 判据 B：5 秒重试链在本路径不存在
+
+- 1.9.3 的 5s 定时器挂在 `onConnectionFailed` 上。本次全量日志 **0 条** `connection '...' failed`，说明这条分支从未进入。
+- 实际走的是 `onDisconnectedPeripheral` → 250ms 一次性重入 → `immediateConnectToPeripheral` 单发 → 之后交给 autoConnect 无限期等待。
+- 因此「每 5 秒重试」不能作为本路径的判据；看门狗必须覆盖 **「单发之后长时间无任何动作」**这一形态。
+
+### 11.4 判据 C：靠近后是否稳定（射频余量 vs 初始化缺陷）
+
+- 远离期 17 轮：单轮存活 5.0–26.0s，**无一超过 30s**。
+  - 8 轮有明确失败点，全部落在连上后 5–13s：`SET_MTU_FAILED`(3)、`NOTIFICATION_STATE_FAILED`(2)、`CHARACTERISTIC_WRITE_FAILED`(2，CURRENT_STATUS/AUTHORIZATION)、`read MANUFACTURER_NAME failed`(1)；另有 1 次 `CONNECTION_UPDATE_FAILED(INSUFFICIENT_AUTHORIZATION)`。
+  - 9 轮无任何错误，纯链路掉线，存活 19–26s。
+- 靠近后连续 7min18s 无断，`rx/tx` 正常，`LINK_ALIVE`。
+- **判定：主因是射频余量 / 距离**。初始化流程本身没有缺陷——17 轮里每一轮都完成了 `initial pump connection established`（均在连上后 1–3s 内）。
+
+### 11.5 判据 D：20 秒整点掉线（本时段未复现，保持观察）
+
+- 远离期 14:14:27–14:18:39 连续 7 轮存活时间为 18.6 / 20.1 / 21.6 / 19.2 / 21.7 / 22.2 / 19.2 / 19.3 秒，规整得不像随机射频抖动。
+- 近距离 7 分钟内未复现。
+- **判据**：若近距离再次出现 18–22s 的规整掉线，则不是距离问题，应按「初始化流程/连接参数」另一条线索排查。
+
+### 11.6 判据 E：`manual_reinit_required` / `await_user` 计数
+
+- 全量日志仅 1 次 `ReconnectBackoff event=initial_auth_no_reply action=retry failuresInWindow=1 maxRetryCount=3`（14:16:18.60），**未到 3/3**。
+- 无 `ReconnectPaused`，未进入永久停手。
+- `AWAIT_USER waiting_pairing_code` 仅出现于 14:03:30、14:12:53、14:14:00，均在 0.5s 内转 `CONNECTED`，不是库级永久等待。
+- **判据**：`failuresInWindow` 一旦到 3（120s 窗口内）并出现 `ReconnectPaused action=manual_reinit_required`，即视为「5 秒/单发重连均已停手」，只能靠外置看门狗重建。
+
+### 11.7 屏灭与 Doze 可观测性（本次结论受限）
+
+- 屏灭（`screenOn=false`）期间泵报文仍能收到：06:21:39 / 06:22:39 / 06:23:39 / 06:24:40（UTC）每分钟一次 `HomeScreenMirrorResponse`；`/api/diag/state` 的 `lastRxAgoMs` 保持 < 60s。
+- `periodicUpdateTask` 在本机是 **5 分钟** 一次（06:18:26.98、06:23:27.03），屏灭期间照常执行；它不是 1 秒轮询，不能当「30–60 秒兜底」用。
+- **本次无法验证 Doze**：`dumpsys deviceidle` 显示 `mCharging=true`，设备始终保持 `mState=ACTIVE`，Doze 不会进入；同时 `Whitelist user apps` 为空，App **未**加入电池优化白名单。
+- **不安排 Doze / 屏灭专项测试**（2026-11-08 用户更正）：BLE 应用必须待在电池优化白名单里，这是前提而非待验项，不再做「不充电 + 屏灭 + 静止 30 分钟」的对照实验。兜底定时器仍需按「CPU 休眠下 Handler 不保证执行」的前提选型（`setExactAndAllowWhileIdle` 或 FGS 常驻），但这属于实现期决策，不再用实验验证。
+- **App 不在电池优化白名单 → 必须加入**（2026-11-08 拍板）：任何使用 BLE 的 App 只要留在电量优化或厂商后台清理名单里，一旦被清出内存，链路就断，这是平台常识，不需要再测。
+- **本次它不是元凶**：进程从 14:03 起到现在一直是同一个 pid（8945），`CommService` 前台服务在跑（`fgsRunning=true`），无 ANR / 无 lowmemorykiller / 无被回收记录（见 §10.3）。白名单属于**长期防护**，不是本次「断开后不恢复」的成因——回溯时不要赖到它头上。
+- **看门狗定时器禁止复用 `periodicUpdateTask`**：实测它是 5 分钟一次（06:18:26.98、06:23:27.03），粒度太粗，覆盖不了「分离结束后 ≤60s 自行恢复」的验收线，也扛不住夜间 30–60s 兜底的要求。
+
+### 11.8 未解释项：`pump.lastPeripheral == null` 的窗口
+
+- 赋值点：`onInitialPumpConnection`（`PumpCommHandler.kt:431`）、`initializeConnection`（`:447`，由 `onPumpConnected` 调）；置空点：`onPumpDisconnected`（`:539`）。
+- 因此 `null` 窗口 = 「GATT 已连、`initial pump connection established` 尚未到」的 1–3 秒。14:08:26 / 14:13:01 / 14:13:26 的 `pumpConnectedPrecondition: pump not saved peripheral` 全部落在这个窗口。
+- 该状态唯一消费者是 `MainActivity.kt:790` 把 UI 的 `pumpConnected` 置 false，没有重连/重建/扫描副作用。
+- 结论：它是「连上 → INIT 完成」之间的表象，不是「连上就掉」的原因；实际影响只是掉线循环时首页状态会跟着闪。
+
+### 11.9 看门狗设计输入（记录用，待人确认，尚未实施）
+
+- 触发 1：回前台 / 屏幕亮且未连接 → 立即 `startScan()`。
+- 触发 2：周期兜底 30–60s，仅在未连接时动作（夜间无人亮屏，断连意味着低血糖报警也收不到）。
+- 动作强度：优先只 `startScan()`；仅扫描无效或已进入 `manual_reinit_required` 时才重建通信。
+- 定时器：必须独立实现，**禁止复用 `periodicUpdateTask`**（5 分钟一次，见 §11.7）。
+- 判据补充：1.9.3 的重连是「单发后交给 autoConnect 无限期等待」（§11.3），所以看门狗要判的是「单发之后长时间无任何动作」，不是「5 秒节奏断了」。
+
+### 11.10 本次证据文件（工作区外取证目录 `_tmp_pumpx2/`）
+
+| 文件 | 内容 |
+| --- | --- |
+| `diag_state_*.json` | 多轮 `/api/diag/state` 快照，含 `incidentCount`、`lastRxAgoMs`、`screenOn` |
+| `diag_live_*.jsonl` | live 事件线切片（断开/重连/关键错误） |
+| `pumplog_tail_*.txt` / `pumplog_close_*.txt` / `nearbase_*.txt` | `debugLog-MUA.txt` 切片，含 17 轮掉线的完整序列 |
+| `btsys_*.txt` | `dumpsys bluetooth_manager`：该 MAC 仅 `Connections: 1`，排除重复连接 |
+| `deviceidle_*.txt` | `dumpsys deviceidle`：`mCharging=true`，Doze 未进入 |
+
+## 12. 今晚：不安排测试，只让它挂着（2026-11-08）
+
+> 用户更正：**不做 Doze / 屏灭专项测试**。任何使用 BLE 的 App 都必须待在电池优化白名单里，这是前提，不是待验项；§11.7 里「拔线 + 屏灭 + 静止 30 分钟再测一轮」的安排作废。
+> 今晚没有任何测试计划：手机已拔线、adb 已失联，唯一发生的事就是让 App 长时间自行挂着。
+
+### 12.1 睡前
+
+- 不做任何操作：不拔插、不点屏幕、不打开 App、不动 `diag_monitor_enabled`。
+- 今晚不安排任何实验。
+
+### 12.2 明早只看两件事
+
+1. **掉没掉**：这段时间有没有发生断连。
+2. **掉了有没有自己爬起来**：如有断连，是否自行恢复、用了多久。
+
+数据全部取自已有设施，不额外插桩：
+
+- `/api/diag/state`：`incidentCount`、`connected`、`connectedForMs`、`linkState`、`lastRxAgoMs`；
+- `/api/diag/live?tail=`：`DISCONNECTED` / `CONNECTED` / `HEARTBEAT` 事件线；
+- `files/diag/` 里落盘的 incident 文件；
+- `files/debugLog-MUA.txt`：`TandemBluetoothHandler: disconnected ...` → `connected to '<pump>'` 配对计时。
+
+### 12.3 判读
+
+- 有断开且 > 60s 才恢复 → 记为体验问题；> 120s → 底线失守（阈值沿用 §11.2）。
+- 有断开且**从未**恢复 → 与 12:14 事故同形态，看门狗必须做（§14）。
+- 整夜无断开 → 只说明「近距离长时挂机」通过，**不推出任何 Doze 结论**。
+
+### 12.4 不做的事
+
+- 不重启 App、不关开蓝牙、不手动重连、不 `am force-stop`。
+- 不改代码、不 push；新包做好后今晚不装，明早方便时再装（今晚也不需要装）。
+
+## 13. 重连后是否补齐数据（核查结论，2026-11-08）
+
+> 问题拆成两件事，分别回答：**泵是否保留断连期间的数据** / **App 是否主动回拉**。以下结论均来自代码与现场日志，无推测。
+
+### 13.1 结论摘要
+
+| 问题 | 结论 | 依据 |
+| --- | --- | --- |
+| 泵是否保留断连期间的历史 | **是** | 泵内是带 `sequenceNum` 的有界历史环，`HistoryLogStatusResponse` 直接给出 `firstSequenceNum / lastSequenceNum / numEntries`；断连只影响 App 收取，泵自己照常写入 |
+| App 是否主动回拉 | **是**，mobile 与 wear 都有实现 | 每次 `onPumpConnected`（INIT 完成）都会重建 fetcher 并立即发一次 `HistoryLogStatusRequest`，另有 5 分钟周期请求 |
+| 从哪个索引续拉 | **DB 里最大的 `seqId`**，不是单独维护的 uploadedIndex | `HistoryLogFetcher.kt:159-177` |
+| 一次拉多少 | **32 条/块**，块间 1s，块内每 500ms 轮询，4s 超时即跳过 | `HistoryLogFetcher.kt:102-146` |
+| 失败怎么重试 | **没有显式重试**；4s 超时放弃该块，下一次状态响应（≤5 分钟）重新计算 missing 再补 | 同上 + `HistoryLogSyncWorker`（5 分钟） |
+
+> 代码里**没有** `lastHistoryLogUploadedIndex` 这类字段（全仓 grep 无命中）。续拉位置完全由「DB 最大 seqId + 泵的 `firstSequenceNum`」推导。
+
+### 13.2 机制（mobile 侧，手机作为连接主机时）
+
+- **触发**：`PumpCommHandler.onPumpConnected` → `initializeHistoryAndSync()`（`PumpCommHandler.kt:469-479`）→ 新建 `HistoryLogFetcher` + `refreshHistoryLogSyncWorker(triggerImmediateSync = true)`；断开时 fetcher 被置空（`PumpCommHandler.kt:531-550`）。
+- **周期**：`HistoryLogSyncWorker` 默认 `intervalMinutes = 5`（`HistoryLogSyncWorker.kt:16`），主线程 Handler 驱动。
+- **起点计算**（`HistoryLogFetcher.kt:157-193`）：
+  - `catchupThreshold = lastSequenceNum - 5000`（`InitialHistoryLogCount = 5000`）
+  - `dbLatestId` 落在 `[catchupThreshold, lastSequenceNum]` 且 DB 条数 ≥ 预期一半 → 从 `dbLatestId` 起；否则从 `catchupThreshold` 起
+  - 再夹到 `[firstSequenceNum, lastSequenceNum]`
+- **断连期间产生的条目** = `dbLatestId+1 .. lastSequenceNum`，会被整段补齐（按块**倒序**拉）。
+- **上限**：若落后超过 5000 条（`dbLatestId < catchupThreshold`）→ 只补最后 5000 条，更早的交给泵的 retention（本来就已被泵删除）。
+- **去重与入库**：LRU 256 + DB 主键，`onStreamResponse` 逐条 `insert`。
+- **开关**：`prefAutoFetchHistoryLogs()` 默认 `true`；用户关掉后**不会补**。
+
+### 13.3 wear 侧
+
+- `wear/util/HistoryLogFetcher.kt`、`wear/util/HistoryLogSyncWorker.kt` 是同一套逻辑的第二份实现；`WearPumpCommService.kt:401` 实现 `createHistoryLogFetcher`。
+- mobile 与 wear **不会同时拉**：谁持有泵连接，谁就用自己那份。
+
+### 13.4 现场实证
+
+- App 重启后首次连接（06:03:33）从 `seq 2083549` 倒序拉到 `seq 2076428` 附近（约 7100 条），说明泵保留了远超单次断连窗口的历史。
+- 每次重连 INIT 完成后 2–5 秒内出现一条 `HistoryLogStatusRequest`（06:17:37 / 06:18:02 / 06:18:30 / 06:19:25），随后 `HISTORY_LOG` 流式响应把 `dbLatest+1..last` 补齐。
+- **观察陷阱**：`HistoryLogFetcher` 这个 tag 不在 `ShouldLogToFile` 的允许名单里（`ShouldLogToFile.kt:18-27`），所以文件日志里看不到 fetcher 自己的 INFO 日志。判断「有没有补数据」要看 `CommService` 的 `receive-message ... HISTORY_LOG` 与 `L:HistoryLogParser` 的 `sequenceNum` 序列，不要因为日志里没有 `HistoryLogFetcher.onStatusResponse` 就误判成没补。
+
+### 13.5 与 Dexcom「2–3h / 8h」的关系
+
+- 那两个时间只作参考，**不写进程序**。本 App 的补齐没有时间上限，只有两条硬边界：泵的 retention（`firstSequenceNum`）与 5000 条兜底下限。
+
+## 14. 三级升级设计（设计方向，未实施）
+
+> 用户口径：泵离体一般不超过半小时，但这只是**个别医疗常规**，别的医生不一定这么要求，因此不写死为程序规则。
+> 「半小时」不是重试 deadline，而是**升级为「该由人来管」的时刻**——到那时问题通常不在蓝牙，而在泵没在身上 / 关机 / 该换耗材。
+
+| 级别 | 触发 | 动作 | 是否打扰 |
+| --- | --- | --- | --- |
+| 1 秒级 | 回前台 / 屏幕亮 + 未连接 | 立即 `startScan()` 一次 | 否 |
+| 2 分钟级 | 静默兜底：未连接时周期重试 | `startScan()`，必要时重建通信 | 否 |
+| 3 半小时级 | 仍未恢复 | 通知用户处理（检查泵是否在身上 / 关机 / 耗材） | 是 |
+
+- 三个阈值（秒级数值、分钟级间隔、半小时级时点）**先不写死**：做成配置项还是仅作参考，待用户确定。
+- 第 3 级只提醒、不替用户做决定；能连上就不打扰。
+
+## 15. 电池优化 / 内存清理白名单（必须；本次不是元凶）
+
+### 15.1 结论
+
+- **必须加入**（2026-11-08 拍板）：任何使用 BLE 的 App，一旦被系统电量优化或厂商后台清理清出内存，链路立刻断。这是平台常识，不需要再实测。
+- **本次它不是元凶**：同一 pid（8945）从 14:03 一直存活，`fgsRunning=true`，无 ANR / 无 lowmemorykiller / 无被回收。白名单是**长期防护**，不要把它写成这次「断开后不恢复」的原因。
+
+### 15.2 检测方式（标准 Android API）
+
+```kotlin
+val pm = context.getSystemService(PowerManager::class.java)
+val ignoring = pm.isIgnoringBatteryOptimizations(context.packageName)
+```
+
+- 只能检测**系统 Doze / App Standby 白名单**；**检测不到**小米、华为等厂商的「自启动 / 后台清理 / 内存优化」名单——这些没有公开 API，只能引导，不能断言。
+- adb 校验：`adb shell dumpsys deviceidle whitelist` 是否包含 `com.jwoglom.controlx2`。
+
+### 15.3 跳转方式（技术备查；最终决定不提供跳转，见 §16.1）
+
+1. 标准一键：`Intent(ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$pkg"))`，需在 manifest 声明 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 权限。
+2. 兜底：`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`（打开系统白名单列表，用户自己找）。
+3. 再兜底：`ACTION_APPLICATION_DETAILS_SETTINGS`（App 详情页）。
+
+### 15.4 厂商入口（候选，未在目标机型验证）
+
+| 厂商 | 候选包名 | 大致入口 |
+| --- | --- | --- |
+| 小米 | `com.miui.securitycenter` | 自启动管理 / 省电策略 |
+| 华为 | `com.huawei.systemmanager` | 应用启动管理 |
+| OPPO | `com.coloros.safecenter`、`com.oppo.safe` | 后台冻结 / 自启动 |
+| vivo | `com.vivo.permissionmanager`、`com.iqoo.secure` | 后台高耗电 / 自启动 |
+| 三星 | `com.samsung.android.lool`、`com.samsung.android.sm_cn` | 设备维护 / 电池 |
+
+- 这些**只作候选**：具体 `ComponentName` 随系统版本变化，必须 `try/catch ActivityNotFoundException` 后逐级降级；查不到的组件名一律不写死，本文不做猜测。
+
+### 15.5 提示位置与频率
+
+- 最终形态是**只自检、不跳转**的清单，具体条目与呈现见 §16。
+- 出现位置：初始化向导一次 + 设置页「连接」分区随时复查；不做推送式打扰。
+
+## 16. 使用前自检清单（方案，未实现）
+
+> 参照物性质已澄清：截图那份是**自检清单**——只检查、不给跳转；哪项没设好就标出来，用户自己去系统设置里改。
+> 我们的场景：BLE 长连接 + 前台服务 + 夜间无人值守 + CGM 报警。
+
+### 16.1 决定：只做自检，不提供跳转
+
+- **不提供任何跳转链接或按钮**，只显示「已设置 / 未设置」和后果说明。
+- 理由：厂商 ROM 的自启动页、后台清理页、电池页没有稳定公开入口，组件名随系统版本变化；**跳错页比不给跳更糟**——用户会以为已经设置好了，实际问题仍在。
+- 文案里最多给「按关键词搜」的方向，不给具体菜单层级。
+
+### 16.2 候选项逐个核实：能不能真实检测
+
+| 候选 | 能否真实检测 | 检测手段 | 是否列入 |
+| --- | --- | --- | --- |
+| 蓝牙开关 | 能 | `BluetoothAdapter.isEnabled` | 列入 |
+| 通知权限 | 能 | `NotificationManagerCompat.areNotificationsEnabled()`；Android 13+ 另查 `POST_NOTIFICATIONS` 运行时权限 | 列入 |
+| 电池优化白名单 | 能 | `PowerManager.isIgnoringBatteryOptimizations(packageName)` | 列入 |
+| 系统省电模式 | 能 | `PowerManager.isPowerSaveMode` | 列入（提示级） |
+| 位置权限（旧系统） | 能 | `checkSelfPermission(ACCESS_FINE_LOCATION)` | 列入，仅 Android ≤ 11 显示 |
+| 定位总开关（旧系统） | 能 | `LocationManager.isLocationEnabled` | 列入，仅 Android ≤ 11 显示 |
+| 精确闹钟 | 能 | `AlarmManager.canScheduleExactAlarms()` | **暂不列入**，待兜底实现定稿后再决定是否显示 |
+| 免打扰 | 能 | `NotificationManager.getCurrentInterruptionFilter()` | 不列入（它不是「必须开启」的设置，只在报警被静音时作解释） |
+| 厂商自启动 | **不能** | 无公开 API | **不列入** |
+| 厂商后台清理 / 内存优化 | **不能** | 无公开 API | **不列入** |
+| 本地存储 | 能，但不必要 | App 私有目录无需权限 | 不列入 |
+| 相机 | 能，但不使用 | — | 不列入 |
+| 网络 | 能 | `ConnectivityManager` 活动网络 | 不列入（非核心链路必需） |
+
+**原则：检测不到就不列。** 页面上不出现「未知 / 请自行确认」这类条目——那会让整页失去可信度。
+
+### 16.3 最终清单（只列可检测项）
+
+| 项 | 检测方法 | **不设会怎样** |
+| --- | --- | --- |
+| 蓝牙 | `BluetoothAdapter.isEnabled` | 无法连接泵，实时值、历史同步、报警全部失效 |
+| 通知 | `areNotificationsEnabled` + `POST_NOTIFICATIONS` | 常驻通知不可见；Android 13+ 无权限时前台服务无法启动，链路被系统掐断；夜间报警收不到 |
+| 电池优化白名单 | `isIgnoringBatteryOptimizations` | 熄屏静置后被冻结，泵报文与重连停摆，夜里等于失联 |
+| 系统省电模式 | `isPowerSaveMode` | 后台任务与网络被限制，重连与同步变慢（提示级，不阻断使用） |
+| 位置权限（Android ≤ 11） | `ACCESS_FINE_LOCATION` | 旧系统上 BLE 扫描不可用 → 断线后扫不到泵 |
+| 定位总开关（Android ≤ 11） | `LocationManager.isLocationEnabled` | 权限给了但总开关关着，同样扫不到泵 |
+
+### 16.4 呈现方式
+
+- 三态：`已设置`（绿）/ `未设置`（红 + 一句话后果）/ `本条不适用于本机`（灰，例如 Android 12+ 不显示位置项）。
+- **不出现「未知」。**
+- 页脚固定一句：「以上由 App 自动检测；本机厂商的后台限制无法自动检测，如遇异常可按关键词搜『自启动』『后台运行』自行确认。」——这是文字指引，不是清单条目。
+
+### 16.5 放置位置（建议，未实现）
+
+- **初始化向导里一次**：首次启动逐项检测，未通过项保留红点，允许跳过。
+- **设置页「连接」分区随时复查**：系统升级或清理会重置白名单，需要能再看一次。
+- 不进首页主流程，不做推送式打扰。
+
+### 16.6 与截图那份的差别
+
+- 它家 7 项里，「本地存储」「相机」我们不列（不用）；「自启动」我们**不列入**（检测不到）。
+- 它家把检测不到的也打绿勾，我们不这么做——宁可少列一项，也不给假绿勾。
+
+## 17. 自检清单落点核实：现有向导与设置页分组（方案，未实现）
+
+### 17.1 现有初始化流程（mobile）
+
+入口判定在 `MainActivity.kt:1537-1548`：
+
+- `DeviceRole.CLIENT`：`!appSetupComplete` → `AppSetup`，否则 `Landing`
+- `!pumpSetupComplete` → `PumpSetup`
+- `!appSetupComplete` → `AppSetup`
+- 其余 → `Landing`
+
+实际顺序：
+
+1. **FirstLaunch**（`FirstLaunch.kt`）：健康与安全警告 / TOS。同意 → `PumpSetup`；拒绝 → `exitProcess(0)`。
+2. **PumpSetup**（`PumpSetup.kt`，`PumpSetupStage` 按 `step 0..7` 推进）：
+   - step 0：`PERMISSIONS_NOT_GRANTED` —— 权限闸门
+   - step 1：`WAITING_PUMP_FINDER_INIT` / `PUMP_FINDER_SEARCHING_FOR_PUMPS`
+   - step 2：`PUMP_FINDER_SELECT_PUMP`
+   - step 3–5：配对码流程（含在泵上确认配对码）
+   - step 6：建立初始连接 / 读取泵信息
+   - step 7：`PUMPX2_PUMP_CONNECTED` →「继续」→ `AppSetup`（并 `setPumpSetupComplete(true)`）
+3. **AppSetup**（`AppSetup.kt`）：不是向导步骤，是一页偏好开关——允许胰岛素输送动作、bolus 确认阈值、Wear 自动确认、自动检查更新、自动获取历史日志、血糖单位。
+4. **Landing**（主界面）。
+
+### 17.2 现有「自检」性质的东西只有一个：step 0 权限闸门
+
+- 内容：先请求**通知权限**（`launchNotificationPermissionRequest`，`MainActivity.kt:563-583`），再 `startBTPermissionsCheck()` 查**蓝牙权限**，最后 `checkLocationServices()` 查**位置服务**（`MainActivity.kt:1271`，Android ≤ 11 扫描需要）。
+- 性质：**阻断式闸门**，不是清单——过了就消失，用户看不到「当前状态」，也不能回看。
+- 全仓 grep 结果：`isIgnoringBatteryOptimizations`、`isPowerSaveMode`、`areNotificationsEnabled` **均无命中**。也就是说电池白名单、省电模式、通知开关状态从来没被检查过。
+- `AppSetup` 里没有任何环境检查，只有偏好开关。
+
+### 17.3 与我们 6 项的差异对照
+
+| 项 | 现有覆盖 | 差距 |
+| --- | --- | --- |
+| 蓝牙开关 | 未检查（只管权限） | 需新增 `BluetoothAdapter.isEnabled` |
+| 通知 | 仅首次请求时一次性 | 需新增状态展示 `areNotificationsEnabled()` |
+| 电池优化白名单 | 完全没有 | 需新增 `isIgnoringBatteryOptimizations()` |
+| 系统省电模式 | 完全没有 | 需新增 `isPowerSaveMode` |
+| 位置权限（≤ Android 11） | step 0 已检查（阻断式） | 逻辑可复用，但结果不展示 |
+| 定位总开关（≤ Android 11） | step 0 `checkLocationServices()` 已检查 | 逻辑可复用，但结果不展示 |
+
+**结论：不能直接复用 step 0 当检查单。** 它只覆盖 3 项、只在向导里出现一次、且不可回看。可复用的只有检测函数（`areLocationServicesEnabled` / `checkLocationServices`、`BluetoothPermissions.required`）与权限请求逻辑；电池白名单、省电模式、通知状态需要新写一个只读列表——这是新增，不是改造成向导。
+
+### 17.4 设置页「应用」组的现状
+
+- **分隔规则**：组与组之间用 `SettingsDivider()`；组内各项之间用 `SettingsRowDivider()`。该组**没有组标题**（整页只有顶部一个 `HeaderLine("设置")`）。
+- **组内顺序**（`Settings.kt`）：
+  1. 强制重载服务（240–255，行分隔）
+  2. 断开并重新配对泵（308–325，行分隔）
+  3. 重新配置应用（327–342，**没有尾部行分隔**）
+  4. 泵主机设备 / 重置角色（344–386，受 `FeatureFlag.BTHostSwitch` 控制，末尾 `SettingsDivider()`）
+- 若服务未启用，组首还会多一行「启用 CTRL-X2 服务」（169–194）。
+- 注意：195–238、257–306 是**整段被注释掉的旧项**（连接共享、通知按钮、临时速率按钮），不是现役代码。
+
+### 17.5 建议插入位置与理由
+
+- **位置**：「重新配置应用」之后、BTHostSwitch 项之前（`Settings.kt:342` 与 `344` 之间），新增一个 `item { 检查单; SettingsRowDivider() }`。
+- **理由（阅读顺序）**：前两项是「重新配对泵 / 重新配置应用」，属于同一类动作，应保持相邻；检查单是只读状态项，放在动作项之后，用户读完「为什么会断」再看「现在哪项没设好」。插在这里也不会把它们拆开。
+- **样式**：沿用组内 `ActionRow`（title + subtitle + leadingIcon）与 `SettingsRowDivider()`，组末仍用 `SettingsDivider()`；**不新造视觉**。
+- 实现提示（非本次范围）：该项需要给「重新配置应用」补一条尾部 `SettingsRowDivider()`；点击后进入新页面需在 `Screen` 路由表注册一条。
+
+### 17.6 命名建议
+
+- 标题：「设置自检」；副标题：「检查蓝牙、通知、电池与省电设置」。
+- 点击进入只读页，三态显示，不提供跳转（§16.1）。
