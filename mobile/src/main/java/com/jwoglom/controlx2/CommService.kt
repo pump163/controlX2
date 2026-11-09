@@ -26,6 +26,8 @@ import com.jwoglom.controlx2.messaging.MessageBusFactory
 import com.jwoglom.controlx2.presentation.util.ShouldLogToFile
 import com.jwoglom.controlx2.pump.BleChangeReceiver
 import com.jwoglom.controlx2.pump.BolusManager
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.controlx2.pump.CommServiceCallbacks
 import com.jwoglom.controlx2.pump.PumpCommHandler
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
@@ -177,6 +179,12 @@ class CommService : Service(), CommServiceCallbacks {
             }
 
             Timber.i("running periodicUpdateTask")
+            // 查询层收敛 · 第 0 步：只读计数；连接态由 PumpCommHandler.command 另行记录
+            PumpQueryService.noteLegacyRequest(
+                topic = PumpTopic.STATUS_BATCH,
+                source = "CommService.periodicUpdateTask",
+                connected = null,
+            )
             sendPumpCommMessages(PumpMessageSerializer.toBulkBytes(listOf(
                 CurrentBatteryRequestBuilder.create(apiVersion()),
                 ControlIQIOBRequest(),

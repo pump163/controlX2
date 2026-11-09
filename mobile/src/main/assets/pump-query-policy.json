@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "note": "查询策略：频率 / 阈值 / 状态门控 / 预算 / 事件冷却 / 重连序列。能力判定不在本文件（见 pump-capabilities.json）。第 0 步仅登记，不接任何消费者。",
+  "default": {
+    "topics": {
+      "DASHBOARD_BATCH": { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "NOTIFICATIONS":   { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "ACTIONS":         { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "CARTRIDGE":       { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "PROFILE":         { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "CONTROL_IQ":      { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "SAFETY_LIMITS":   { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "PUMP_GLOBALS":    { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "CGM":             { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "HOME_MIRROR":     { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P2_DECORATIVE", "onlyWhenVisible": true },
+      "STATUS_BATCH":    { "intervalMs": 300000, "minIntervalMs": 60000, "priority": "P1_STATE", "onlyWhenVisible": false },
+      "HISTORY":         { "intervalMs": 300000, "minIntervalMs": 60000, "priority": "P2_DECORATIVE", "onlyWhenVisible": false },
+      "BOLUS_OUTCOME":   { "intervalMs": 1000, "minIntervalMs": 1000, "priority": "P0_CONFIRM", "onlyWhenVisible": false, "maxWindowMs": 60000 }
+    },
+    "freshness": {
+      "freshMs": 30000,
+      "staleMaxMs": 180000,
+      "unavailableAfterMs": 900000
+    },
+    "states": {
+      "connectedSettleMs": 8000,
+      "linkSilentAfterMs": 30000,
+      "visibilityDebounceMs": 1000,
+      "skipCgmTopicWhenSessionStopped": true,
+      "skipCiqTopicsWhenClosedLoopOff": true,
+      "bolusSessionPollMs": 10000,
+      "extendedSessionPollMs": 300000
+    },
+    "budget": {
+      "perMinute": 10,
+      "burst": 20,
+      "burstWindowMs": 60000,
+      "degradeOrder": ["P2_DECORATIVE", "P1_STATE", "P0_CONFIRM"]
+    },
+    "events": {
+      "IOB_CHANGE":    { "topics": ["DASHBOARD_BATCH"], "cooldownMs": 60000 },
+      "BOLUS_CHANGE":  { "topics": ["DASHBOARD_BATCH", "ACTIONS"], "cooldownMs": 5000 },
+      "CGM_CHANGE":    { "topics": ["CGM"], "cooldownMs": 5000 },
+      "ALERT_CHANGE":  { "topics": ["NOTIFICATIONS"], "cooldownMs": 5000 }
+    },
+    "reconnect": {
+      "probeTopics": ["STATUS_BATCH"],
+      "probeDelayMs": 3000,
+      "probeTimeoutMs": 15000,
+      "batchAfterProbeMs": 5000,
+      "maxBatchAtOnce": 2
+    },
+    "switches": {
+      "periodicEnabled": true,
+      "pageRefreshEnabled": true,
+      "backfillEnabled": true,
+      "eventDrivenEnabled": true
+    }
+  }
+}

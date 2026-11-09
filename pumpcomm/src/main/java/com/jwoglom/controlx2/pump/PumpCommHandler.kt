@@ -20,6 +20,8 @@ import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.InitiateConfirmedBolusSerializer
 import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.util.extractPumpSid
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.bluetooth.PumpReadyState
@@ -283,6 +285,11 @@ class PumpCommHandler(
         ) {
             message?.let {
                 DiagMonitor.onRx(it.javaClass.simpleName) // DIAG-TEMP
+                // 查询层收敛 · 第 0 步：只读计数
+                PumpQueryService.noteLegacyReply(
+                    topic = PumpTopic.fromResponseSimpleName(it.javaClass.simpleName),
+                    opCode = it.opCode().toInt(),
+                )
                 callbacks.pumpCommState.lastResponseMessage.put(Pair(it.characteristic, it.opCode()), Pair(it, Instant.now()))
                 val source = if (callbacks.pumpCommState.consumeDebugPromptResponse(it.characteristic, it.opCode())) {
                     com.jwoglom.controlx2.shared.util.SendType.DEBUG_PROMPT
@@ -586,6 +593,14 @@ class PumpCommHandler(
                 return
             }
 
+            // 查询层收敛 · 第 0 步：只读计数（不改发送行为）
+            PumpQueryService.noteLegacyRequest(
+                topic = PumpTopic.fromRequestSimpleName(message.javaClass.simpleName),
+                source = "PumpCommHandler.command",
+                connected = isConnected,
+                willSend = lastPeripheral != null && isConnected,
+            )
+
             if (lastPeripheral == null) {
                 Timber.w("Not sending message because no saved peripheral yet: $message")
                 return
@@ -604,7 +619,12 @@ class PumpCommHandler(
 
             Timber.i("Pump send command: $message")
             DiagMonitor.onTx(message.javaClass.simpleName) // DIAG-TEMP
-            runBlocking { session.sendCommand(message) }
+            PumpQueryService.noteInFlight(true)
+            try {
+                runBlocking { session.sendCommand(message) }
+            } finally {
+                PumpQueryService.noteInFlight(false)
+            }
         }
 
         override fun toString(): String {

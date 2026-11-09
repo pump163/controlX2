@@ -8,6 +8,8 @@ import com.jwoglom.controlx2.pump.PumpSession
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HistoryLogStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLog
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpTopic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -79,6 +81,12 @@ class HistoryLogFetcher(
             Timber.i("HistoryLogFetcher.request skipped start=$start count=$count")
             return
         }
+        // 查询层收敛 · 第 0 步：只读计数（不改发送）
+        PumpQueryService.noteLegacyRequest(
+            topic = PumpTopic.HISTORY,
+            source = "HistoryLogFetcher.request",
+            connected = null,
+        )
         commandSender(start, count)
     }
 

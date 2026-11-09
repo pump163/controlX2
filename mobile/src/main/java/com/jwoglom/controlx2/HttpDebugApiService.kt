@@ -11,6 +11,8 @@ import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.util.AppVersionInfo
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.QueryPolicyLoader
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.Messages
@@ -336,6 +338,8 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 method == Method.GET && uri.startsWith("/api/historylog/entries/") -> handleHistoryLogEntry(session, uri)
                 method == Method.GET && uri == "/api/historylog/types" -> handleHistoryLogTypes(session)
                 method == Method.GET && uri == "/api/historylog/stream" -> handleHistoryLogStream(session)
+                // 查询层收敛 · 第 0 步：只读诊断端点
+                method == Method.GET && uri == "/api/query/stats" -> handleQueryStats()
                 method == Method.POST && uri == "/api/pump/debug-write-bt-characteristic" -> handlePumpDebugWriteBtCharacteristic(session)
                 // DIAG-TEMP BEGIN：临时断连监控取回端点
                 method == Method.GET && uri == "/api/diag/state" -> handleDiagState()
@@ -1341,6 +1345,36 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 "application/json",
                 DiagMonitor.snapshotJson()
             )
+        }
+
+        private fun handleQueryStats(): Response {
+            val root = JSONObject()
+            try {
+                val snap = PumpQueryService.snapshot()
+                val counters = JSONObject()
+                counters.put("startedAtMillis", snap.startedAtMillis)
+                counters.put("requestCounts", mapToJson(snap.requestCounts))
+                counters.put("sourceCounts", mapToJson(snap.sourceCounts))
+                counters.put("replyCounts", mapToJson(snap.replyCounts))
+                counters.put("lastRequestAtMillis", mapToJson(snap.lastRequestAtMillis))
+                counters.put("disconnectedRequestCount", snap.disconnectedRequestCount)
+                counters.put("blockedRequestCount", snap.blockedRequestCount)
+                counters.put("unknownReplyCount", snap.unknownReplyCount)
+                counters.put("inFlight", snap.inFlight)
+                counters.put("maxInFlight", snap.maxInFlight)
+                root.put("counters", counters)
+                root.put("policy", QueryPolicyLoader.buildJson(QueryPolicyLoader.current()))
+                root.put("observedEngine", "LEGACY")
+            } catch (t: Throwable) {
+                root.put("error", t.javaClass.simpleName)
+            }
+            return newFixedLengthResponse(Response.Status.OK, "application/json", root.toString())
+        }
+
+        private fun mapToJson(map: Map<String, *>): JSONObject {
+            val o = JSONObject()
+            map.forEach { (k, v) -> o.put(k, v) }
+            return o
         }
 
         private fun handleDiagFiles(): Response {
