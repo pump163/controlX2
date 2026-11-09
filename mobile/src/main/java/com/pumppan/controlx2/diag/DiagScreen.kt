@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,11 +25,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,8 +42,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.jwoglom.controlx2.shared.diag.DiagMonitor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * DIAG-TEMP：断连临时监控页。用完删除整个包与 Landing/Debug 中的入口。
@@ -52,7 +59,10 @@ fun DiagScreen(
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
     var tick by remember { mutableStateOf(0) }
+    var exporting by remember { mutableStateOf(false) }
+    var showCleanup by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -63,6 +73,40 @@ fun DiagScreen(
 
     val snap = remember(tick) { DiagMonitor.snapshot() }
     val events = remember(tick) { DiagMonitor.recentEvents(40) }
+    val exportedCount = remember(tick) { DiagMonitor.exportedIncidentCount() }
+    val protectedCount = remember(tick) {
+        runCatching { DiagMonitor.protectedIncidentFiles().size }.getOrDefault(0)
+    }
+
+    if (showCleanup) {
+        AlertDialog(
+            onDismissRequest = { showCleanup = false },
+            title = { Text("清理已导出的 incident") },
+            text = {
+                Text(
+                    "只删除已导出清单里的普通 incident（$exportedCount 份）。\n" +
+                        "PAUSED / WRITE_CUT / CONNECT_FAILED 永久保留，不会被删除。\n" +
+                        "live.jsonl 与状态快照不删。\n\n清理后无法从 App 内找回，请确认导出包已保存。",
+                    fontSize = 13.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCleanup = false
+                    scope.launch {
+                        val deleted = withContext(Dispatchers.IO) {
+                            runCatching { DiagMonitor.cleanupExportedIncidents() }.getOrDefault(0)
+                        }
+                        tick += 1
+                        Toast.makeText(context, "已清理 $deleted 份已导出的 incident", Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("删除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCleanup = false }) { Text("取消") }
+            },
+        )
+    }
 
     LazyColumn(
         contentPadding = innerPadding,
@@ -79,31 +123,21 @@ fun DiagScreen(
                 }
                 Column(modifier = Modifier.padding(start = 4.dp)) {
                     Text("断连监控（临时）", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text("只在调试页可见；用完即删", fontSize = 12.sp)
+                    Text("只在调试页可见；代码保留，暂停用“注释入口 + 开关默认关”", fontSize = 12.sp)
                 }
             }
             HorizontalDivider()
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.padding(end = 12.dp)) {
-                    Text("采集开关", fontWeight = FontWeight.SemiBold)
-                    Text("关闭时不占线程、不写盘", fontSize = 12.sp)
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Switch(
-                    checked = snap.enabled,
-                    onCheckedChange = { DiagMonitor.setEnabled(context, it) },
-                )
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("采集开关已移至「危险指令」", fontWeight = FontWeight.SemiBold)
+                Text("设置 → 调试 → 危险指令 → 临时诊断组（默认折叠）", fontSize = 12.sp)
             }
             HorizontalDivider()
         }
 
-        item { StateCard(snap) }
+        item { StateCard(snap, protectedCount) }
 
         item {
             Row(
@@ -121,6 +155,62 @@ fun DiagScreen(
                 ) {
                     Text("复制摘要")
                 }
+            }
+            HorizontalDivider()
+        }
+
+        item {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("导出与清理", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "导出为 zip（incident 原文含 protected、live、状态快照、manifest 清单），" +
+                        "再通过系统分享发送或存到外部目录。",
+                    fontSize = 12.sp,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        enabled = snap.enabled && !exporting,
+                        onClick = {
+                            exporting = true
+                            scope.launch {
+                                val zip = withContext(Dispatchers.IO) {
+                                    runCatching { buildDiagExport(context) }.getOrNull()
+                                }
+                                exporting = false
+                                if (zip == null) {
+                                    Toast.makeText(context, "导出失败或没有可导出的文件", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    runCatching { shareDiagExport(context, zip) }
+                                        .onFailure {
+                                            Toast.makeText(context, "分享失败：${it.message}", Toast.LENGTH_SHORT)
+                                                .show()
+                                        }
+                                }
+                                tick += 1
+                            }
+                        },
+                    ) {
+                        Text(if (exporting) "导出中…" else "导出诊断包")
+                    }
+                    OutlinedButton(
+                        enabled = exportedCount > 0,
+                        onClick = { showCleanup = true },
+                    ) {
+                        Text(if (exportedCount > 0) "清理已导出（$exportedCount）" else "清理已导出")
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    if (exportedCount > 0) {
+                        "已导出，可清理：$exportedCount 份普通 incident（protected 不计入、不会被删）"
+                    } else {
+                        "未导出则不可清理；导出成功后此处显示「已导出，可清理」"
+                    },
+                    fontSize = 12.sp,
+                    color = if (exportedCount > 0) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
+                )
             }
             HorizontalDivider()
         }
@@ -182,7 +272,7 @@ fun DiagScreen(
 }
 
 @Composable
-private fun StateCard(snap: DiagMonitor.DiagSnapshot) {
+private fun StateCard(snap: DiagMonitor.DiagSnapshot, protectedCount: Int) {
     val (label, color) = when (snap.linkState) {
         "LINK_ALIVE" -> "链路活：已连接且有真实回包" to MaterialTheme.colorScheme.primary
         "LINK_SILENT" -> "链路在但没数据：已连接，长时间无真实回包" to MaterialTheme.colorScheme.tertiary
@@ -240,7 +330,11 @@ private fun StateCard(snap: DiagMonitor.DiagSnapshot) {
             "写失败",
             snap.writeFailures.entries.joinToString(" ") { "${it.key}×${it.value}" }.ifEmpty { "无" },
         )
-        KeyValue("快照文件", "${snap.incidentCount} 份 / live ${snap.liveBytes} bytes")
+        KeyValue(
+            "快照文件",
+            "${snap.incidentCount} 份（protected $protectedCount）" +
+                " / live ${snap.liveBytes} bytes",
+        )
     }
 }
 

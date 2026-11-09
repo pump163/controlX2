@@ -1387,9 +1387,11 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 o.put("name", f.name)
                 o.put("bytes", f.length())
                 o.put("modified", f.lastModified())
+                o.put("protected", DiagMonitor.isProtectedIncident(f))
                 files.put(o)
             }
             json.put("incidents", files)
+            json.put("exportedCount", DiagMonitor.exportedIncidentCount())
             return newFixedLengthResponse(Response.Status.OK, "application/json", json.toString())
         }
 

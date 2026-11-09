@@ -11,6 +11,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -26,10 +27,14 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * DIAG-TEMP：断连临时监控（一次性，用完即删）。
+ * DIAG-TEMP：断连阶段性监控（默认保留，可暂停）。
  *
  * 只做取证：记录连接状态变迁、写失败剪线、进程/服务存活、屏幕/Doze/省电状态、
  * 以及从 pumpx2 日志旁采的重连/退避关键字。不改 BLE 库、不改重连策略。
+ *
+ * 保留策略：普通 incident 24h 时间窗 + 50MB 封顶（先到先清）；
+ * PAUSED / WRITE_CUT / CONNECT_FAILED 单独进 protected/ 永久保留，不参与清理。
+ * 导出与清理：诊断页导出 zip 后才允许显式清理已导出的普通 incident。
  *
  * 设计文档：docs/bug/断连临时监控-设计.md
  */
@@ -38,11 +43,22 @@ object DiagMonitor {
     // DIAG-TEMP：独立 prefs，避免侵入上游 Prefs.kt
     private const val PREFS_NAME = "diag_monitor"
     private const val KEY_ENABLED = "enabled"
+    private const val KEY_PROTECTED_WARN_AT = "protected_over_at"
+    private const val KEY_PROTECTED_WARN_BYTES = "protected_over_bytes"
+    private const val KEY_PROTECTED_WARN_COUNT = "protected_over_count"
 
     private const val RING_MAX = 2000
     private const val LIVE_MAX_BYTES = 1L * 1024 * 1024
-    private const val INCIDENT_MAX = 10
     private const val LOG_EVENT_MAX_PER_MIN = 100
+
+    // 普通 incident：24h 或 50MB，两者先到先清
+    private const val INCIDENT_WINDOW_MS = 24L * 60 * 60 * 1000
+    private const val INCIDENT_TOTAL_MAX_BYTES = 50L * 1024 * 1024
+
+    // protected incident 不自动删；超过此阈值只在 prefs/日志里提示（10MB ≈ 160 份 60KB 快照）
+    private const val INCIDENT_PROTECTED_WARN_BYTES = 10L * 1024 * 1024
+    private const val PROTECTED_DIR = "protected"
+    private const val EXPORT_MARKER = "export-marker.json"
 
     private val LOCK = Any()
 
@@ -222,7 +238,7 @@ object DiagMonitor {
             enabled = true
             val dir = diagDir()
             dir.mkdirs()
-            store = DiagStore(dir).also { it.start() }
+            store = DiagStore(dir) { count, bytes -> noteProtectedOverflow(count, bytes) }.also { it.start() }
             startTimers()
             reportPreviousUncleanExit()
             record(
@@ -542,8 +558,16 @@ object DiagMonitor {
 
     fun liveFile(): File? = diagDir().let { d -> File(d, "live.jsonl").takeIf { f -> f.exists() && f.isFile } }
 
-    fun incidentFiles(): List<File> {
-        val dir = diagDir()
+    fun incidentFiles(): List<File> =
+        (listIncidents(diagDir()) + listIncidents(protectedIncidentDir())).sortedBy { it.name }
+
+    fun protectedIncidentFiles(): List<File> = listIncidents(protectedIncidentDir())
+
+    fun isProtectedIncident(file: File): Boolean = file.parentFile?.name == PROTECTED_DIR
+
+    fun protectedIncidentDir(): File = File(diagDir(), PROTECTED_DIR)
+
+    private fun listIncidents(dir: File): List<File> {
         if (!dir.exists()) return emptyList()
         return dir.listFiles()
             ?.filter { it.isFile && it.name.startsWith("incident-") && it.name.endsWith(".json") }
@@ -556,7 +580,8 @@ object DiagMonitor {
             incidentFiles().lastOrNull()
         } else {
             val safe = nameOrNull.substringAfterLast('/')
-            File(diagDir(), safe).takeIf { it.exists() && it.isFile }
+            listOf(File(diagDir(), safe), File(protectedIncidentDir(), safe))
+                .firstOrNull { it.exists() && it.isFile }
         }
         return file?.let { runCatching { it.readText() }.getOrNull() }
     }
@@ -588,8 +613,52 @@ object DiagMonitor {
 
     fun clearFiles() {
         runCatching {
-            diagDir().listFiles()?.forEach { it.delete() }
+            diagDir().listFiles()?.filterNot { it.name == PROTECTED_DIR }?.forEach { it.delete() }
         }
+    }
+
+    // ---- 导出标记与清理：只允许删「已导出 + 非 protected」的 incident ----
+
+    fun exportMarkerFile(): File = File(diagDir(), EXPORT_MARKER)
+
+    fun recordExportedIncidents(names: List<String>) {
+        runCatching {
+            val j = JSONObject()
+            j.put("at", nowWall())
+            j.put("files", JSONArray(names))
+            exportMarkerFile().writeText(j.toString())
+        }
+    }
+
+    fun exportedIncidentCount(): Int = runCatching {
+        val f = exportMarkerFile()
+        if (!f.exists()) 0 else JSONObject(f.readText()).optJSONArray("files")?.length() ?: 0
+    }.getOrDefault(0)
+
+    fun cleanupExportedIncidents(): Int {
+        val marker = runCatching { JSONObject(exportMarkerFile().readText()) }.getOrNull() ?: return 0
+        val arr = marker.optJSONArray("files") ?: return 0
+        val keep = JSONArray()
+        var deleted = 0
+        for (i in 0 until arr.length()) {
+            val name = arr.optString(i)
+            if (!name.startsWith("incident-") || name.contains('/') || name.contains('\\')) {
+                keep.put(name)
+                continue
+            }
+            val f = File(diagDir(), name)
+            if (!f.exists() || !f.isFile) continue
+            if (f.delete()) deleted++ else keep.put(name)
+        }
+        if (deleted > 0) {
+            runCatching {
+                val j = JSONObject()
+                j.put("at", marker.optLong("at"))
+                j.put("files", keep)
+                exportMarkerFile().writeText(j.toString())
+            }
+        }
+        return deleted
     }
 
     fun exportSummary(): String {
@@ -615,6 +684,25 @@ object DiagMonitor {
     // ------------------------------------------------------------------
     // 内部
     // ------------------------------------------------------------------
+
+    /** protected 区超阈值：只提示，不删除。24h 内最多记一次，避免刷日志。 */
+    private fun noteProtectedOverflow(count: Int, bytes: Long) {
+        runCatching {
+            val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val now = nowWall()
+            val last = prefs.getLong(KEY_PROTECTED_WARN_AT, 0L)
+            if (now - last < INCIDENT_WINDOW_MS) return
+            prefs.edit()
+                .putLong(KEY_PROTECTED_WARN_AT, now)
+                .putLong(KEY_PROTECTED_WARN_BYTES, bytes)
+                .putInt(KEY_PROTECTED_WARN_COUNT, count)
+                .apply()
+            Timber.w(
+                "DiagMonitor: protected incidents %d files / %d bytes exceed %d; not deleting",
+                count, bytes, INCIDENT_PROTECTED_WARN_BYTES
+            )
+        }
+    }
 
     private val LOG_KEYWORDS = listOf(
         "reconnect", "backoff", "reconnectpaused", "manual_reinit", "await_user",
@@ -679,7 +767,7 @@ object DiagMonitor {
             lastFreezeElapsed = el
         }
         // DIAG-TEMP：序列化放到写线程做，GATT 回调线程不做任何文件 IO
-        store?.freeze(incidentFileName()) { buildIncidentJson(trigger) }
+        store?.freeze(incidentFileName(), isProtectedDiagTrigger(trigger)) { buildIncidentJson(trigger) }
         writeLastState(clean = false)
     }
 
@@ -745,7 +833,10 @@ object DiagMonitor {
     // 写盘（单线程 + 有界队列；GATT 回调线程只入队）
     // ------------------------------------------------------------------
 
-    private class DiagStore(private val dir: File) {
+    private class DiagStore(
+        private val dir: File,
+        private val onProtectedOverflow: (count: Int, bytes: Long) -> Unit,
+    ) {
         private val exec = Executors.newSingleThreadExecutor { r ->
             Thread(r, "diag-store").apply { isDaemon = true }
         }
@@ -757,6 +848,11 @@ object DiagMonitor {
         fun start() {
             dir.mkdirs()
             liveSize = liveFile().length()
+            // 一次性迁移：把旧版本已经落盘的 protected 类 incident 移到 protected/，避免被新策略清掉
+            exec.execute {
+                runCatching { migrateProtected() }
+                runCatching { trimIncidents() }
+            }
         }
 
         fun enqueue(line: String, immediate: Boolean) {
@@ -782,16 +878,19 @@ object DiagMonitor {
             runCatching { writeAtomically(File(dir, "last_state.json"), text) }
         }
 
-        fun freeze(name: String, supplier: () -> String) {
+        fun freeze(name: String, isProtected: Boolean, supplier: () -> String) {
             exec.execute {
                 runCatching {
-                    var file = File(dir, name)
+                    val targetDir = if (isProtected) protectedDir() else dir
+                    var file = File(targetDir, name)
                     var i = 2
                     while (file.exists() && i < 100) {
-                        file = File(dir, name.removeSuffix(".json") + "-$i.json")
+                        file = File(targetDir, name.removeSuffix(".json") + "-$i.json")
                         i++
                     }
                     FileOutputStream(file, false).use { it.write(supplier().toByteArray(Charsets.UTF_8)) }
+                    if (isProtected) warnProtectedIfNeeded()
+                    // 普通区策略：即使本次写的是 protected，也顺手把普通区按 24h/50MB 收敛一次
                     trimIncidents()
                 }
             }
@@ -840,17 +939,48 @@ object DiagMonitor {
 
         private fun liveFile(): File = File(dir, "live.jsonl")
 
-        private fun trimIncidents() {
-            val incidents = dir.listFiles()
+        private fun protectedDir(): File = File(dir, PROTECTED_DIR).also { it.mkdirs() }
+
+        private fun listIncidents(at: File): List<File> =
+            at.listFiles()
                 ?.filter { it.isFile && it.name.startsWith("incident-") && it.name.endsWith(".json") }
-                ?.sortedBy { it.name }
-                ?: return
-            var excess = incidents.size - 10
-            for (f in incidents) {
-                if (excess <= 0) break
-                f.delete()
-                excess--
+                ?: emptyList()
+
+        private fun incidentTime(f: File): Long = runCatching {
+            val m = Regex("^incident-(\\d{8}-\\d{6})").find(f.name) ?: return@runCatching 0L
+            SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).parse(m.groupValues[1])?.time ?: 0L
+        }.getOrDefault(0L)
+
+        /** 普通区：先按 24h 时间窗清，再按 50MB 总量从最旧开始清。 */
+        private fun trimIncidents() {
+            val now = System.currentTimeMillis()
+            for (f in listIncidents(dir)) {
+                val t = incidentTime(f)
+                if (t > 0 && now - t > INCIDENT_WINDOW_MS) f.delete()
             }
+            val remaining = listIncidents(dir).sortedBy { incidentTime(it) }
+            var total = remaining.sumOf { it.length() }
+            for (f in remaining) {
+                if (total <= INCIDENT_TOTAL_MAX_BYTES) break
+                val len = f.length()
+                if (f.delete()) total -= len
+            }
+        }
+
+        /** 旧版本落盘的 protected 类快照：启动时迁移到 protected/，避免被新策略清掉。 */
+        private fun migrateProtected() {
+            val pdir = protectedDir()
+            for (f in listIncidents(dir)) {
+                val trigger = runCatching { JSONObject(f.readText()).optString("trigger") }.getOrDefault("")
+                if (isProtectedDiagTrigger(trigger)) f.renameTo(File(pdir, f.name))
+            }
+        }
+
+        /** protected 区只提示、不删除。 */
+        private fun warnProtectedIfNeeded() {
+            val files = listIncidents(protectedDir())
+            val total = files.sumOf { it.length() }
+            if (total > INCIDENT_PROTECTED_WARN_BYTES) onProtectedOverflow(files.size, total)
         }
 
         private fun writeAtomically(dst: File, text: String) {
@@ -864,3 +994,9 @@ object DiagMonitor {
         }
     }
 }
+
+/** PAUSED / WRITE_CUT / CONNECT_FAILED 三类单独永久保留，不参与时间窗/容量清理。 */
+private fun isProtectedDiagTrigger(trigger: String): Boolean =
+    trigger == "WRITE_CUT" ||
+        trigger.startsWith("CONNECT_FAILED") ||
+        trigger.startsWith("PAUSED")
