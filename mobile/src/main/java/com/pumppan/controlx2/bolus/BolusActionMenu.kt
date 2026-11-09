@@ -23,11 +23,9 @@ import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
-import com.jwoglom.pumpx2.pump.messages.request.control.CancelBolusRequest
 import com.pumppan.controlx2.bolus.state.CancelDecision
 import com.pumppan.controlx2.bolus.state.CancelRowState
 import com.pumppan.controlx2.bolus.state.CancelStatus
-import com.pumppan.controlx2.bolus.state.BolusDeliveryState
 import com.pumppan.controlx2.ui.ActionRow
 import com.pumppan.controlx2.ui.NavigationRow
 import kotlinx.coroutines.delay
@@ -74,15 +72,12 @@ fun BolusActionMenu(
 
     // 没有取消行时整段不渲染：状态描述已在段二统一渲染，这里不再重复。
     if (rowState != CancelRowState.HIDDEN) {
-        val subtitle = when (rowState) {
-            CancelRowState.RECONCILING -> stringResource(R.string.bolus_v2_cancel_reason_reconciling)
-            CancelRowState.NEEDS_ID -> stringResource(R.string.bolus_v2_cancel_reason_needs_id)
-            CancelRowState.READ_ONLY ->
-                if (!isConnected) stringResource(R.string.bolus_v2_cancel_reason_disconnected)
-                else if (session?.state == BolusDeliveryState.UNKNOWN) stringResource(R.string.bolus_v2_cancel_reason_unknown)
-                else stringResource(R.string.bolus_v2_cancel_reason_disconnected)
-            CancelRowState.READY -> stringResource(R.string.bolus_v2_cancel_ready_sub)
-            CancelRowState.HIDDEN -> stringResource(R.string.bolus_v2_status_idle)
+        // 原因文案与底栏细条共用同一映射（bolusCancelBlockedReason）；只有 READY 才补「进行中」。
+        val subtitle = if (rowState == CancelRowState.READY) {
+            stringResource(R.string.bolus_v2_cancel_ready_sub)
+        } else {
+            bolusCancelBlockedReason(rowState, session?.state, isConnected)
+                ?: stringResource(R.string.bolus_v2_status_idle)
         }
         ActionRow(
             title = stringResource(R.string.bolus_v2_cancel_row),
@@ -90,12 +85,9 @@ fun BolusActionMenu(
             // 取消中（10s 窗口内）不允许重复发 -96；5s 未停才回到可重试。
             readOnly = rowState != CancelRowState.READY || cancelStatus == CancelStatus.SENDING,
             onClick = {
-                notice = when (val decision = coordinator?.holder?.requestCancel(connected = isConnected)) {
-                    is CancelDecision.Send -> {
-                        sendPumpCommands(SendType.BUST_CACHE, listOf(CancelBolusRequest(decision.bolusId)))
-                        null // 状态行由 cancelStatus 统一渲染，避免重复文案
-                    }
-
+                // 发送路径与底栏细条共用 performCancel，两个入口同一种判定与同一种发法。
+                notice = when (val decision = coordinator?.performCancel(isConnected, sendPumpCommands)) {
+                    is CancelDecision.Send -> null // 状态行由 cancelStatus 统一渲染，避免重复文案
                     CancelDecision.MissingBolusId -> cancelNeedsIdText
                     CancelDecision.Disconnected -> cancelDisconnectedText
                     CancelDecision.Reconciling -> cancelReconcilingText

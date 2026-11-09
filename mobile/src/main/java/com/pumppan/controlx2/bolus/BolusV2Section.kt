@@ -56,10 +56,12 @@ import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.BolusPanelMode
 import com.pumppan.controlx2.bolus.state.BolusSource
+import com.pumppan.controlx2.bolus.state.BolusStatusPresentation
 import com.pumppan.controlx2.bolus.state.BolusTab
 import com.pumppan.controlx2.bolus.state.BolusTabSession
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
+import com.pumppan.controlx2.bolus.state.presentBolusStatus
 import com.pumppan.controlx2.bolus.wizard.BolusWizardRuntime
 import kotlinx.coroutines.delay
 
@@ -273,10 +275,16 @@ private fun BolusTabPage(
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        StateDescription(
+        // 与首页卡片 / 底栏细条共用同一份派生（设计定案：同一份派生 + 三个薄渲染）。
+        val connected by LocalDataStore.current.pumpConnected.observeAsState()
+        val status = presentBolusStatus(
             delivery = delivery,
             outcome = BolusRuntime.coordinator?.outcomeState?.value ?: BolusOutcome.Pending,
+            connected = connected == true,
+            now = System.currentTimeMillis(),
+            holder = BolusRuntime.coordinator?.holder,
         )
+        StateDescription(status)
         // 硬约束：只有空闲（DRAFT）/ 已完成（DONE）才允许进输入页；任何进行中的相位
         // （申请中 / 已确认 / 输注中 / 取消中 / 状态未知）都不给入口，也不允许程序性进入。
         // 与向导标签的 canStartFlow 共用 [allowsNewFlow]，两边不再各写一套判定。
@@ -352,53 +360,15 @@ private fun tabTitle(tab: BolusTab): Int = when (tab) {
 }
 
 /**
- * 完成态那一行的文案：与通知同源（只看 [BolusOutcome]），完成页与空闲页共用同一个槽位，
- * 不再单独维护一套「完成页」文案。
+ * 段二 · 状态描述：**唯一**一句当前状态文案，文案由 [bolusStatusText] 统一映射
+ * （与首页卡片 / 底栏细条同源），本组件只负责这里这一行的排版与着色。
  */
 @Composable
-private fun outcomeText(outcome: BolusOutcome?): String = when (outcome) {
-    is BolusOutcome.Cancelled -> stringResource(R.string.bolus_v2_outcome_cancelled)
-    is BolusOutcome.Failed ->
-        if (outcome.fromCancel) stringResource(R.string.bolus_v2_outcome_failed_cancel)
-        else failureText(outcome.error)
-
-    else -> stringResource(R.string.bolus_v2_outcome_success)
-}
-
-/**
- * 段二 · 状态描述：**唯一**一句当前状态文案，只看 [BolusDelivery] 与 [BolusOutcome]。
- * 原先横幅 / 页头 / 正文各写一套，才出现「已发出请求」与「取消请求已发出」互相打架。
- */
-@Composable
-private fun StateDescription(delivery: BolusDelivery?, outcome: BolusOutcome) {
-    val failed = outcome is BolusOutcome.Failed
-    val text = when {
-        delivery == null ->
-            if (failed) outcomeText(outcome) else stringResource(R.string.bolus_v2_status_idle)
-
-        delivery.isFinished -> outcomeText(outcome)
-
-        delivery.state == BolusDeliveryState.CONFIRMING ||
-            delivery.state == BolusDeliveryState.UNCONFIRMED ->
-            stringResource(R.string.bolus_v2_page_pending)
-
-        delivery.state == BolusDeliveryState.ACTIVE ->
-            if (delivery.isExtendedRunning) stringResource(R.string.bolus_v2_page_extended_running)
-            else stringResource(R.string.bolus_v2_page_delivering)
-
-        delivery.state == BolusDeliveryState.CANCELLING ->
-            stringResource(R.string.bolus_v2_page_cancelling)
-
-        delivery.state == BolusDeliveryState.UNKNOWN ->
-            stringResource(R.string.bolus_v2_page_unknown)
-
-        else ->
-            if (failed) outcomeText(outcome) else stringResource(R.string.bolus_v2_status_idle)
-    }
+private fun StateDescription(status: BolusStatusPresentation) {
     Text(
-        text = text,
+        text = bolusStatusText(status),
         style = MaterialTheme.typography.bodyMedium,
-        color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (status.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp),
     )
 }

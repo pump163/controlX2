@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -101,6 +102,7 @@ import com.jwoglom.controlx2.presentation.navigation.SheetLaunchRequest
 import com.jwoglom.controlx2.presentation.navigation.SheetLaunchTarget
 import com.jwoglom.controlx2.presentation.navigation.TempRateInputPrefill
 import com.pumppan.controlx2.bolus.BolusRouter
+import com.pumppan.controlx2.bolus.BolusStatusStrip
 import com.pumppan.controlx2.bolus.BolusV2Section
 import com.jwoglom.controlx2.presentation.theme.Colors
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
@@ -608,50 +610,58 @@ fun Landing(
             }
         },
         bottomBar = {
-            NavigationBar {
-                LandingSection.values()
-                    .filter { item ->
-                        item.showInNav &&
-                            (item != LandingSection.BOLUS_V2 || BolusRouter.showNavEntry(bolusUiMode))
-                    }
-                    .forEach { item ->
-                        NavigationBarItem(
-                            icon = {
-                                BadgedBox(
-                                    badge = {
-                                        notificationBundle.value?.get()?.count()?.let { count ->
-                                            if (item == LandingSection.NOTIFICATIONS && count > 0) {
-                                                Badge(
-                                                    containerColor = Color.Red,
-                                                    contentColor = Color.White
-                                                ) {
-                                                    Text("$count")
+            Column {
+                // 底栏常驻细条：任何页面都能一键取消；大剂量页段二自带取消，故该页抑制细条。
+                if (selectedItem != LandingSection.BOLUS_V2 &&
+                    BolusRouter.showNavEntry(bolusUiMode)
+                ) {
+                    BolusStatusStrip(sendPumpCommands = sendPumpCommands)
+                }
+                NavigationBar {
+                    LandingSection.values()
+                        .filter { item ->
+                            item.showInNav &&
+                                (item != LandingSection.BOLUS_V2 || BolusRouter.showNavEntry(bolusUiMode))
+                        }
+                        .forEach { item ->
+                            NavigationBarItem(
+                                icon = {
+                                    BadgedBox(
+                                        badge = {
+                                            notificationBundle.value?.get()?.count()?.let { count ->
+                                                if (item == LandingSection.NOTIFICATIONS && count > 0) {
+                                                    Badge(
+                                                        containerColor = Color.Red,
+                                                        contentColor = Color.White
+                                                    ) {
+                                                        Text("$count")
+                                                    }
                                                 }
                                             }
+                                        },
+                                        content = {
+                                            if (item == LandingSection.BOLUS_V2) {
+                                                // 复用旧大剂量按钮的同一 drawable；颜色由 NavigationBarItem
+                                                // 提供的 LocalContentColor（MaterialTheme 派生）统一着色，
+                                                // 无任何硬编码色值，深浅色主题均跟随导航项配色。
+                                                Icon(
+                                                    painter = if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
+                                                    else painterResource(R.drawable.bolus_icon_secondary),
+                                                    contentDescription = stringResource(item.labelRes),
+                                                    modifier = Modifier.size(24.dp),
+                                                )
+                                            } else {
+                                                Icon(item.icon, contentDescription = stringResource(item.labelRes))
+                                            }
                                         }
-                                    },
-                                    content = {
-                                        if (item == LandingSection.BOLUS_V2) {
-                                            // 复用旧大剂量按钮的同一 drawable；颜色由 NavigationBarItem
-                                            // 提供的 LocalContentColor（MaterialTheme 派生）统一着色，
-                                            // 无任何硬编码色值，深浅色主题均跟随导航项配色。
-                                            Icon(
-                                                painter = if (isSystemInDarkTheme()) painterResource(R.drawable.bolus_icon)
-                                                else painterResource(R.drawable.bolus_icon_secondary),
-                                                contentDescription = stringResource(item.labelRes),
-                                                modifier = Modifier.size(24.dp),
-                                            )
-                                        } else {
-                                            Icon(item.icon, contentDescription = stringResource(item.labelRes))
-                                        }
-                                    }
-                                )
-                           },
-                            label = { Text(stringResource(item.labelRes)) },
-                            selected = selectedItem == item,
-                            onClick = { selectedItem = item }
-                        )
-                    }
+                                    )
+                                },
+                                label = { Text(stringResource(item.labelRes)) },
+                                selected = selectedItem == item,
+                                onClick = { selectedItem = item }
+                            )
+                        }
+                }
             }
         }
     )
