@@ -134,7 +134,9 @@ class BolusReconciler(
             }
 
             else -> {
-                holder.begin(BolusDeliveryState.UNKNOWN, now = now)
+                // 状态闩锁修复：对账整体超时未带齐结论时，不把交付态硬锁成不可自愈的 UNKNOWN，
+                // 转入 UNCONFIRMED（等待证据），由轮询层继续补证，后续证据到位即自愈。
+                holder.begin(BolusDeliveryState.UNCONFIRMED, now = now)
                 BolusActivity.UNKNOWN
             }
         }

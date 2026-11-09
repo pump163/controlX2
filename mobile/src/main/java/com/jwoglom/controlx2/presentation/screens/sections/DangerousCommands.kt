@@ -2,7 +2,6 @@
 
 package com.jwoglom.controlx2.presentation.screens.sections
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,25 +11,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,9 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jwoglom.controlx2.Prefs
@@ -59,9 +48,9 @@ import com.pumppan.controlx2.ui.ActionRow
  * 现有条目：
  * 1. 泵型号覆盖（[PumppanPumpModelRow]）
  * 2. 允许不安全的原始指令（`unsafe-raw-commands`）
- * 3. 临时诊断组（默认折叠）：HTTP 调试接口 + diag 采集
+ * 3. 断连监控（需要才开）：整块平铺，不折叠
  *
- * 临时诊断组为蓝牙断连专项加的取证手段，属于"打开就持续写盘 / 监听网络"的开关。
+ * 断连监控为蓝牙断连专项加的取证手段，属于"打开就持续写盘"的开关。
  * 停用方式（按用户约定）：**注释掉入口 + 开关默认关**，不整体删除代码，恢复时取消注释即可。
  * 本页只负责呈现与导航，pref key、默认值与读写逻辑均未改动。
  */
@@ -69,13 +58,15 @@ import com.pumppan.controlx2.ui.ActionRow
 fun DangerousCommands(
     innerPadding: PaddingValues = PaddingValues(),
     navigateBack: () -> Unit,
+    navigateToDiag: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var unsafeRawCommands by remember {
         mutableStateOf(Prefs(context).unsafeRawCommandsEnabled())
     }
-    // 危险组默认折叠，需要额外一次点击才展开，避免误触。
-    var diagExpanded by remember { mutableStateOf(false) }
+    var diagEnabled by remember {
+        mutableStateOf(DiagMonitor.snapshot().enabled)
+    }
 
     LazyColumn(
         contentPadding = innerPadding,
@@ -114,166 +105,24 @@ fun DangerousCommands(
                 Divider()
             }
 
-            // ---- 临时诊断组（默认折叠） ----
+            // ---- 断连监控（需要才开）：整块平铺，不折叠 ----
             item {
-                ActionRow(
-                    title = context.getString(R.string.settings_diag_group_title),
-                    subtitle = context.getString(
-                        if (diagExpanded) R.string.settings_diag_group_expanded_sub
-                        else R.string.settings_diag_group_collapsed_sub
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            if (diagExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                            contentDescription = null,
-                        )
-                    },
-                    onClick = { diagExpanded = !diagExpanded },
-                )
-                Divider()
-            }
-
-            if (diagExpanded) {
-                item {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Text(
-                            text = context.getString(R.string.settings_diag_warning),
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    Divider()
-                }
-
-                // HTTP 调试接口：pref 与行为保持不变，仅从 Debug 页移到这里。
-                item {
-                    var httpDebugApiEnabled by remember {
-                        mutableStateOf(Prefs(context).httpDebugApiEnabled())
-                    }
-                    ActionRow(
-                        title =
-                            if (httpDebugApiEnabled) context.getString(R.string.debug_disable_http_debug_api)
-                            else context.getString(R.string.debug_enable_http_debug_api),
-                        subtitle = context.getString(R.string.debug_toggle_http_debug_api_on_port),
-                        leadingIcon = {
-                            Icon(
-                                if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = {
-                            httpDebugApiEnabled = !httpDebugApiEnabled
-                            Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
-                            Toast.makeText(
-                                context,
-                                context.getString(
-                                    if (httpDebugApiEnabled) {
-                                        R.string.debug_http_debug_api_enabled_restart
-                                    } else {
-                                        R.string.debug_http_debug_api_disabled_restart
-                                    }
-                                ),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                    )
-
-                    if (httpDebugApiEnabled) {
-                        Divider()
-                        var username by remember {
-                            mutableStateOf(Prefs(context).httpDebugApiUsername())
-                        }
-                        ListItem(
-                            headlineContent = { Text(context.getString(R.string.debug_api_username)) },
-                            supportingContent = {
-                                OutlinedTextField(
-                                    value = username,
-                                    onValueChange = {
-                                        username = it
-                                        Prefs(context).setHttpDebugApiUsername(it)
-                                    },
-                                    label = { Text(context.getString(R.string.debug_username)) },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp)
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.Info,
-                                    contentDescription = null,
-                                )
-                            }
-                        )
-                        Divider()
-                        var password by remember {
-                            mutableStateOf(Prefs(context).httpDebugApiPassword())
-                        }
-                        var passwordVisible by remember { mutableStateOf(false) }
-
-                        ListItem(
-                            headlineContent = { Text(context.getString(R.string.debug_api_password)) },
-                            supportingContent = {
-                                OutlinedTextField(
-                                    value = password,
-                                    onValueChange = {
-                                        password = it
-                                        Prefs(context).setHttpDebugApiPassword(it)
-                                    },
-                                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                    label = { Text(context.getString(R.string.debug_password)) },
-                                    trailingIcon = {
-                                        val image = if (passwordVisible)
-                                            Icons.Filled.Visibility
-                                        else
-                                            Icons.Filled.VisibilityOff
-
-                                        val description = if (passwordVisible) context.getString(R.string.debug_hide_password) else context.getString(R.string.debug_show_password)
-
-                                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                            Icon(imageVector = image, description)
-                                        }
-                                    },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp)
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.Info,
-                                    contentDescription = null,
-                                )
-                            }
-                        )
-                    }
-                    Divider()
-                }
-
-                // diag 采集开关：仅移动入口，默认值与 DiagMonitor 行为不变。
-                item {
-                    var diagEnabled by remember {
-                        mutableStateOf(DiagMonitor.snapshot().enabled)
-                    }
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column(modifier = Modifier.padding(end = 12.dp)) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                             Text(
-                                text = context.getString(R.string.settings_diag_toggle_title),
+                                text = context.getString(R.string.settings_diag_monitor_title),
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = context.getString(R.string.settings_diag_toggle_sub),
+                                text = context.getString(R.string.settings_diag_monitor_sub),
                                 fontSize = 12.sp,
                             )
                         }
+                        // 该块自带的采集开关，不再单独抽出条目。
                         Switch(
                             checked = diagEnabled,
                             onCheckedChange = {
@@ -282,8 +131,20 @@ fun DangerousCommands(
                             },
                         )
                     }
-                    Divider()
+                    Text(
+                        text = context.getString(R.string.settings_diag_warning),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    TextButton(
+                        onClick = navigateToDiag,
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text(context.getString(R.string.settings_diag_open))
+                    }
                 }
+                Divider()
             }
 
             item {

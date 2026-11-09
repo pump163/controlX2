@@ -1,26 +1,26 @@
 # HANDOFF · pumppan 分支交接记录
 
-> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-06（收工保存点 / 大剂量流程定案 / HEAD 复核）
+> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-09（补记 11-06~11-09 的 15 条提交 / 查询层第 0 步 / HEAD 复核）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：以 `git log -1` 为准（2026-11-06 收工点 `e7b2cf2`；本行随最后一次 docs 提交更新，哈希可能再前进一格）
-> 若 `git log -1` 与 `e7b2cf2` 不同，说明只多了本文件的收尾提交，源码无改动。
+> 当前 HEAD：`46a0399b`（2026-11-09 12:38，docs：查询层收敛定稿）。**15 条提交未推送** `i18n-origin/pumppan`。
+> 若 `git log -1` 与 `46a0399b` 不同，说明只多了本文件的收尾提交，源码无改动。
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
 
-### 三树 HEAD（均已推送，非强推）
+### 三树 HEAD（pumppan 15 条未推送，其余已推送）
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `872f5ae` | 2026-11-06：大剂量页面流程定案（§4.6 入口状态机 / §4.6.7 第 2 页三按钮 + 自动命名预设 / §6 命名口径 / 批次 C 登记）；本 HANDOFF 收工点 `872f5ae`；此前 S6-prep 探针 `1ae368c`、HTTP 取证 `5d03245`、入口与提醒 `2090888`、加入预设 `93c1123`、批次 C `ac47152` |
+| pumppan | `pumppan` | `46a0399b` | 2026-11-09 12:38：查询层收敛定稿 + 通知页流水账草案。此前 11-09 `c0c34b92` 断连取证迁危险指令页、`5d04c075` 查询层第 0 步、`7fb08b32` 底栏输注细条、`12d43634` 向导更名；11-08 `491d5d1d` IOB 口径（pumpx2→1.9.3）、`eb574055` 设置自检页、`e83e389d` 三段式页、`8c720c66` 输注期状态机；11-06 `8d665764` S6 发送适配层 |
 | i18n main | `main` | `f0543e1` | 归档已完成文档、未完成文档移交 pumppan（2026-11-05 复核，工作区干净） |
-| lab | `assets` | `c0ffd31` | WORKLOG §93 批次 C 登记、§94 收工保存点（2026-11-06，已推送） |
+| lab | `assets` | `e5c62321` | WORKLOG §95（2026-11-06）；2026-11-09 补记 §96–§103（未提交） |
 
 ### 已拍板（不再重复讨论）
 
 - **X2 全只读**：真机实测控制页全部只读、**仅大剂量可执行**；`canControlPump` 保持 `model == MOBI`，**非缺陷、勿擅自放开**；能力收窄**搁置**，等 pumpx2 按固件收敛后再评。
 - **多语 key 白名单**：`values-zh-rCN` 为唯一正式目录；mobile 1090/1084（差 6）、wear 348/347（差 1）属刻意例外，**差额扩大即报警**。
-- **pumpx2 版本**：维持 `1.9.0`，**暂不升级**；1.9.3 试升曾因改动过大回滚；重评条件=主线发布 ≥ `v1.9.4` 且含能力相关变更。
+- **pumpx2 版本**：**已升到 `1.9.3`**（2026-11-08 `491d5d1d`，因 `BolusType` 语义重构需要）。原先「维持 1.9.0 暂不升级」的表述作废；后续升级门槛仍为「主线发布 ≥ 下一版且含能力相关变更」。
 - **充电图标**：改为挖空矢量并本地采用（`ce4db28`），原「禁带」已解除。
 - **`SettingsGroup`**：已删除（零调用 + 实现被否决的折叠方案）；`StatusRow` 保留并标注 0 调用。
 - **声音页「更改位图」输入框**：已删除（属我们误引入），并补型号门控（非 Mobi 禁用「应用」+ 原因文案）。
@@ -32,23 +32,17 @@
 
 ### 未完成的下一步
 
-#### 明天第一件事（2026-11-07，真机）
+#### 当前第一件事（2026-11-09）
 
-1. 安装 `D:\Programming\apk\mobile-release_pumppan_probe.apk`：**同签名覆盖安装**，装完确认设置与输注参数仍在。
-2. 先开「允许调整输注」，先发 `BolusPermissionRequest(-94)` 拿到 `bolusId`；后续每一步都用同一个 `bolusId`。
-3. 按五步测（**合计 ≤0.5U**）：
-   1. `0/0/0` 干跑（只看泵是否接受，不实际输注）；
-   2. `0.05U` 立即段；
-   3. 方波 `0:100`（0 + 0.4U / 120 min / bitmask 12），**只跑 1–2 分钟即取消**；
-   4. `-96` 取消（带 `bolusId`）；
-   5. 双波 `50:50`。
-4. 每步记录 `44` / `46` / `48` 回包与 `bolusProbe:` 日志。
-5. **提醒：`-98` 至今未真机验证**，S6 发送适配层阻塞于此；未验通过前不得记为已验证、不得接正式发送链路。
+1. **收尾未提交的 6 个文件**（「诊断入口归位」）：`Landing.kt` / `DangerousCommands.kt` / `Debug.kt` / `DiagScreen.kt` / `values/strings.xml` / `values-zh-rCN/strings.xml`。**未编译、未提交**。先 `gradlew :mobile:compileDebugKotlin --console=plain` 验证再提交。
+2. **推送 15 条提交**到 `i18n-origin/pumppan`（`git push i18n-origin pumppan`）。
+3. **补记已完成**：WORKLOG §96–§103 已写（lab 树，未提交）。
+4. 五步真机测试（`0/0/0` 干跑 → `0.05U` 立即 → 方波 0:100 → `-96` 取消 → 双波 50:50，合计 ≤0.5U）**已在 2026-11-08 第四轮完成**（`950ef9eb`）：v2 发送路径连打两笔 0.05U、第二笔取消，确认非旧弹窗兜底。剩余疑点见 #59–#64。
 
 #### 其余待办
 
-1. **大剂量 v2 代码待写（文档已定，代码未写）**：① 第 2 页底部三按钮 + 「+」自动命名预设（`BolusFlowScreen.kt` / `BolusPresetStore.kt` / `BolusConfirmPanel.kt` / `BolusPresetDialogs.kt`）；② 入口状态机（`BolusV2Section.kt:29-56` 的 `showFlow` 二分改 `when (phaseToPage(phase))`，新增取消输注页 / 二选一页 / 已完成提示页）；③ 通知改造（补 `setContentIntent`、正文开始/结束时间、`maxRequests=60` 跟随延后段时长；约 3 文件 40–50 行）。依据 §4.6 / §4.6.7 / §6 与 §4.7 差异清单。
-2. **大剂量批次 A 状态**：S0–S5 与 S6-prep 探针已完成；S9 开关与导航入口已落地（v2 入口暂为占位页）；S6 发送适配层待 `-98` 真机验证后开工。批次 B（向导）只做置灰入口（§5.7）；批次 C（定时大剂量提醒）仅登记、不设计（§5.1）。
+1. **大剂量 v2 剩余代码**：① 通知改造（补 `setContentIntent`、正文开始/结束时间、`maxRequests=60` 跟随延后段时长；约 3 文件 40–50 行）；② #61 剂量校验三态（空/非法/合法，挂在字段值上，已定案待实现）；③ #64 横幅重构为泵输注状态视图（两层模型、可见性规则、待验两项）。**已完成**：第 2 页三按钮 + 自动命名预设、入口状态机 `phaseToPage`、三段式页、`BolusStatusStrip` 底栏细条。
+2. **大剂量批次 A 状态**：S0–S6 全部完成，`-98` 生产通道**已于 2026-11-06 真机送达**（泵回 `-97` 拒绝，非发送层丢弃，见 WORKLOG §95）；2026-11-08 第四轮真机确认 v2 发送路径可连打两笔 0.05U 并可取消。批次 B（向导）已落地 IOB 口径与结果页交接；批次 C（定时大剂量提醒）仅登记、不设计（§5.1）。
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
 4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
 5. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
@@ -65,7 +59,7 @@
 
 ## 一句话现状
 
-pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。**2026-11-05**：设置/调试/控制页行组件统一为 `BaseRow`（`ActionRow` / `NavigationRow` / `ToggleRow` 全部改调，`fe8a887`），`:mobile:compileDebugKotlin` 通过、未出包；同日 HTTP 调试 API 真机实测（设备 `buildVersion=82710ea`）——只读命令全过，`46/-74` 有响应**证实 V2 可用**，`-94` 权限与 `-96` 取消通过，`-98` 大剂量被 `PumpCommHandler.isBolusCommand` 在 BULK 通道拦截（Timeout → HTTP 500，**未送达未输注**），`debug-write-bt-characteristic` 为 stub 不可用；取消后 `CurrentBolusStatus` / `ExtendedBolusStatusV2` 均 Idle、无残留，泵侧今日零异常（详见 `docs/feature/HTTP取证与真机点检.md` §8 与 lab WORKLOG §80–§82）；用户另将 `docs/pumppan-审查修改意见.md` 归档到 `docs/old/`（`ec92377`）。
+pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。**2026-11-05**：设置/调试/控制页行组件统一为 `BaseRow`（`ActionRow` / `NavigationRow` / `ToggleRow` 全部改调，`fe8a887`），`:mobile:compileDebugKotlin` 通过、未出包；同日 HTTP 调试 API 真机实测（设备 `buildVersion=82710ea`）——只读命令全过，`46/-74` 有响应**证实 V2 可用**，`-94` 权限与 `-96` 取消通过，`-98` 大剂量被 `PumpCommHandler.isBolusCommand` 在 BULK 通道拦截（Timeout → HTTP 500，**未送达未输注**），`debug-write-bt-characteristic` 为 stub 不可用；取消后 `CurrentBolusStatus` / `ExtendedBolusStatusV2` 均 Idle、无残留，泵侧今日零异常（详见 `docs/feature/HTTP取证与真机点检.md` §8 与 lab WORKLOG §80–§82）；用户另将 `docs/pumppan-审查修改意见.md` 归档到 `docs/old/`（`ec92377`）。**2026-11-06 ~ 11-09**（15 条提交，未推送）：S6 发送适配层与 `pump-capabilities.json`（`8d665764`）· 大剂量 v2 输注期状态机 + `BolusPollScheduler` + 百分比输入（`8c720c66`）· 三段式页 + v2 抑制旧确认弹窗（`e83e389d`）· 断连临时监控 `DiagMonitor`（`44310c1b`）· 向导 IOB 口径与结果页交接、**pumpx2 升 1.9.3**（`491d5d1d`）· 设置自检页（`eb574055`）· 向导更名「大剂量计算器」+ `allowsNewFlow()` 同源 + `shortTime24()`（`12d43634`）· 底栏常驻输注细条与取消入口（`7fb08b32`）· 查询层收敛第 0 步（`5d04c075`）· 断连取证迁危险指令页（`c0c34b92`）· 查询层定稿与通知页流水账草案（`46a0399b`）。WORKLOG 已补记 §96–§103。
 
 ---
 

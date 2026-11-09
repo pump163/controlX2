@@ -122,8 +122,8 @@ fun DiagScreen(
                     Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                 }
                 Column(modifier = Modifier.padding(start = 4.dp)) {
-                    Text("断连监控（临时）", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text("只在调试页可见；代码保留，暂停用“注释入口 + 开关默认关”", fontSize = 12.sp)
+                    Text("断连监控（需要才开）", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text("代码保留，暂停用“注释入口 + 开关默认关”", fontSize = 12.sp)
                 }
             }
             HorizontalDivider()
@@ -131,8 +131,8 @@ fun DiagScreen(
 
         item {
             Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Text("采集开关已移至「危险指令」", fontWeight = FontWeight.SemiBold)
-                Text("设置 → 调试 → 危险指令 → 临时诊断组（默认折叠）", fontSize = 12.sp)
+                Text("采集开关在「危险指令」里", fontWeight = FontWeight.SemiBold)
+                Text("设置 → 调试 → 危险指令 → 断连监控（需要才开）", fontSize = 12.sp)
             }
             HorizontalDivider()
         }

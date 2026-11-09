@@ -224,7 +224,6 @@ fun Debug(
     historyLogViewModel: HistoryLogViewModel? = null,
     navigateToFeatureFlags: () -> Unit = {},
     navigateToDangerousCommands: () -> Unit = {},
-    navigateToDiag: () -> Unit = {}, // DIAG-TEMP
     navigateBack: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -306,17 +305,6 @@ fun Debug(
         content = {
             item {
                 HeaderLine(context.getString(R.string.debug_debug))
-                DebugDivider()
-            }
-            item { // DIAG-TEMP：断连临时监控入口
-                ActionRow(
-                    title = "断连监控（临时）",
-                    subtitle = "抓断连现场，默认关闭；用完即删",
-                    leadingIcon = {
-                        Icon(Icons.Filled.Build, contentDescription = null)
-                    },
-                    onClick = navigateToDiag,
-                )
                 DebugDivider()
             }
             if (Prefs(context).serviceEnabled()) {
@@ -982,9 +970,112 @@ fun Debug(
                 DebugRowDivider()
             }
 
-            // HTTP 调试接口开关（含用户名/密码）已移至「危险指令」页内的临时诊断组，
-            // 见 DangerousCommands.kt；pref 与行为未变，此处不再重复呈现。
 
+            item {
+                var httpDebugApiEnabled by remember { mutableStateOf(Prefs(context).httpDebugApiEnabled()) }
+                ActionRow(
+                    title =
+                        if (httpDebugApiEnabled) context.getString(R.string.debug_disable_http_debug_api)
+                        else context.getString(R.string.debug_enable_http_debug_api),
+                    subtitle = context.getString(R.string.debug_toggle_http_debug_api_on_port),
+                    leadingIcon = {
+                        Icon(
+                            if (httpDebugApiEnabled) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        httpDebugApiEnabled = !httpDebugApiEnabled
+                        Prefs(context).setHttpDebugApiEnabled(httpDebugApiEnabled)
+                        Toast.makeText(
+                            context,
+                            context.getString(
+                                if (httpDebugApiEnabled) {
+                                    R.string.debug_http_debug_api_enabled_restart
+                                } else {
+                                    R.string.debug_http_debug_api_disabled_restart
+                                }
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (httpDebugApiEnabled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
+                )
+
+                if (httpDebugApiEnabled) {
+                    DebugRowDivider()
+                    var username by remember { mutableStateOf(Prefs(context).httpDebugApiUsername()) }
+                    ListItem(
+                        headlineContent = { Text(context.getString(R.string.debug_api_username)) },
+                        supportingContent = {
+                            OutlinedTextField(
+                                value = username,
+                                onValueChange = {
+                                    username = it
+                                    Prefs(context).setHttpDebugApiUsername(it)
+                                },
+                                label = { Text(context.getString(R.string.debug_username)) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Info,
+                                contentDescription = null,
+                            )
+                        }
+                    )
+                    DebugRowDivider()
+                    var password by remember { mutableStateOf(Prefs(context).httpDebugApiPassword()) }
+                    var passwordVisible by remember { mutableStateOf(false) }
+
+                    ListItem(
+                        headlineContent = { Text(context.getString(R.string.debug_api_password)) },
+                        supportingContent = {
+                            OutlinedTextField(
+                                value = password,
+                                onValueChange = {
+                                    password = it
+                                    Prefs(context).setHttpDebugApiPassword(it)
+                                },
+                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                label = { Text(context.getString(R.string.debug_password)) },
+                                trailingIcon = {
+                                    val image = if (passwordVisible)
+                                        Icons.Filled.Visibility
+                                    else Icons.Filled.VisibilityOff
+
+                                    // Please provide localized description for accessibility services
+                                    val description = if (passwordVisible) context.getString(R.string.debug_hide_password) else context.getString(R.string.debug_show_password)
+
+                                    IconButton(onClick = {passwordVisible = !passwordVisible}){
+                                        Icon(imageVector  = image, description)
+                                    }
+                                },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            )
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.Info,
+                                contentDescription = null,
+                            )
+                        }
+                    )
+                }
+                DebugDivider()
+            }
 
             // G5
             item {

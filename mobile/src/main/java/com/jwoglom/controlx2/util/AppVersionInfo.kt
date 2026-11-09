@@ -12,11 +12,17 @@ class AppVersionInfo(val context: Context) {
     val version: String
         get() = BuildConfig.VERSION_NAME
 
+    // 反射读取：BuildConfig 字段是编译期常量，直接引用会被内联成字面量，
+    // 而 Kotlin 增量编译不跟踪常量值变化，改 pumpx2_version 后本文件不会重编，版本号会停在旧值
     val pumpX2: String
-        get() = com.jwoglom.pumpx2.BuildConfig.PUMPX2_VERSION
+        get() = runCatching {
+            com.jwoglom.pumpx2.BuildConfig::class.java.getField("PUMPX2_VERSION").get(null) as String
+        }.getOrDefault("?")
 
     val pumpX2BuildTime: String
-        get() = com.jwoglom.pumpx2.BuildConfig.PUMPX2_BUILD_TIME
+        get() = runCatching {
+            com.jwoglom.pumpx2.BuildConfig::class.java.getField("PUMPX2_BUILD_TIME").get(null) as String
+        }.getOrDefault("?")
 
     val buildVersion: String
         get() = Paperwork(context).get("build_version")

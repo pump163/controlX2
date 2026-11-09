@@ -905,12 +905,10 @@
     <string name="settings_allow_unsafe_raw_commands">允许不安全的原始指令</string>
     <string name="settings_dangerous_commands">危险指令</string>
     <string name="settings_dangerous_commands_subtitle">后果自负</string>
-    <string name="settings_diag_group_title">临时诊断（高风险）</string>
-    <string name="settings_diag_group_collapsed_sub">临时诊断用；点击展开</string>
-    <string name="settings_diag_group_expanded_sub">临时诊断用；点击收起</string>
-    <string name="settings_diag_warning">临时诊断用：打开后会持续写盘、并可能监听网络端口。属于蓝牙断连专项的取证手段，问题修复后请以“注释掉入口 + 开关默认关”的方式停用，不要整体删除代码；恢复时取消注释即可。</string>
-    <string name="settings_diag_toggle_title">diag 采集</string>
-    <string name="settings_diag_toggle_sub">关闭时不占线程、不写盘</string>
+    <string name="settings_diag_monitor_title">断连监控（需要才开）</string>
+    <string name="settings_diag_monitor_sub">抓断连现场，默认关闭</string>
+    <string name="settings_diag_warning">高风险：打开后会持续写盘。属于蓝牙断连专项的取证手段。停用请注释掉入口 + 保持开关默认关闭，不要整体删除代码；恢复时取消注释即可。</string>
+    <string name="settings_diag_open">打开监控页</string>
     <string name="settings_allow_unsafe_raw_commands_subtitle">启用 /api/pump/raw-command 与 /api/pump/bolus-probe 调试端点，会绕过发送层过滤。默认关闭。</string>
     <string name="settings_unsafe_raw_commands_icon">不安全的原始指令图标</string>
     <string name="settings_toggle_insulin_delivery_actions">启用或禁用胰岛素输注操作。</string>

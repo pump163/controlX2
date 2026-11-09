@@ -911,12 +911,10 @@
     <string name="settings_allow_unsafe_raw_commands">Allow unsafe raw commands</string>
     <string name="settings_dangerous_commands">Dangerous commands</string>
     <string name="settings_dangerous_commands_subtitle">Use at your own risk</string>
-    <string name="settings_diag_group_title">Temporary diagnostics (high risk)</string>
-    <string name="settings_diag_group_collapsed_sub">Temporary diagnostics; tap to expand</string>
-    <string name="settings_diag_group_expanded_sub">Temporary diagnostics; tap to collapse</string>
-    <string name="settings_diag_warning">Temporary diagnostics: turning these on writes to disk continuously and may listen on a network port. They are evidence-gathering tools for the Bluetooth disconnect investigation. When pausing, comment out the entry point and turn the switch off by default instead of deleting the code; uncomment to restore.</string>
-    <string name="settings_diag_toggle_title">diag capture</string>
-    <string name="settings_diag_toggle_sub">When off, no background thread and no disk writes</string>
+    <string name="settings_diag_monitor_title">Disconnect monitoring (enable only if needed)</string>
+    <string name="settings_diag_monitor_sub">Captures Bluetooth disconnect evidence; off by default</string>
+    <string name="settings_diag_warning">High risk: while on, it keeps writing to disk. This is evidence gathering for the Bluetooth disconnect investigation. To pause, comment out the entry point and keep the switch off by default instead of deleting the code; uncomment to restore.</string>
+    <string name="settings_diag_open">Open monitor page</string>
     <string name="settings_allow_unsafe_raw_commands_subtitle">Enables the /api/pump/raw-command and /api/pump/bolus-probe debug endpoints. Bypasses the send-layer filter. Off by default.</string>
     <string name="settings_unsafe_raw_commands_icon">Unsafe raw commands icon</string>
     <string name="settings_toggle_insulin_delivery_actions">Enable or disable insulin delivery actions.</string>

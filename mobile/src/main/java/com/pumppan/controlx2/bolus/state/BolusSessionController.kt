@@ -249,7 +249,13 @@ class BolusSessionController(
                     if (it.endObservedAtMillis == null) it.copy(endObservedAtMillis = now) else it
                 }
 
-            // CONFIRMING / UNCONFIRMED / UNKNOWN：零结果不足以证明「没开始」，继续等 / 保持未知。
+            // CONFIRMING / UNCONFIRMED：零结果不足以证明「没开始」，继续等。
+            BolusDeliveryState.CONFIRMING,
+            BolusDeliveryState.UNCONFIRMED -> Unit
+
+            // 状态闩锁修复：UNKNOWN（对账超时等路径）下收到「无大剂量在跑」的空证据后，自愈为 IDLE。
+            BolusDeliveryState.UNKNOWN -> finish(BolusDeliveryState.IDLE, BolusOutcome.Success, now)
+
             else -> Unit
         }
     }

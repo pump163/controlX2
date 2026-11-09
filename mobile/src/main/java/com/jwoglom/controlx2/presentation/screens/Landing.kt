@@ -498,9 +498,6 @@ fun Landing(
                                 navigateToDangerousCommands = {
                                     selectedItem = LandingSection.DANGEROUS_COMMANDS
                                 },
-                                navigateToDiag = { // DIAG-TEMP
-                                    selectedItem = LandingSection.DIAG
-                                },
                                 navigateBack = { selectedItem = LandingSection.SETTINGS },
                             )
                         }
@@ -508,6 +505,7 @@ fun Landing(
                             DangerousCommands(
                                 innerPadding = innerPadding,
                                 navigateBack = { selectedItem = LandingSection.DEBUG },
+                                navigateToDiag = { selectedItem = LandingSection.DIAG },
                             )
                         }
                         LandingSection.FEATURE_FLAGS -> {
@@ -522,7 +520,7 @@ fun Landing(
                         LandingSection.DIAG -> { // DIAG-TEMP
                             com.pumppan.controlx2.diag.DiagScreen(
                                 innerPadding = innerPadding,
-                                navigateBack = { selectedItem = LandingSection.DEBUG },
+                                navigateBack = { selectedItem = LandingSection.DANGEROUS_COMMANDS },
                             )
                         }
                         LandingSection.SETTINGS -> {

@@ -26,21 +26,36 @@ enum class PumpTopic {
     UNKNOWN;
 
     companion object {
-        /** 请求类 simpleName → topic。第 0 步只读、只用于计数。 */
+        /**
+         * 请求类 simpleName → topic。第 0 步只读、只用于计数。
+         *
+         * 归属原则：**按数据域，不按页面**。同一个请求被多个页面共用时（如
+         * HomeScreenMirrorRequest 被 5 个页面共用），一律归到它的数据域 topic，
+         * 页面独占的请求才归到页面 topic。这样统计能直接看出「共用成本」与
+         * 「页面独占成本」，而不是把共用请求重复计入每个页面。
+         */
         fun fromRequestSimpleName(simpleName: String?): PumpTopic {
             return when (simpleName) {
                 null -> UNKNOWN
 
-                // 周期状态批（CommService 5 分钟）
+                // 周期状态批（CommService 5 分钟）；首页与子页也会问同一批数据
                 "CurrentBatteryRequest",
+                "CurrentBatteryV1Request",
+                "CurrentBatteryV2Request",
                 "InsulinStatusRequest",
                 "HistoryLogStatusRequest",
                 "ControlIQInfoV1Request",
-                "ControlIQInfoV2Request" -> STATUS_BATCH
+                "ControlIQInfoV2Request",
+                "TimeSinceResetRequest",
+                // 连接握手时问一次泵的 API 版本，属状态域
+                "ApiVersionRequest" -> STATUS_BATCH
 
                 // 首页 / 各页面共同依赖的当前状态
                 "ControlIQIOBRequest",
-                "NonControlIQIOBRequest" -> DASHBOARD_BATCH
+                "NonControlIQIOBRequest",
+                "CurrentBasalStatusRequest",
+                "LastBolusStatusRequest",
+                "LastBolusStatusV2Request" -> DASHBOARD_BATCH
 
                 // 历史回补
                 "HistoryLogRequest" -> HISTORY
@@ -49,36 +64,104 @@ enum class PumpTopic {
                 "HomeScreenMirrorRequest" -> HOME_MIRROR
 
                 // CGM
-                "CGMStatusRequest" -> CGM
+                "CGMStatusRequest",
+                "CurrentEGVGuiDataRequest" -> CGM
 
                 // 泵全局设置（SoundSettings / QuickBolusSettings 共用）
                 "PumpGlobalsRequest" -> PUMP_GLOBALS
+
+                // 安全上限（首页与 SafetyLimits 共用同一条）
+                "GlobalMaxBolusSettingsRequest",
+                "BasalLimitSettingsRequest" -> SAFETY_LIMITS
 
                 // CIQ 设置
                 "ControlIQSleepScheduleRequest" -> CONTROL_IQ
 
                 // 大剂量进行中的状态
-                "CurrentBolusStatusRequest" -> BOLUS_OUTCOME
+                "CurrentBolusStatusRequest",
+                "ExtendedBolusStatusRequest",
+                "ExtendedBolusStatusV2Request" -> BOLUS_OUTCOME
+
+                // 报警 / 故障（通知页与首页角标共用同一批）
+                "AlertStatusRequest",
+                "AlarmStatusRequest",
+                "CGMAlertStatusRequest",
+                "MalfunctionStatusRequest",
+                "ReminderStatusRequest",
+                "HighestAamRequest",
+                "ActiveAamBitsRequest" -> NOTIFICATIONS
+
+                // 动作页独占
+                "TempRateRequest" -> ACTIONS
+
+                // 耗材页独占
+                "LoadStatusRequest" -> CARTRIDGE
+
+                // 个人方案页独占
+                "ProfileStatusRequest",
+                "IDPSettingsRequest",
+                "IDPSegmentRequest" -> PROFILE
 
                 else -> UNKNOWN
             }
         }
 
-        /** 响应 opCode → topic 的粗映射；仅用于回复计数，未知返回 null。 */
+        /** 响应 simpleName → topic 的粗映射；仅用于回复计数，未知返回 null。 */
         fun fromResponseSimpleName(simpleName: String?): PumpTopic? {
             return when (simpleName) {
                 null -> null
+
                 "CurrentBatteryAbstractResponse",
+                "CurrentBatteryV1Response",
+                "CurrentBatteryV2Response",
                 "InsulinStatusResponse",
-                "HistoryLogStatusResponse" -> STATUS_BATCH
+                "HistoryLogStatusResponse",
+                "ControlIQInfoV1Response",
+                "ControlIQInfoV2Response",
+                "TimeSinceResetResponse",
+                "ApiVersionResponse" -> STATUS_BATCH
+
                 "ControlIQIOBResponse",
-                "NonControlIQIOBResponse" -> DASHBOARD_BATCH
-                "HistoryLogResponse" -> HISTORY
+                "NonControlIQIOBResponse",
+                "CurrentBasalStatusResponse",
+                "LastBolusStatusResponse",
+                "LastBolusStatusV2Response" -> DASHBOARD_BATCH
+
+                "HistoryLogResponse",
+                "HistoryLogStreamResponse" -> HISTORY
+
                 "HomeScreenMirrorResponse" -> HOME_MIRROR
-                "CGMStatusResponse" -> CGM
+
+                "CGMStatusResponse",
+                "CurrentEGVGuiDataResponse" -> CGM
+
                 "PumpGlobalsResponse" -> PUMP_GLOBALS
+
+                "GlobalMaxBolusSettingsResponse",
+                "BasalLimitSettingsResponse" -> SAFETY_LIMITS
+
                 "ControlIQSleepScheduleResponse" -> CONTROL_IQ
-                "CurrentBolusStatusResponse" -> BOLUS_OUTCOME
+
+                "CurrentBolusStatusResponse",
+                "ExtendedBolusStatusResponse",
+                "ExtendedBolusStatusV2Response" -> BOLUS_OUTCOME
+
+                "AlertStatusResponse",
+                "AlarmStatusResponse",
+                "CGMAlertStatusResponse",
+                "MalfunctionBitmaskStatusResponse",
+                "ReminderStatusResponse",
+                "HighestAamResponse",
+                "ActiveAamBitsResponse" -> NOTIFICATIONS
+
+                "TempRateResponse" -> ACTIONS
+
+                "LoadStatusResponse" -> CARTRIDGE
+
+                "ProfileStatusResponse",
+                "IDPSettingsResponse",
+                "IDPSegmentResponse" -> PROFILE
+
                 else -> null
             }
         }
