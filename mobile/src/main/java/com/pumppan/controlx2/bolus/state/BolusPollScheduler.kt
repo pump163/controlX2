@@ -4,13 +4,17 @@ import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ExtendedBolusStatusV2Response
+import com.pumppan.controlx2.query.PumpCommandPort
 import timber.log.Timber
 
 /**
  * 输注期查询调度器（设计 §4.9.3）。
  *
+ * 第 2 步改造：**单飞 / 超时 / 节流已下沉到 [PumpCommandPort]**，本类只保留
+ * 「这一 tick 该不该问」的业务判定（立即段 / 延展段 / 确认阶梯 / 页面可见性）。
+ * 判定规则与改造前逐条等价，由 `BolusPollSchedulerTest` 的 12 条用例守住。
+ *
  * 规则：
- * - **同一 opCode 只允许一个请求在飞**；超时才允许重发；10 秒内问过的不重复发。
  * - 立即段：每 [immediatePollIntervalMs] 查一次 `44`（当前大剂量状态）。
  * - 延展段：连接时由 [BolusReconciler] 对账一次，运行期每 [extendedPollIntervalMs] 用 `46` 兜底；
  *   补证只在「大剂量」页开着时进行（由调用方传入 `extendedPollAllowed`），页面不开时不发。
@@ -20,42 +24,40 @@ import timber.log.Timber
  * 所有时间都由调用方传入，便于单测注入时钟。
  */
 class BolusPollScheduler(
-    private val requestCurrentBolusStatus: () -> Unit,
-    private val requestExtendedBolusStatus: () -> Unit,
+    private val port: PumpCommandPort,
+    private val currentRequest: () -> Message,
+    private val extendedRequest: () -> Message,
     private val immediatePollIntervalMs: Long = 10_000L,
     private val extendedPollIntervalMs: Long = 300_000L,
     private val requestTimeoutMs: Long = 10_000L,
 ) {
-    private var currentInFlightAt: Long? = null
-    private var extendedInFlightAt: Long? = null
-    private var lastCurrentAt: Long = Long.MIN_VALUE
-    private var lastExtendedAt: Long = Long.MIN_VALUE
+    // opCode 只用于「清在飞」与「重设节流起点」，构造期算一次即可。
+    private val currentOpCode: Int = currentRequest().opCode().toInt() and 0xFF
+    private val extendedOpCode: Int = extendedRequest().opCode().toInt() and 0xFF
 
-    /** 新会话开始：清空在飞与节流时间，避免沿用上一笔的窗口。 */
+    /** 新会话开始：清空在飞并把节流起点设为 now，避免沿用上一笔的窗口。 */
     fun reset(now: Long) {
-        currentInFlightAt = null
-        extendedInFlightAt = null
-        lastCurrentAt = now
-        lastExtendedAt = now
+        port.markThrottle(currentOpCode, now)
+        port.markThrottle(extendedOpCode, now)
     }
 
     /** 对账刚跑完：下一次兜底从对账结束时刻起算，避免立刻重复发。 */
     fun markReconciled(now: Long) = reset(now)
 
-    /** 收到响应：对应 opCode 的请求不再算「在飞」。 */
+    /** 收到响应：对应 opCode 的请求不再算「在飞」（在飞记录归端口所有）。 */
     fun onMessage(message: Message) {
         when (message) {
-            is CurrentBolusStatusResponse -> currentInFlightAt = null
+            is CurrentBolusStatusResponse -> port.clearInFlight(currentOpCode)
             is ExtendedBolusStatusResponse,
             is ExtendedBolusStatusV2Response,
-            -> extendedInFlightAt = null
+            -> port.clearInFlight(extendedOpCode)
 
             else -> Unit
         }
     }
 
     /**
-     * 由协调器 ticker 每秒调用。未连接时只清超时窗口，不发请求。
+     * 由协调器 ticker 每秒调用。未连接时直接不发（也不动节流窗口）。
      *
      * @param extendedPollAllowed 是否允许发延展补证（`46`）。只有「大剂量」页开着时才为 true：
      *   页面不开时不做无谓取证，避免加重 BLE 通信负担；立即段的 `44` 不受此门控。
@@ -68,27 +70,22 @@ class BolusPollScheduler(
         extendedPollAllowed: Boolean = true,
     ): Boolean {
         if (delivery == null || delivery.isFinished) {
-            currentInFlightAt = null
-            extendedInFlightAt = null
+            port.clearInFlight(currentOpCode)
+            port.clearInFlight(extendedOpCode)
             return false
-        }
-        // 超时的在飞请求可以重发；仍在 timeout 窗口内的绝不重发。
-        if (currentInFlightAt != null && now - currentInFlightAt!! >= requestTimeoutMs) {
-            currentInFlightAt = null
-        }
-        if (extendedInFlightAt != null && now - extendedInFlightAt!! >= requestTimeoutMs) {
-            extendedInFlightAt = null
         }
         if (!connected) return false
 
         var sent = false
 
         if (needsCurrentPoll(delivery)) {
-            val interval = immediatePollIntervalMs
-            if (currentInFlightAt == null && now - lastCurrentAt >= interval) {
-                requestCurrentBolusStatus()
-                lastCurrentAt = now
-                currentInFlightAt = now
+            val r = port.request(
+                message = currentRequest(),
+                minIntervalMs = immediatePollIntervalMs,
+                timeoutMs = requestTimeoutMs,
+                now = now,
+            )
+            if (r.sent) {
                 sent = true
                 Timber.d("bolus: 查询 44（%s）", delivery.state)
             }
@@ -101,10 +98,13 @@ class BolusPollScheduler(
             } else {
                 immediatePollIntervalMs
             }
-            if (extendedInFlightAt == null && now - lastExtendedAt >= interval) {
-                requestExtendedBolusStatus()
-                lastExtendedAt = now
-                extendedInFlightAt = now
+            val r = port.request(
+                message = extendedRequest(),
+                minIntervalMs = interval,
+                timeoutMs = requestTimeoutMs,
+                now = now,
+            )
+            if (r.sent) {
                 sent = true
                 Timber.d("bolus: 查询 46（%s）", delivery.state)
             }

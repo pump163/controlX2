@@ -24,6 +24,8 @@ import com.jwoglom.controlx2.shared.enums.DeviceRole
 import com.jwoglom.controlx2.db.historylog.HistoryLogRepo
 import com.jwoglom.controlx2.messaging.MessageBusFactory
 import com.jwoglom.controlx2.presentation.util.ShouldLogToFile
+import com.jwoglom.controlx2.presentation.util.cgmQueryAllowed
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.controlx2.pump.BleChangeReceiver
 import com.jwoglom.controlx2.pump.BolusManager
 import com.pumppan.controlx2.query.PumpQueryService
@@ -191,6 +193,18 @@ class CommService : Service(), CommServiceCallbacks {
                 InsulinStatusRequest(),
                 HistoryLogStatusRequest()
             )))
+
+            // CGM 明确未启用时，各页面已停止每条 tick 追问（见 CgmQueryGate）。
+            // 这里每 5 分钟补一条探活，让「用户在泵上启动 G6/G7」最多 5 分钟内被发现；
+            // 复用本任务，不新增定时器；单独记 CGM，不混入 STATUS_BATCH。
+            if (!cgmQueryAllowed()) {
+                PumpQueryService.noteLegacyRequest(
+                    topic = PumpTopic.CGM,
+                    source = "CommService.cgmProbe",
+                    connected = null,
+                )
+                sendPumpCommMessages(PumpMessageSerializer.toBulkBytes(listOf(CGMStatusRequest())))
+            }
         }
     }
 

@@ -51,6 +51,10 @@ import com.jwoglom.pumpx2.pump.messages.request.control.ResumePumpingRequest
 import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
+import com.jwoglom.controlx2.presentation.util.cgmQueryAllowed
+import com.jwoglom.controlx2.presentation.util.isCgmQuery
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.controlx2.shared.enums.BasalStatus
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
@@ -114,7 +118,9 @@ fun CartridgeActions(
         )
     }
 
-    fun fetchDataStoreFields(type: SendType) {
+    fun fetchDataStoreFields(type: SendType, source: String = "CartridgeActions.other") {
+        // 第 0′ 步：只登记「谁在问」，不影响下发内容与顺序
+        PumpQueryService.notePageRequest(PumpTopic.CARTRIDGE, source)
         sendPumpCommands(type, cartridgeActionsCommands)
     }
 
@@ -151,7 +157,7 @@ fun CartridgeActions(
             if (nullFields.isEmpty()) break
 
             if (sinceLastFetchTime >= 2500) {
-                fetchDataStoreFields(SendType.CACHED)
+                fetchDataStoreFields(SendType.CACHED, "CartridgeActions.waitForLoaded")
                 sinceLastFetchTime = 0
             }
             delay(250)
@@ -165,17 +171,22 @@ fun CartridgeActions(
         Timber.i("reloading CartridgeActions with force")
         refreshing = true
         cartridgeActionsFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE)
+        fetchDataStoreFields(SendType.BUST_CACHE, "CartridgeActions.pullRefresh")
     }
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = { refreshScope.cancel() }) {
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields(SendType.STANDARD, "CartridgeActions.onStart")
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        fetchDataStoreFields(SendType.STANDARD)
+    // pumppan: intervalOf 首帧 tick=0 与 LifecycleStateObserver(onStart) 会各发一次同一批命令，
+    // 进页面即双发；首帧交给 onStart，这里只跑后续 60s 周期。
+    val cartridgeRefreshTick = intervalOf(60)
+    LaunchedEffect(cartridgeRefreshTick) {
+        if (cartridgeRefreshTick > 0) {
+            fetchDataStoreFields(SendType.STANDARD, "CartridgeActions.interval")
+        }
     }
 
     LaunchedEffect(subScreen, intervalOf(15)) {
@@ -215,10 +226,12 @@ fun CartridgeActions(
         }
     }
 
-    // Force a fresh load-status read when the Cartridge Actions screen is opened.
-    LaunchedEffect(Unit) {
-        refreshWorkflowState(SendType.BUST_CACHE)
-    }
+    // pumppan: 进页时 LifecycleStateObserver(onStart) 已经发过同一批
+    // （cartridgeActionsCommands 里已含 HomeScreenMirrorRequest + LoadStatusRequest），
+    // 这里再发一次属于纯重复；2026-11-10 先注释，等查询器统一接管后整体删除。
+    // LaunchedEffect(Unit) {
+    //     refreshWorkflowState(SendType.BUST_CACHE)
+    // }
 
     LaunchedEffect(subScreen) {
         if (subScreen != CartridgeSubScreen.MENU) {
@@ -374,12 +387,17 @@ fun CartridgeActions(
 }
 
 
-val cartridgeActionsCommands = listOf(
-    HomeScreenMirrorRequest(),
-    CGMStatusRequest(),
-    TimeSinceResetRequest(),
-    LoadStatusRequest()
-)
+// 第 0′ 步：getter 形式，使 CGM 门控按当前 cgmSessionState 求值（val 会被冻结在首次加载时刻）。
+val cartridgeActionsCommands: List<Message>
+    get() = listOf(
+        HomeScreenMirrorRequest(),
+        CGMStatusRequest(),
+        TimeSinceResetRequest(),
+        LoadStatusRequest()
+    ).filter { msg ->
+        // G6/G7 明确「未启动」时剔除 CGMStatusRequest；其余三条照常发。
+        cgmQueryAllowed() || !msg.isCgmQuery()
+    }
 
 fun cartridgeApiVersion(): ApiVersion {
     var apiVersion = PumpState.getPumpAPIVersion()

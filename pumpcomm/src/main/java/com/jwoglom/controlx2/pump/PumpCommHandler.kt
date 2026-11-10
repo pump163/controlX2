@@ -602,7 +602,6 @@ class PumpCommHandler(
                 connected = isConnected,
                 willSend = lastPeripheral != null && isConnected,
             )
-
             if (lastPeripheral == null) {
                 Timber.w("Not sending message because no saved peripheral yet: $message")
                 return
@@ -619,6 +618,12 @@ class PumpCommHandler(
                 return
             }
 
+            // 第 1 步观测：走到这里才是真实下发（前面三个 return 属于空尝试，不计 opCode）
+            PumpQueryService.noteWireRequest(
+                // opCode() 是 signed Byte，转成 0..255 才与协议对照表一致（如 178 而不是 -78）
+                opCode = message.opCode().toInt() and 0xFF,
+                simpleName = message.javaClass.simpleName,
+            )
             Timber.i("Pump send command: $message")
             DiagMonitor.onTx(message.javaClass.simpleName) // DIAG-TEMP
             PumpQueryService.noteInFlight(true)

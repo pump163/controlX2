@@ -1354,7 +1354,12 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 val counters = JSONObject()
                 counters.put("startedAtMillis", snap.startedAtMillis)
                 counters.put("requestCounts", mapToJson(snap.requestCounts))
+                // 第 1 步观测：opCode 级总量 + 同一 250 ms 窗口内的重复次数
+                counters.put("opCodeCounts", mapToJson(snap.opCodeCounts))
+                counters.put("opCodeDuplicateCounts", mapToJson(snap.opCodeDuplicateCounts))
                 counters.put("sourceCounts", mapToJson(snap.sourceCounts))
+                // 「谁在问」维度：key = "TOPIC|页面来源"，只反映页面意图，不参与真实下发计数
+                counters.put("pageSourceCounts", mapToJson(snap.pageSourceCounts))
                 counters.put("replyCounts", mapToJson(snap.replyCounts))
                 counters.put("lastRequestAtMillis", mapToJson(snap.lastRequestAtMillis))
                 counters.put("disconnectedRequestCount", snap.disconnectedRequestCount)

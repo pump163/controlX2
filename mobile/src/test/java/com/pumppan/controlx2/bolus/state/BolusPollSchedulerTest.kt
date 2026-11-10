@@ -1,19 +1,41 @@
 package com.pumppan.controlx2.bolus.state
 
+import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.CurrentBolusStatusResponse
+import com.pumppan.controlx2.query.PumpCommandPort
+import com.pumppan.controlx2.query.PumpRequestSender
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * 改造后由 [PumpCommandPort] 负责单飞 / 超时 / 节流，本测试同时守住两件事：
+ * 1. 调度器的业务判定（立即段 / 延展段 / 确认阶梯 / 断连 / 页面门控）没变；
+ * 2. 端口接管后的节奏与改造前逐条等价（这是「V2 已跑通」不得被破坏的证据）。
+ */
 class BolusPollSchedulerTest {
 
     private var currentSent = 0
     private var extendedSent = 0
 
+    private val port = PumpCommandPort(object : PumpRequestSender {
+        override fun send(type: SendType, messages: List<Message>): Boolean {
+            when (messages.first()) {
+                is CurrentBolusStatusRequest -> currentSent++
+                is ExtendedBolusStatusRequest -> extendedSent++
+            }
+            return true
+        }
+    })
+
     private val scheduler = BolusPollScheduler(
-        requestCurrentBolusStatus = { currentSent++ },
-        requestExtendedBolusStatus = { extendedSent++ },
+        port = port,
+        currentRequest = { CurrentBolusStatusRequest() },
+        extendedRequest = { ExtendedBolusStatusRequest() },
     )
 
     @Test

@@ -26,6 +26,38 @@ object PumpQueryService {
     private val replyCounts = ConcurrentHashMap<String, AtomicLong>()
     private val lastRequestAtMillis = ConcurrentHashMap<String, Long>()
 
+    /**
+     * 「谁在问」维度：key = "TOPIC|来源标识"，如 "ACTIONS|Actions.onStart"。
+     *
+     * 与 [requestCounts] 分开计数，避免重复计量：requestCounts 反映真实下发量，
+     * 这里只反映页面的意图分布，用于回答「这个 topic 是哪个页面在要」。
+     * 之所以需要它：所有真实登记都发生在 PumpCommHandler.command() 这一个出口，
+     * source 恒为 "PumpCommHandler.command"，从出口看不出调用方是谁。
+     */
+    private val pageSourceCounts = ConcurrentHashMap<String, AtomicLong>()
+
+    /** 同一 opCode 在这个窗口内再次出现，视为「同一 tick 重复」；250 ms 覆盖一次 bulk 写入。 */
+    private const val DUPLICATE_WINDOW_MS = 250L
+
+    /**
+     * 第 1 步观测：opCode 级总量，key = "80|CGMStatusRequest"。
+     *
+     * 为什么需要：requestCounts 按 topic 聚合，粒度太粗——首页一次批量 16 条命令
+     * 只落进 4 个桶，看不出「哪条命令被谁重复发了」。
+     */
+    private val opCodeCounts = ConcurrentHashMap<String, AtomicLong>()
+
+    /**
+     * 第 1 步观测：同一 250 ms 窗口内第 2 次及以后的发送次数（key 同上）。
+     *
+     * 这个值直接等于「合并同 tick 重复后能省下的写入次数」，比总量更适合判断收益；
+     * 与 [opCodeCounts] 对照即可算出重复率，两者都为空则说明登记点没接上。
+     */
+    private val opCodeDuplicateCounts = ConcurrentHashMap<String, AtomicLong>()
+
+    /** 每个 opCode 最近一次出现所属的时间窗口编号（nowMs / DUPLICATE_WINDOW_MS）。 */
+    private val lastOpCodeWindow = ConcurrentHashMap<String, Long>()
+
     private val disconnectedRequestCount = AtomicLong()
     private val blockedRequestCount = AtomicLong()
     private val unknownReplyCount = AtomicLong()
@@ -78,6 +110,44 @@ object PumpQueryService {
         }
     }
 
+    /**
+     * 登记一次「真实下发」的 opCode 级观测（第 1 步）。
+     *
+     * 与 [noteLegacyRequest] 互补：后者按 topic 聚合，这里按 opCode + 请求类名计数，
+     * 并识别「同一 250 ms 窗口内重复」，用于回答「哪些命令在同一 tick 被发了不止一次」。
+     * 只观测，不改发送行为、不改顺序。
+     */
+    fun noteWireRequest(opCode: Int, simpleName: String) {
+        try {
+            val key = "$opCode|$simpleName"
+            increment(opCodeCounts, key)
+
+            val nowMs = System.nanoTime() / 1_000_000L
+            val window = nowMs / DUPLICATE_WINDOW_MS
+            val prevWindow = lastOpCodeWindow.put(key, window)
+            if (prevWindow == window) {
+                // 同一窗口内第 2 次及以后：计入「可消除的冗余」
+                increment(opCodeDuplicateCounts, key)
+            }
+        } catch (t: Throwable) {
+            safeLog(t)
+        }
+    }
+
+    /**
+     * 登记一次「页面表达」的查询意图（只计入 pageSourceCounts，不参与真实下发计数）。
+     *
+     * @param topic  页面想要的 topic
+     * @param source 页面级来源，如 "Dashboard.onStart" / "CartridgeActions.onStart"
+     */
+    fun notePageRequest(topic: PumpTopic, source: String) {
+        try {
+            increment(pageSourceCounts, "${topic.name}|$source")
+        } catch (t: Throwable) {
+            safeLog(t)
+        }
+    }
+
     /** 在飞计数：发送前后各调一次（enter=true / false）。 */
     fun noteInFlight(enter: Boolean) {
         try {
@@ -100,6 +170,9 @@ object PumpQueryService {
             QueryStatsSnapshot(
                 startedAtMillis = startedAtMillis,
                 requestCounts = requestCounts.readAll(),
+                opCodeCounts = opCodeCounts.readAll(),
+                opCodeDuplicateCounts = opCodeDuplicateCounts.readAll(),
+                pageSourceCounts = pageSourceCounts.readAll(),
                 sourceCounts = sourceCounts.readAll(),
                 replyCounts = replyCounts.readAll(),
                 lastRequestAtMillis = lastRequestAtMillis.toMap(),
@@ -114,6 +187,9 @@ object PumpQueryService {
             QueryStatsSnapshot(
                 startedAtMillis = startedAtMillis,
                 requestCounts = emptyMap(),
+                opCodeCounts = emptyMap(),
+                opCodeDuplicateCounts = emptyMap(),
+                pageSourceCounts = emptyMap(),
                 sourceCounts = emptyMap(),
                 replyCounts = emptyMap(),
                 lastRequestAtMillis = emptyMap(),
@@ -131,6 +207,10 @@ object PumpQueryService {
             requestCounts.clear()
             sourceCounts.clear()
             replyCounts.clear()
+            pageSourceCounts.clear()
+            opCodeCounts.clear()
+            opCodeDuplicateCounts.clear()
+            lastOpCodeWindow.clear()
             lastRequestAtMillis.clear()
             disconnectedRequestCount.set(0)
             blockedRequestCount.set(0)
@@ -164,6 +244,12 @@ object PumpQueryService {
 data class QueryStatsSnapshot(
     val startedAtMillis: Long,
     val requestCounts: Map<String, Long>,
+    /** 第 1 步观测：key = "opCode|SimpleName"，真实下发总量。 */
+    val opCodeCounts: Map<String, Long>,
+    /** 第 1 步观测：同一 250 ms 窗口内第 2 次及以后的次数（可合并的冗余）。 */
+    val opCodeDuplicateCounts: Map<String, Long>,
+    /** key = "TOPIC|页面来源"，反映页面意图分布（不参与真实下发计数）。 */
+    val pageSourceCounts: Map<String, Long>,
     val sourceCounts: Map<String, Long>,
     val replyCounts: Map<String, Long>,
     val lastRequestAtMillis: Map<String, Long>,

@@ -36,6 +36,10 @@ data class QueryPolicy(
         out["budget.burst"] = budget.burst
         out["states.connectedSettleMs"] = states.connectedSettleMs
         out["states.linkSilentAfterMs"] = states.linkSilentAfterMs
+        // 2026-11-10：这两个开关已真正接上消费者（CgmQueryGate），必须出现在 effective 里，
+        // 否则改了配置也看不出「到底哪份在生效」。
+        out["states.skipCgmTopicWhenSessionStopped"] = states.skipCgmTopicWhenSessionStopped
+        out["states.skipCiqTopicsWhenClosedLoopOff"] = states.skipCiqTopicsWhenClosedLoopOff
         return out
     }
 }

@@ -53,6 +53,8 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusReque
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.dataStore
+import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.controlx2.db.historylog.HistoryLogViewModel
 import com.jwoglom.controlx2.presentation.components.HistoryLogSyncProgressBar
 import com.jwoglom.controlx2.presentation.components.LastConnectionUpdatedTimestamp
@@ -68,6 +70,8 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.VicoCgmCha
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
+import com.jwoglom.controlx2.presentation.util.cgmQueryAllowed
+import com.jwoglom.controlx2.presentation.util.isCgmQuery
 import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.util.SendType
@@ -93,12 +97,14 @@ fun Dashboard(
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
 
-    fun fetchDataStoreFields(type: SendType) {
+    fun fetchDataStoreFields(type: SendType, source: String = "Dashboard.other") {
         if (pumpConnected.value != true) {
             Timber.d("Dashboard skipping fetch while pump disconnected")
             refreshing = false
             return
         }
+        // 第 0′ 步：只登记「谁在问」，不影响下发内容与顺序
+        PumpQueryService.notePageRequest(PumpTopic.DASHBOARD_BATCH, source)
         sendPumpCommands(type, dashboardCommands)
     }
 
@@ -114,7 +120,7 @@ fun Dashboard(
             //Timber.i("Dashboard loading: remaining ${nullFields.size}: ${dashboardFields.map { it.value }}")
             if (sinceLastFetchTime >= 2500) {
                 //Timber.i("Dashboard loading re-fetching with cache")
-                fetchDataStoreFields(SendType.CACHED)
+                fetchDataStoreFields(SendType.CACHED, "Dashboard.waitForLoaded")
                 sinceLastFetchTime = 0
             }
 
@@ -131,7 +137,7 @@ fun Dashboard(
         refreshing = true
 
         dashboardFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE)
+        fetchDataStoreFields(SendType.BUST_CACHE, "Dashboard.pullRefresh")
     }
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
@@ -140,12 +146,12 @@ fun Dashboard(
         refreshScope.cancel()
     }) {
         Timber.i("reloading Dashboard from onStart lifecyclestate")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields(SendType.STANDARD, "Dashboard.onStart")
     }
 
     LaunchedEffect(intervalOf(60)) {
         Timber.i("reloading Dashboard from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+        fetchDataStoreFields(SendType.STANDARD, "Dashboard.interval")
     }
 
     LaunchedEffect(refreshing) {
@@ -186,6 +192,7 @@ fun Dashboard(
                     LaunchedEffect(pumpLastConnectionTimestamp.value) {
                         Timber.d("pumpLastConnectionTimestamp effect: ${pumpLastConnectionTimestamp.value}")
                         if (pumpConnected.value == true) {
+                            PumpQueryService.notePageRequest(PumpTopic.DASHBOARD_BATCH, "Dashboard.connectionChange")
                             sendPumpCommands(SendType.CACHED, dashboardCommands)
                         }
                     }
@@ -268,7 +275,10 @@ fun apiVersion(): ApiVersion {
     return apiVersion
 }
 
-val dashboardCommands = listOf(
+// 第 0′ 步：改为 getter。若仍是 val，listOf 会在首次加载时求值一次，
+// CGM 门控会被冻结在那一刻的状态，之后 STOPPED 也不会生效。
+val dashboardCommands: List<Message>
+    get() = listOf(
     CurrentBatteryRequestBuilder.create(apiVersion()),
     ControlIQIOBRequest(),
     InsulinStatusRequest(),
@@ -283,9 +293,11 @@ val dashboardCommands = listOf(
     HistoryLogStatusRequest(),
     // update notification badge
     *NotificationBundle.allRequests().toTypedArray()
-).filter { msg ->
-    !msg.props().minApi.get().greaterThan(apiVersion())
-}
+    ).filter { msg ->
+        !msg.props().minApi.get().greaterThan(apiVersion()) &&
+            // G6/G7 明确「未启动」时不再追问 CGM 两条；null（未知）与在用状态照常发。
+            (cgmQueryAllowed() || !msg.isCgmQuery())
+    }
 
 val dashboardFields = listOf(
     dataStore.batteryPercent,

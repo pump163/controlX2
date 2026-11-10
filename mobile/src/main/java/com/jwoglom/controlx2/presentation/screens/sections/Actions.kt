@@ -211,9 +211,14 @@ fun Actions(
         fetchDataStoreFields(SendType.STANDARD)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading Actions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+    // pumppan: intervalOf 首帧 tick=0 与 LifecycleStateObserver(onStart) 会各发一次同一批命令，
+    // 进页面即双发；首帧交给 onStart，这里只跑后续 60s 周期。
+    val actionsRefreshTick = intervalOf(60)
+    LaunchedEffect(actionsRefreshTick) {
+        if (actionsRefreshTick > 0) {
+            Timber.i("reloading Actions from interval")
+            fetchDataStoreFields(SendType.STANDARD)
+        }
     }
 
     LaunchedEffect(refreshing) {

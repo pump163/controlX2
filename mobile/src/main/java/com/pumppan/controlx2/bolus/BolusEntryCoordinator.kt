@@ -27,6 +27,8 @@ import com.pumppan.controlx2.bolus.state.BolusSessionHolder
 import com.pumppan.controlx2.bolus.state.BolusStatusRequestSender
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
+import com.pumppan.controlx2.query.PumpCommandPort
+import com.pumppan.controlx2.query.PumpRequestSender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -88,16 +90,24 @@ class BolusEntryCoordinator(
         )
     }
 
-    private val scheduleRequests: () -> Unit = {
-        sendPumpCommands(SendType.STANDARD, listOf(CurrentBolusStatusRequest()))
-    }
-    private val scheduleExtendedRequests: () -> Unit = {
-        sendPumpCommands(SendType.STANDARD, listOf(ExtendedBolusStatusRequest()))
-    }
+    /**
+     * 查询器出口：大剂量线的只读查询（44 / 46 / 182 / 164）唯一从这里出。
+     * 单飞 / 超时 / 节流归 [PumpCommandPort]，本类不再自建第二套在飞状态。
+     */
+    private val queryPort = PumpCommandPort(
+        object : PumpRequestSender {
+            override fun send(type: SendType, messages: List<Message>): Boolean {
+                sendPumpCommands(type, messages)
+                // sendPumpCommands 断连时会自行丢弃；这里回读连接态作为「是否真的下发」。
+                return isPumpConnected()
+            }
+        }
+    )
 
     private val scheduler = BolusPollScheduler(
-        requestCurrentBolusStatus = scheduleRequests,
-        requestExtendedBolusStatus = scheduleExtendedRequests,
+        port = queryPort,
+        currentRequest = { CurrentBolusStatusRequest() },
+        extendedRequest = { ExtendedBolusStatusRequest() },
         immediatePollIntervalMs = capabilities().immediatePollIntervalMs,
         extendedPollIntervalMs = capabilities().extendedPollIntervalMs,
         requestTimeoutMs = limits.requestTimeoutMillis,
@@ -106,19 +116,19 @@ class BolusEntryCoordinator(
     private val reconciler = BolusReconciler(
         sender = object : BolusStatusRequestSender {
             override fun requestCurrentBolusStatus() {
-                scheduleRequests()
+                queryPort.request(CurrentBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
             }
 
             override fun requestExtendedBolusStatus() {
-                scheduleExtendedRequests()
+                queryPort.request(ExtendedBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
             }
 
             override fun requestExtendedBolusStatusV2() {
-                sendPumpCommands(SendType.STANDARD, listOf(ExtendedBolusStatusV2Request()))
+                queryPort.request(ExtendedBolusStatusV2Request(), timeoutMs = limits.requestTimeoutMillis)
             }
 
             override fun requestLastBolusStatus() {
-                sendPumpCommands(SendType.STANDARD, listOf(LastBolusStatusV2Request()))
+                queryPort.request(LastBolusStatusV2Request(), timeoutMs = limits.requestTimeoutMillis)
             }
         },
         holder = controller.holder,
