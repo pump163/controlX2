@@ -752,7 +752,7 @@
     <string name="notifications_malfunction_txt">故障</string>
     <string name="notifications_dismiss">关</string>
     <string name="notifications_notifications">通知</string>
-    <string name="notifications_cannot_dismiss_on_model">此型号设备无法显示和清除通知（%1$s）。</string>
+    <string name="notifications_cannot_dismiss_on_model">此型号设备无法清除通知（%1$s）。</string>
     <string name="notifications_loading_notifications">正在加载通知...</string>
     <string name="notifications_no_notifications">无通知</string>
     <string name="setup_saved_pin_was_invalid_been_sanitized">已保存的 PIN 无效，已被清除。</string>

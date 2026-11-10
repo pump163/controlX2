@@ -82,6 +82,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import timber.log.Timber
 
+// 首页补发通知包的最小间隔：连接抖动/生命周期反复触发时的下限。
+private const val NOTIFICATION_FETCH_MIN_INTERVAL_MS = 30_000L
+
 @Composable
 fun Dashboard(
     innerPadding: PaddingValues = PaddingValues(),
@@ -96,8 +99,15 @@ fun Dashboard(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
+    // 通知包节流：连接状态抖动会让 LaunchedEffect(pumpConnected) 反复触发，
+    // 若每次都带 7 条通知查询就退化回"高频整包"。30s 内只补一次。
+    var lastNotificationFetchAt by remember { mutableStateOf(0L) }
 
-    fun fetchDataStoreFields(type: SendType, source: String = "Dashboard.other") {
+    fun fetchDataStoreFields(
+        type: SendType,
+        source: String = "Dashboard.other",
+        includeNotifications: Boolean = false
+    ) {
         if (pumpConnected.value != true) {
             Timber.d("Dashboard skipping fetch while pump disconnected")
             refreshing = false
@@ -105,7 +115,19 @@ fun Dashboard(
         }
         // 第 0′ 步：只登记「谁在问」，不影响下发内容与顺序
         PumpQueryService.notePageRequest(PumpTopic.DASHBOARD_BATCH, source)
-        sendPumpCommands(type, dashboardCommands)
+        // 查询层收敛：通知详情不再随 60s 周期发。周期只问首页关键集；
+        // 通知包只在首帧、下拉刷新、连接建立时补一次（30s 节流），之后靠
+        // QualifyingEvent.suggestedHandlers（ALERT/ALARM/REMINDER/CGM_ALERT/MALFUNCTION）驱动补查。
+        val now = System.currentTimeMillis()
+        val withNotifications =
+            includeNotifications && (now - lastNotificationFetchAt) >= NOTIFICATION_FETCH_MIN_INTERVAL_MS
+        if (withNotifications) {
+            lastNotificationFetchAt = now
+        }
+        sendPumpCommands(
+            type,
+            if (withNotifications) dashboardCommands + dashboardNotificationCommands else dashboardCommands
+        )
     }
 
     fun waitForLoaded() = refreshScope.launch {
@@ -137,7 +159,7 @@ fun Dashboard(
         refreshing = true
 
         dashboardFields.forEach { field -> field.value = null }
-        fetchDataStoreFields(SendType.BUST_CACHE, "Dashboard.pullRefresh")
+        fetchDataStoreFields(SendType.BUST_CACHE, "Dashboard.pullRefresh", includeNotifications = true)
     }
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
@@ -146,7 +168,7 @@ fun Dashboard(
         refreshScope.cancel()
     }) {
         Timber.i("reloading Dashboard from onStart lifecyclestate")
-        fetchDataStoreFields(SendType.STANDARD, "Dashboard.onStart")
+        fetchDataStoreFields(SendType.STANDARD, "Dashboard.onStart", includeNotifications = true)
     }
 
     LaunchedEffect(intervalOf(60)) {
@@ -161,6 +183,9 @@ fun Dashboard(
     LaunchedEffect(pumpConnected.value) {
         if (pumpConnected.value != true) {
             refreshing = false
+        } else {
+            // 连接建立后补一次（含通知包）：onStart 可能在未连接状态下被跳过。
+            fetchDataStoreFields(SendType.STANDARD, "Dashboard.connectionChange", includeNotifications = true)
         }
     }
 
@@ -290,12 +315,19 @@ val dashboardCommands: List<Message>
     CurrentEGVGuiDataRequest(),
     GlobalMaxBolusSettingsRequest(),
     // trigger HistoryLogFetcher
-    HistoryLogStatusRequest(),
-    // update notification badge
-    *NotificationBundle.allRequests().toTypedArray()
+    HistoryLogStatusRequest()
     ).filter { msg ->
         !msg.props().minApi.get().greaterThan(apiVersion()) &&
             // G6/G7 明确「未启动」时不再追问 CGM 两条；null（未知）与在用状态照常发。
+            (cgmQueryAllowed() || !msg.isCgmQuery())
+    }
+
+// 通知详情只问一次：首帧 / 下拉刷新 / 连接建立。周期轮询不再携带，
+// 之后由泵主动事件（ALERT/ALARM/REMINDER/CGM_ALERT/MALFUNCTION）经
+// QualifyingEvent.suggestedHandlers 触发最小补查，避免每分钟无差别刷 7 条。
+val dashboardNotificationCommands: List<Message>
+    get() = NotificationBundle.allRequests().filter { msg ->
+        !msg.props().minApi.get().greaterThan(apiVersion()) &&
             (cgmQueryAllowed() || !msg.isCgmQuery())
     }
 
