@@ -76,6 +76,15 @@ import java.util.function.Supplier
 const val CacheSeconds = 30
 
 /**
+ * 出口层「同 opCode 在飞」的超时窗口。
+ *
+ * 必须**小于**大剂量调度器的查询周期（`pump-capabilities.json` 里 immediate 10 000 ms），
+ * 否则两层超时等长：外层在 T 发送、内层在 T+Δ 记账，下一周期 `now - (T+Δ) < 10 000`
+ * 会被内层判 IN_FLIGHT 而静默丢掉这次查询。留 2 秒余量后，跨周期必放行。
+ */
+private const val QUERY_IN_FLIGHT_TIMEOUT_MS = 8_000L
+
+/**
  * Handler for pump communication. Manages the TandemPump connection lifecycle,
  * message routing, response caching, and bolus command handling.
  *
@@ -629,7 +638,7 @@ class PumpCommHandler(
         }
 
         @Synchronized
-        fun command(message: com.jwoglom.pumpx2.pump.messages.Message?) {
+        fun command(message: com.jwoglom.pumpx2.pump.messages.Message?, bypassDedup: Boolean = false) {
             if (message == null) {
                 Timber.w("Not sending null message")
                 return
@@ -660,11 +669,11 @@ class PumpCommHandler(
 
             // 只读查询：收进唯一出口（同 opCode 单飞去重）。
             // 控制 / 签名 / 取消类仍直发，豁免清单见 PumpReadOnlyQueries。
-            if (PumpReadOnlyQueries.isReadOnly(message.javaClass.simpleName)) {
+            if (!bypassDedup && PumpReadOnlyQueries.isReadOnly(message.javaClass.simpleName)) {
                 val result = queryPort.request(
                     message = message,
                     minIntervalMs = 0L,   // 页面查询不节流，避免挡住用户主动刷新；节流只给大剂量调度器
-                    timeoutMs = 10_000L,
+                    timeoutMs = QUERY_IN_FLIGHT_TIMEOUT_MS,
                 )
                 if (!result.sent) {
                     Timber.d("query suppressed: op=${result.opCode} reason=${result.reject}")
@@ -875,7 +884,8 @@ class PumpCommHandler(
                     Timber.e("SEND_PUMP_COMMAND_RAW_UNSAFE received non-Message payload")
                 } else if (pumpConnectedPrecondition()) {
                     Timber.i("pumpCommHandler send raw unsafe: $rawMsg")
-                    pump.command(rawMsg)
+                    // 调试口（POST /api/pump/raw-command）不做查询去重：本来就是手动逐条诊断
+                    pump.command(rawMsg, bypassDedup = true)
                 }
             }
             CommServiceCodes.SEND_PUMP_COMMAND_BOLUS.ordinal -> {
