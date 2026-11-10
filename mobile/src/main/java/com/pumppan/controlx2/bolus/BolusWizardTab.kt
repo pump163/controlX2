@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -126,6 +127,7 @@ fun BolusWizardTab(
         }
     }
 
+    val context = LocalContext.current
     val wizard = BolusWizardRuntime.state
 
     // 主动查询是主路径：真向泵发一次只读请求（BUST_CACHE），不是读内存 / HTTP 的周期缓存。
@@ -142,6 +144,9 @@ fun BolusWizardTab(
     }
 
     LaunchedEffect(Unit) {
+        // 血糖单位与「单位锁定」是跨次进入的长期偏好：绑定后立刻恢复上次的选择，
+        // 否则进程重启 / 重进向导都会退回 mg/dL + 未锁定。
+        BolusWizardRuntime.attach(context)
         val nowMillis = System.currentTimeMillis()
         if (nowMillis - wizard.lastFetchAtMillis > config.fetchThrottleMillis) {
             fireQuery()

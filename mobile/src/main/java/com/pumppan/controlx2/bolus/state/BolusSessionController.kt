@@ -101,6 +101,15 @@ class BolusSessionController(
         if (mode() != BolusControllerMode.V2) return
         val current = holder.session
         if (current != null && !current.isFinished) return
+        // 主笔已落定，但泵上另一笔还在跑：把它抬成主笔，保留展示与取消，
+        // 不能连它一起清掉（否则用户再也看不到、也取消不了还在输注的那笔）。
+        val extended = holder.extendedSession?.takeIf { !it.isFinished }
+        if (extended != null) {
+            outcome = extended.outcome
+            holder.setExtended(null)
+            holder.set(extended)
+            return
+        }
         outcome = BolusOutcome.Pending
         holder.clear()
     }
@@ -111,6 +120,7 @@ class BolusSessionController(
      */
     fun onTick(now: Long = clock()) {
         if (mode() != BolusControllerMode.V2) return
+        tickExtended(now)
         val current = holder.session ?: return
         if (current.isFinished) return
 
@@ -170,6 +180,50 @@ class BolusSessionController(
         }
     }
 
+    /**
+     * 第二笔（泵上并行的扩展）的兜底：取消超时、预计结束超时。
+     * 只动第二槽，不影响主笔的三态与文案。
+     */
+    private fun tickExtended(now: Long) {
+        val extended = holder.extendedSession?.takeIf { !it.isFinished } ?: return
+        when (extended.state) {
+            BolusDeliveryState.CANCELLING -> {
+                val cancelAt = holder.cancelSentAtMillis(BolusTarget.EXTENDED)
+                if (cancelAt > 0L && now - cancelAt >= limits.cancelConfirmMillis) {
+                    Timber.w(
+                        "bolus: 扩展笔发出 -96 后 %dms 未收到停止证据，落 UNKNOWN（取消失败）",
+                        limits.cancelConfirmMillis,
+                    )
+                    holder.finishExtended(
+                        BolusDeliveryState.UNKNOWN,
+                        BolusOutcome.Failed(
+                            error = BolusError.TIMEOUT,
+                            fromCancel = true,
+                        ),
+                        now,
+                    )
+                }
+            }
+
+            BolusDeliveryState.ACTIVE -> {
+                val expectedEnd = extended.expectedEndAtMillis ?: return
+                if (now > expectedEnd + limits.staleExtendedGraceMillis) {
+                    Timber.w(
+                        "bolus: 扩展笔预计结束 %dms 后仍无 47/-91，落 UNKNOWN",
+                        limits.staleExtendedGraceMillis,
+                    )
+                    holder.finishExtended(
+                        BolusDeliveryState.UNKNOWN,
+                        BolusOutcome.Failed(BolusError.TIMEOUT),
+                        now,
+                    )
+                }
+            }
+
+            else -> Unit
+        }
+    }
+
     fun applyMessage(message: Message) {
         if (mode() != BolusControllerMode.V2) return
         try {
@@ -220,6 +274,8 @@ class BolusSessionController(
 
     private fun onCurrentBolusEmpty(current: BolusDelivery?, now: Long) {
         if (current == null) {
+            // 主笔为空但第二槽还在跑：44 只描述立即段，不能因此清掉另一笔扩展。
+            if (holder.extendedSession?.takeIf { !it.isFinished } != null) return
             if (holder.reconciling) holder.clearSession() else holder.clear()
             return
         }
@@ -286,12 +342,20 @@ class BolusSessionController(
                 }
 
             else ->
-                holder.update(now) {
-                    it.copy(
-                        state = BolusDeliveryState.ACTIVE,
-                        bolusId = bolusId,
-                        lastEvidenceAtMillis = now,
-                    )
+                if (!current.hasImmediateLeg && current.isExtendedRunning &&
+                    current.bolusId != bolusId
+                ) {
+                    // 主笔本身是一笔扩展，44 报告的是另一笔立即：把旧扩展抬进第二槽，
+                    // 再以新 id 建立主笔，避免扩展 id 被覆盖后既显示不出也取消不了。
+                    holder.begin(BolusDeliveryState.ACTIVE, bolusId, hasImmediateLeg = true, now = now)
+                } else {
+                    holder.update(now) {
+                        it.copy(
+                            state = BolusDeliveryState.ACTIVE,
+                            bolusId = bolusId,
+                            lastEvidenceAtMillis = now,
+                        )
+                    }
                 }
         }
     }
@@ -305,10 +369,22 @@ class BolusSessionController(
      */
     private fun onExtendedBolus(status: Int, bolusId: Int, pumpTimestampSeconds: Long, durationSeconds: Long) {
         val now = clock()
-        val current = holder.session
+
+        // 1) 结束证据：先认领第二槽（泵上并行的那笔），再回落到主笔的扩展段。
         if (status == EXTENDED_STATUS_NONE || bolusId == 0 || durationSeconds <= 0) {
+            val extended = holder.extendedSession
+            if (extended != null && !extended.isFinished) {
+                holder.updateExtended(now) {
+                    if (it.endObservedAtMillis == null) it.copy(endObservedAtMillis = now) else it
+                }
+                return
+            }
+            val current = holder.session
             if (current == null || current.isFinished) return
             if (!current.isExtendedRunning) return
+            // 46 与 -74 是两个独立请求：其中一个刚报「在跑」，另一个的空结果只说明
+            // 「该请求无记录」，不能当作结束证据。留一个短防抖，真正的结束交给 -91 / 后续空结果。
+            if (now - current.lastEvidenceAtMillis < EXTENDED_END_DEBOUNCE_MS) return
             holder.update(now) {
                 if (it.endObservedAtMillis == null) it.copy(endObservedAtMillis = now) else it
             }
@@ -316,6 +392,44 @@ class BolusSessionController(
         }
 
         val expectedEnd = extendedEndAtMillis(pumpTimestampSeconds, durationSeconds)
+        val current = holder.session
+
+        // 2) 双槽：主笔是「仍在跑的普通大剂量」，而这条扩展证据带的是另一个 id
+        //    → 它是泵上并行的另一笔，写第二槽，绝不覆盖主笔的 bolusId。
+        if (current != null && !current.isFinished &&
+            current.hasImmediateLeg && current.isImmediateLegLive &&
+            current.bolusId != null && current.bolusId != bolusId
+        ) {
+            val extended = holder.extendedSession
+            if (extended == null || extended.isFinished) {
+                holder.setExtended(
+                    BolusDelivery(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        hasImmediateLeg = false,
+                        startedAtMillis = now,
+                        expectedEndAtMillis = expectedEnd,
+                        lastEvidenceAtMillis = now,
+                    )
+                )
+            } else {
+                holder.updateExtended(now) {
+                    it.copy(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
+                    )
+                }
+            }
+            return
+        }
+
+        // 3) 其余维持单槽语义（无主笔 / 主笔就是这笔 / 主笔为纯方波）。
+        //
+        // 但「主笔已落定」是特例：此时 46 报的是另一笔（泵上仍在跑的扩展），
+        // 绝不能 `begin` 复活主笔 —— 那会把扩展的 id 写进主槽，与第二槽指向同一笔，
+        // 细条就变成两行都「扩展正在输注」、两个按钮都「取消扩展」，并保留上一笔的
+        // 取消失败账本，出现假的「Bolus Not Stopped」（2026-11-11 真机 01:32 抓到的现场）。
         if (current == null) {
             holder.begin(
                 BolusDeliveryState.ACTIVE,
@@ -327,13 +441,27 @@ class BolusSessionController(
             return
         }
         if (current.isFinished) {
-            holder.begin(
-                BolusDeliveryState.ACTIVE,
-                bolusId,
-                hasImmediateLeg = false,
-                expectedEndAtMillis = expectedEnd,
-                now = now,
-            )
+            val extended = holder.extendedSession
+            if (extended == null || extended.isFinished) {
+                holder.setExtended(
+                    BolusDelivery(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        hasImmediateLeg = false,
+                        startedAtMillis = now,
+                        expectedEndAtMillis = expectedEnd,
+                        lastEvidenceAtMillis = now,
+                    )
+                )
+            } else {
+                holder.updateExtended(now) {
+                    it.copy(
+                        state = BolusDeliveryState.ACTIVE,
+                        bolusId = bolusId,
+                        expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
+                    )
+                }
+            }
             return
         }
         when (current.state) {
@@ -363,7 +491,9 @@ class BolusSessionController(
                 holder.update(now) {
                     it.copy(
                         state = BolusDeliveryState.ACTIVE,
-                        bolusId = bolusId,
+                        // 46 的 id 只在主笔还没有 id 时用于认领；绝不改写已有的 id，
+                        // 否则主笔会被写成第二槽那笔的 id，两槽重合。
+                        bolusId = it.bolusId ?: bolusId,
                         expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
                         lastEvidenceAtMillis = now,
                     )
@@ -421,14 +551,45 @@ class BolusSessionController(
      * 旧记录套到新会话上。`bolusStatusId`：3 = 完成，0 = 取消（§4.9 结束判据）。
      */
     private fun onLastBolus(bolusId: Int, status: BolusStatus?) {
-        if (!matchesCurrentSession(bolusId)) return
-        val current = holder.session ?: return
-        if (current.isFinished) return
         if (status == null) {
             anomaly("LastBolusStatus", "未知 bolusStatusId")
             return
         }
+        val now = clock()
+
+        // 先认领第二槽：旧扩展被取消时，它的 id 已经不在主笔上。
+        // 若仍按「只认当前会话」过滤，这条终止证据会被丢掉，5 秒兜底随即误报
+        // Bolus Not Stopped（真机 6919 的假警即由此产生）。
+        val extended = holder.extendedSession
+        if (bolusId != 0 && extended != null && !extended.isFinished && extended.bolusId == bolusId) {
+            applyTerminalStatusToExtended(status, now)
+            return
+        }
+
+        if (!matchesCurrentSession(bolusId)) return
+        val current = holder.session ?: return
+        if (current.isFinished) return
         applyTerminalStatus(status)
+    }
+
+    /** 第二笔（扩展）的落定：只改第二槽，主笔的结局与取消三态不受影响。 */
+    private fun applyTerminalStatusToExtended(status: BolusStatus, now: Long) {
+        when (status) {
+            BolusStatus.COMPLETE ->
+                holder.finishExtended(BolusDeliveryState.IDLE, BolusOutcome.Success, now)
+
+            BolusStatus.STOPPED_USER_TERMINATED,
+            BolusStatus.STOPPED_WIRELESS,
+            -> holder.finishExtended(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now)
+
+            BolusStatus.STOPPED_ALARM,
+            BolusStatus.STOPPED_MALFUNCTION,
+            BolusStatus.TERMINATED_PLGS,
+            -> holder.finishExtended(BolusDeliveryState.IDLE, BolusOutcome.Failed(BolusError.ALARM), now)
+
+            BolusStatus.REJECTED_WIRELESS ->
+                holder.finishExtended(BolusDeliveryState.IDLE, BolusOutcome.Failed(BolusError.NACK), now)
+        }
     }
 
     private fun onLastBolusV3(message: LastBolusStatusV3Response) {
@@ -499,7 +660,31 @@ class BolusSessionController(
     private fun onCancel(message: CancelBolusResponse) {
         val bolusId = message.bolusId.takeIf { it != 0 }
         val now = clock()
-        if (message.wasCancelled()) {
+        val cancelled = message.wasCancelled()
+
+        // 按 id 认领：取消扩展时 -95 带回的是扩展的 id，不能一律落到主笔上，
+        // 否则会把还在正常输注的普通那笔误判成「已取消 / 失败」。
+        val extended = holder.extendedSession?.takeIf { !it.isFinished }
+        if (bolusId != null && extended != null && extended.bolusId == bolusId) {
+            if (cancelled) {
+                holder.finishExtended(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now)
+            } else {
+                Timber.w("bolus: 扩展取消失败 status=%s reason=%s", message.status, message.reason)
+                holder.finishExtended(
+                    BolusDeliveryState.UNKNOWN,
+                    BolusOutcome.Failed(
+                        error = BolusError.NACK,
+                        statusId = message.statusId,
+                        reasonId = message.reasonId,
+                        fromCancel = true,
+                    ),
+                    now,
+                )
+            }
+            return
+        }
+
+        if (cancelled) {
             finish(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now, bolusId)
         } else {
             Timber.w("bolus: 取消失败 status=%s reason=%s", message.status, message.reason)
@@ -546,5 +731,8 @@ class BolusSessionController(
 
     private companion object {
         const val EXTENDED_STATUS_NONE = 0
+
+        /** 活跃证据后 3 秒内的空结果不作结束证据（46 / -74 语义不同，见 onExtendedBolus）。 */
+        const val EXTENDED_END_DEBOUNCE_MS = 3_000L
     }
 }

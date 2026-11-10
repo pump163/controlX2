@@ -516,6 +516,14 @@
     <string name="dashboard_bolus">Bolus</string>
     <string name="bolus_v2_status_idle">No bolus in progress.</string>
     <string name="bolus_v2_cancel_row">Cancel bolus</string>
+    <string name="bolus_v2_leg_immediate_running">Standard delivering</string>
+    <string name="bolus_v2_leg_extended_running">Extended delivering</string>
+    <string name="bolus_v2_leg_immediate_cancelling">Cancelling standard</string>
+    <string name="bolus_v2_leg_extended_cancelling">Cancelling extended</string>
+    <string name="bolus_v2_leg_immediate_unknown">Standard delivering (connection lost)</string>
+    <string name="bolus_v2_leg_extended_unknown">Extended delivering (connection lost)</string>
+    <string name="bolus_v2_cancel_immediate">Cancel standard</string>
+    <string name="bolus_v2_cancel_extended">Cancel extended</string>
     <string name="bolus_v2_cancel_reason_reconciling">Reconciling status; cancel is unavailable right now.</string>
     <string name="bolus_v2_cancel_reason_needs_id">Bolus ID unknown; a status check is required first.</string>
     <string name="bolus_v2_cancel_reason_disconnected">Pump not connected; state is read-only.</string>
@@ -528,10 +536,10 @@
     <string name="bolus_v2_action_new_sub">Enter a dose; extended delivery is optional.</string>
     <string name="bolus_v2_action_extra_now">Deliver a normal bolus</string>
     <string name="bolus_v2_action_extra_now_sub">The extended part keeps running; add an immediate bolus.</string>
-    <string name="bolus_v2_page_delivering">Delivering</string>
+    <string name="bolus_v2_page_delivering">Bolus delivering</string>
     <string name="bolus_v2_page_cancelling">Cancelling</string>
-    <string name="bolus_v2_page_extended_running">Extended part running</string>
-    <string name="bolus_v2_page_unknown">Delivering (connection lost)</string>
+    <string name="bolus_v2_page_extended_running">Bolus delivering</string>
+    <string name="bolus_v2_page_unknown">Bolus delivering (connection lost)</string>
     <string name="bolus_v2_page_pending">Requesting permission from the pump…</string>
     <string name="bolus_v2_page_pending_body">Request sent to the pump; no start confirmation yet.</string>
     <string name="bolus_v2_banner_confirming">Bolus requested — waiting for the pump to confirm…</string>
@@ -547,8 +555,8 @@
     <!-- pumppan: persistent hint at the top of the flow while the extended leg runs -->
     <string name="bolus_v2_ongoing_extended">Extended bolus in progress; only an immediate bolus can be started.</string>
     <string name="bolus_v2_infusion_unknown">Cannot confirm the pump\'s delivery state. Try again in a moment.</string>
-    <string name="bolus_v2_prior_extended">Another extended bolus is still running</string>
-    <string name="bolus_v2_prior_extended_with_end">Another extended bolus is still running, expected to end at %1$s</string>
+    <string name="bolus_v2_prior_extended">Another bolus is still running</string>
+    <string name="bolus_v2_prior_extended_with_end">Another bolus is still running, expected to end at %1$s</string>
     <string name="bolus_v2_notif_channel_name">Bolus progress (V2)</string>
     <string name="bolus_v2_notif_channel_description">Silent progress updates for an active bolus</string>
     <string name="bolus_v2_notif_cancel_confirm_title">Cancel bolus?</string>

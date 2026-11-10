@@ -3,6 +3,8 @@ package com.pumppan.controlx2.bolus.wizard
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.content.Context
+import android.content.SharedPreferences
 import com.pumppan.controlx2.bolus.state.BolusCalcPayload
 import com.pumppan.controlx2.bolus.state.BolusLimits
 import com.pumppan.controlx2.bolus.state.WizardConfig
@@ -140,18 +142,58 @@ data class BolusWizardState(
 
 /**
  * 进程内唯一一份向导输入。**容器只保留一份**：所有入口共享同一个实例，不按页面另建。
+ *
+ * 「血糖单位 + 是否锁定」是跨次进入的长期偏好，因此落在 SharedPreferences：
+ * 进程重启、按 X 清空、完成一笔后重进向导，都要保持上次的选择。
+ * 其余字段（碳水 / 血糖文本 / 结果 / 改写剂量）仍是本轮的临时输入，随 [clear] 清空。
  */
 object BolusWizardRuntime {
+
+    private const val PREFS_NAME = "bolus_wizard_prefs"
+    private const val KEY_BG_UNIT = "bg_unit"
+    private const val KEY_UNIT_LOCKED = "unit_locked"
+
+    private var prefs: SharedPreferences? = null
 
     var state by mutableStateOf(BolusWizardState())
         private set
 
+    /**
+     * 绑定一次即可（重复调用无副作用）。把已保存的单位与锁定状态补进当前状态。
+     * 只补这两个字段，不覆盖用户已经输入的文本。
+     */
+    fun attach(context: Context) {
+        if (prefs != null) return
+        val sp = context.applicationContext
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs = sp
+        val unit = sp.getString(KEY_BG_UNIT, null)
+            ?.let { runCatching { GlucoseUnit.valueOf(it) }.getOrNull() }
+            ?: return
+        val locked = sp.getBoolean(KEY_UNIT_LOCKED, false)
+        state = state.copy(bgUnit = unit, unitLocked = locked)
+    }
+
     fun update(block: (BolusWizardState) -> BolusWizardState) {
         state = block(state)
+        persistUnitState(state)
     }
 
     /** 仅在按 X / 流程完成 / 成功发送时调用。切标签**不得**调用。 */
     fun clear() {
-        state = BolusWizardState()
+        // 清输入与结果，但保留单位与锁定：锁定是长期设定，不是本轮输入。
+        state = BolusWizardState(
+            bgUnit = state.bgUnit,
+            unitLocked = state.unitLocked,
+        )
+        persistUnitState(state)
+    }
+
+    private fun persistUnitState(current: BolusWizardState) {
+        val sp = prefs ?: return
+        sp.edit()
+            .putString(KEY_BG_UNIT, current.bgUnit.name)
+            .putBoolean(KEY_UNIT_LOCKED, current.unitLocked)
+            .apply()
     }
 }

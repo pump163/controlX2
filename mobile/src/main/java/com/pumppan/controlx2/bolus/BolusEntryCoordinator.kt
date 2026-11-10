@@ -70,6 +70,9 @@ class BolusEntryCoordinator(
     val sessionState: MutableState<BolusDelivery?> = mutableStateOf(controller.session)
     val outcomeState: MutableState<BolusOutcome> = mutableStateOf(controller.outcome)
 
+    /** 第二笔（泵上并行的扩展）的独立快照；细条据此渲染第二行并给独立取消。 */
+    val extendedState: MutableState<BolusDelivery?> = mutableStateOf(controller.holder.extendedSession)
+
     /** 会话信封存储；预览/单测不传 Context 时关闭持久化。 */
     private val store: BolusSessionStore? = notificationContext?.let { BolusSessionStore(it) }
 
@@ -365,6 +368,7 @@ class BolusEntryCoordinator(
         runCatching {
             sessionState.value = controller.session
             outcomeState.value = controller.outcome
+            extendedState.value = controller.holder.extendedSession
         }.onFailure { e ->
             Timber.e(e, "bolus: 推送会话状态失败（状态未就绪），已忽略")
         }
@@ -379,6 +383,7 @@ class BolusEntryCoordinator(
                 try {
                     val now = System.currentTimeMillis()
                     val before = controller.session
+                    val beforeExtended = controller.holder.extendedSession
                     val wasReconciling = reconciler.running
 
                     controller.onTick(now)
@@ -390,7 +395,9 @@ class BolusEntryCoordinator(
                         extendedPollAllowed = bolusPageVisible,
                     )
 
-                    val changed = controller.session != before || wasReconciling
+                    val changed = controller.session != before ||
+                        controller.holder.extendedSession != beforeExtended ||
+                        wasReconciling
                     if (changed) {
                         pushState()
                         notifications?.refresh()
@@ -419,6 +426,8 @@ class BolusEntryCoordinator(
      * CONFIRMING 无论是否已写出 `-98` 都要 tick，否则会退回到没有出口的等待相位。
      */
     private fun needsTicker(delivery: BolusDelivery?): Boolean {
+        // 第二笔还在跑时 ticker 不能停：它的取消超时与预计结束兜底都靠这一拍推进。
+        if (controller.holder.extendedSession?.takeIf { !it.isFinished } != null) return true
         if (delivery == null || delivery.isFinished) return false
         return when (delivery.state) {
             BolusDeliveryState.CONFIRMING,

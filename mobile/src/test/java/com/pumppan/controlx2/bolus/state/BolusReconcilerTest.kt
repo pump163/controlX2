@@ -110,9 +110,10 @@ class BolusReconcilerTest {
 
         assertFalse(reconciler.running)
         assertEquals(BolusActivity.UNKNOWN, reconciler.result)
-        assertEquals(BolusDeliveryState.UNKNOWN, holder.session?.state)
+        // 「状态闩锁修复」后，无完整结论时落 UNCONFIRMED（等待补证），不是终态 UNKNOWN。
+        assertEquals(BolusDeliveryState.UNCONFIRMED, holder.session?.state)
         assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.NEEDS_ID, holder.cancelRowState(connected = true))
+        assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
     }
 
     @Test
@@ -123,9 +124,10 @@ class BolusReconcilerTest {
 
         assertFalse(reconciler.running)
         assertEquals(BolusActivity.UNKNOWN, reconciler.result)
-        assertEquals(BolusDeliveryState.UNKNOWN, holder.session?.state)
+        // 「状态闩锁修复」后，无完整结论时落 UNCONFIRMED（等待补证），不是终态 UNKNOWN。
+        assertEquals(BolusDeliveryState.UNCONFIRMED, holder.session?.state)
         assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.NEEDS_ID, holder.cancelRowState(connected = true))
+        assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
     }
 
     @Test

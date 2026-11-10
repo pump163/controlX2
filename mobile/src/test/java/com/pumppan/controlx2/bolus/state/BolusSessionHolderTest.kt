@@ -151,7 +151,7 @@ class BolusSessionHolderTest {
             expectedEndAtMillis = now + 60_000,
             now = now,
         )
-        assertEquals(42, holder.priorExtended?.bolusId)
+        assertEquals(42, holder.extendedSession?.bolusId)
         assertEquals(43, holder.session?.bolusId)
     }
 
@@ -171,7 +171,7 @@ class BolusSessionHolderTest {
             expectedEndAtMillis = now + 60_000,
             now = now,
         )
-        assertNull(holder.priorExtended)
+        assertNull(holder.extendedSession)
     }
 
     @Test
@@ -190,6 +190,125 @@ class BolusSessionHolderTest {
             now = now,
         )
         holder.clear()
-        assertNull(holder.priorExtended)
+        assertNull(holder.extendedSession)
+    }
+
+    /**
+     * 真机 bug 的核心回归：泵上同时有「普通 + 扩展」时，取消扩展只能动第二槽，
+     * 主笔必须继续 ACTIVE，且两笔的取消三态互不串账。
+     */
+    @Test
+    fun cancelExtended_onlyAffectsSecondSlot() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 43,
+            hasImmediateLeg = true,
+            now = now,
+        )
+        holder.setExtended(
+            BolusDelivery(
+                state = BolusDeliveryState.ACTIVE,
+                bolusId = 42,
+                hasImmediateLeg = false,
+                startedAtMillis = now,
+                expectedEndAtMillis = now + 60_000,
+                lastEvidenceAtMillis = now,
+            )
+        )
+
+        assertEquals(
+            CancelRowState.READY,
+            holder.cancelRowStateFor(BolusTarget.EXTENDED, connected = true, now = now),
+        )
+        val decision = holder.requestCancel(
+            connected = true,
+            now = now,
+            target = BolusTarget.EXTENDED,
+        )
+        assertEquals(CancelDecision.Send(42, BolusTarget.EXTENDED), decision)
+
+        assertEquals(BolusDeliveryState.CANCELLING, holder.extendedSession?.state)
+        assertEquals(BolusDeliveryState.ACTIVE, holder.session?.state)
+        assertEquals(CancelStatus.IDLE, holder.cancelStatus(now, BolusTarget.MAIN))
+        assertEquals(CancelStatus.SENDING, holder.cancelStatus(now, BolusTarget.EXTENDED))
+    }
+
+    /** 扩展那笔落定（例如 -91 报 STOPPED）后，主笔仍在输注，不能一起消失。 */
+    @Test
+    fun finishExtended_leavesMainRunning() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 43,
+            hasImmediateLeg = true,
+            now = now,
+        )
+        holder.setExtended(
+            BolusDelivery(
+                state = BolusDeliveryState.ACTIVE,
+                bolusId = 42,
+                hasImmediateLeg = false,
+                startedAtMillis = now,
+                expectedEndAtMillis = now + 60_000,
+                lastEvidenceAtMillis = now,
+            )
+        )
+        holder.finishExtended(BolusDeliveryState.CANCELLED, BolusOutcome.Cancelled, now)
+
+        assertEquals(BolusDeliveryState.ACTIVE, holder.session?.state)
+        assertEquals(BolusDeliveryState.CANCELLED, holder.extendedSession?.state)
+        assertEquals(BolusActivity.ACTIVE, holder.isAnyBolusActive(connected = true))
+    }
+
+    /**
+     * 同一个 bolusId 不能同时占两个槽（2026-11-11 真机：主笔落定后 46 把扩展 id 写回主槽，
+     * 细条两行都显示「扩展正在输注」并残留假的「未停止」）。同一 id 再现时必须被去重。
+     */
+    @Test
+    fun sameBolusId_neverOccupiesBothSlots() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 6923,
+            hasImmediateLeg = true,
+            now = now,
+        )
+        holder.setExtended(
+            BolusDelivery(
+                state = BolusDeliveryState.ACTIVE,
+                bolusId = 6923,
+                hasImmediateLeg = false,
+                startedAtMillis = now,
+                expectedEndAtMillis = now + 60_000,
+                lastEvidenceAtMillis = now,
+            )
+        )
+
+        assertNull(holder.extendedSession)
+        assertEquals(6923, holder.session?.bolusId)
+    }
+
+    /** 第二笔取消后没等到停止证据：只把第二槽推成 FAILED，主笔的三态仍是 IDLE。 */
+    @Test
+    fun cancelStatus_isScopedPerTarget() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 43,
+            hasImmediateLeg = true,
+            now = now,
+        )
+        holder.setExtended(
+            BolusDelivery(
+                state = BolusDeliveryState.ACTIVE,
+                bolusId = 42,
+                hasImmediateLeg = false,
+                startedAtMillis = now,
+                expectedEndAtMillis = now + 60_000,
+                lastEvidenceAtMillis = now,
+            )
+        )
+        holder.requestCancel(connected = true, now = now, target = BolusTarget.EXTENDED)
+
+        now += BolusLimits.CANCEL_CONFIRM_MILLIS
+        assertEquals(CancelStatus.FAILED, holder.cancelStatus(now, BolusTarget.EXTENDED))
+        assertEquals(CancelStatus.IDLE, holder.cancelStatus(now, BolusTarget.MAIN))
     }
 }

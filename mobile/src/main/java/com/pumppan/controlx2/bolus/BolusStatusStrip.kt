@@ -1,12 +1,18 @@
 package com.pumppan.controlx2.bolus
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,30 +26,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.SendType
-import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.pumppan.controlx2.bolus.state.BolusDelivery
+import com.pumppan.controlx2.bolus.state.BolusDeliveryState
+import com.pumppan.controlx2.bolus.state.BolusTarget
 import com.pumppan.controlx2.bolus.state.CancelStatus
-import com.pumppan.controlx2.bolus.state.presentBolusStatus
+import com.pumppan.controlx2.bolus.state.CancelRowState
 import kotlinx.coroutines.delay
-import java.time.Instant
 
 /**
  * 底栏常驻细条（设计定案：**任何页面都能一键取消**的唯一常驻入口）。
  *
- * - 位置：外层 `Scaffold` 的 `bottomBar` 内、应用导航栏上方；不是浮层，不遮内容。
- * - 显隐：只在会话「进行中」出现；无会话 / 已落定即消失（结局由大剂量页段二展示）。
- * - 抑制：`Landing` 在大剂量页（`BOLUS_V2`）不渲染本组件 —— 该页段二自带取消，
- *   避免同屏出现两个取消入口。
- * - 数据：与首页卡片 / 段二共用 [presentBolusStatus] 的同一份派生。
- * - 交互：**两级确认** —— 点整条才露出「取消」按钮，再点按钮才真正发 `-96`；
- *   取消在途 / 失败时自动展开，进度与失败原因必须可见。取消是最高级别动作，但不该为误触买单。
- * - 结构：外层用 `Column`，单笔时视觉与单行一致，将来多笔并存可直接叠行。
+ * - 位置：外层 `Scaffold` 的 `bottomBar` 内、应用导航栏上方；圆角卡片浮起，不横贯整屏。
+ * - 显隐：只在有「进行中」的那笔时出现；无会话 / 已落定即消失。
+ * - 抑制：`Landing` 在大剂量页（`BOLUS_V2`）不渲染本组件 —— 该页段二自带取消。
+ * - 两笔：泵上可同时存在一笔普通 + 一笔扩展。两槽各自一行、各自一个取消按钮；
+ *   **行内用「普通 / 扩展」前缀区分，同一行也不会误判**。
+ * - 高度：**内容驱动**。一笔一行，两笔两行，没有第二笔就不留空高；
+ *   每行 40dp 触摸高度，失败说明按需追加一行。
+ * - 交互：两级确认 —— 点整条才露出取消按钮，再点才真正发 `-96`；
+ *   取消在途 / 失败时自动展开，按钮禁用并显示失败原因。
  */
 @Composable
 fun BolusStatusStrip(
@@ -54,15 +63,15 @@ fun BolusStatusStrip(
     val connected by LocalDataStore.current.pumpConnected.observeAsState()
     val isConnected = connected == true
 
-    // 读取两个快照参与重组；holder 只提供判定。
-    val delivery = coordinator.sessionState.value
-    val outcome = coordinator.outcomeState.value
+    val mainDelivery = coordinator.sessionState.value?.takeIf { it.isStripVisible() }
+    val extendedDelivery = coordinator.extendedState.value?.takeIf { it.isStripVisible() }
 
-    // 取消三态需要时间推进（SENDING → FAILED），报文不来时靠本地 ticker。
+    // 取消三态需要时间推进（SENDING → FAILED），两笔各自独立。
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    val cancelStatus = coordinator.holder.cancelStatus(now)
-    LaunchedEffect(cancelStatus) {
-        if (cancelStatus == CancelStatus.SENDING) {
+    val mainCancelStatus = coordinator.holder.cancelStatus(now, BolusTarget.MAIN)
+    val extendedCancelStatus = coordinator.holder.cancelStatus(now, BolusTarget.EXTENDED)
+    LaunchedEffect(mainCancelStatus, extendedCancelStatus) {
+        if (mainCancelStatus == CancelStatus.SENDING || extendedCancelStatus == CancelStatus.SENDING) {
             while (true) {
                 delay(STRIP_TICK_MS)
                 now = System.currentTimeMillis()
@@ -70,114 +79,187 @@ fun BolusStatusStrip(
         }
     }
 
-    val presentation = presentBolusStatus(
-        delivery = delivery,
-        outcome = outcome,
-        connected = isConnected,
-        now = now,
-        holder = coordinator.holder,
-    )
     // 两级确认：默认只显示状态，点整条才展开取消按钮。
-    // 这两句必须在 `isOngoing` 提前返回之前，保证 composable 的 slot 结构稳定。
+    // 这两句必须在提前返回之前，保证 composable 的 slot 结构稳定。
     var expanded by remember { mutableStateOf(false) }
-    LaunchedEffect(presentation.cancelStatus) {
+    LaunchedEffect(mainCancelStatus, extendedCancelStatus) {
         // 取消在途 / 失败时强制展开：进度和失败原因不能被收起掩掉。
-        if (presentation.cancelStatus != CancelStatus.IDLE) expanded = true
+        if (mainCancelStatus != CancelStatus.IDLE || extendedCancelStatus != CancelStatus.IDLE) {
+            expanded = true
+        }
     }
-    LaunchedEffect(delivery?.bolusId) {
-        // 换了一笔会话就收回按钮，避免误点到上一笔的取消。
+    LaunchedEffect(mainDelivery?.bolusId, extendedDelivery?.bolusId) {
+        // 换了一笔就收回按钮，避免误点到上一笔的取消。
         expanded = false
     }
 
-    if (!presentation.isOngoing) return
+    if (mainDelivery == null && extendedDelivery == null) return
 
     Surface(
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 3.dp,
         shadowElevation = 4.dp,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .fillMaxWidth(),
     ) {
-        // 外层 Column：单笔时视觉与单行一致，将来多笔并存可直接叠行。
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .clickable(enabled = presentation.cancelStatus != CancelStatus.SENDING) {
+                .clickable(enabled = mainCancelStatus != CancelStatus.SENDING) {
                     expanded = !expanded
                 }
-                .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            if (mainDelivery != null) {
+                LegRow(
+                    delivery = mainDelivery,
+                    expanded = expanded,
+                    cancelStatus = mainCancelStatus,
+                    cancelEnabled = coordinator.holder.cancelRowStateFor(
+                        BolusTarget.MAIN, isConnected, now,
+                    ) == CancelRowState.READY && mainCancelStatus != CancelStatus.SENDING,
+                    onCancel = {
+                        coordinator.performCancel(isConnected, sendPumpCommands, BolusTarget.MAIN)
+                        now = System.currentTimeMillis()
+                    },
+                )
+            }
+            if (extendedDelivery != null) {
+                LegRow(
+                    delivery = extendedDelivery,
+                    expanded = expanded,
+                    cancelStatus = extendedCancelStatus,
+                    cancelEnabled = coordinator.holder.cancelRowStateFor(
+                        BolusTarget.EXTENDED, isConnected, now,
+                    ) == CancelRowState.READY && extendedCancelStatus != CancelStatus.SENDING,
+                    onCancel = {
+                        coordinator.performCancel(isConnected, sendPumpCommands, BolusTarget.EXTENDED)
+                        now = System.currentTimeMillis()
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 一笔输注对应一行：状态点 + 「普通 / 扩展」+ 状态 + 取消按钮。
+ * 类型前缀写在文案里，因此两笔并排或上下排列都不会混淆。
+ */
+@Composable
+private fun LegRow(
+    delivery: BolusDelivery,
+    expanded: Boolean,
+    cancelStatus: CancelStatus,
+    cancelEnabled: Boolean,
+    onCancel: () -> Unit,
+) {
+    val extended = delivery.isExtendedLeg()
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(7.dp)
+                    .background(dotColor(delivery, cancelStatus), CircleShape),
+            )
             Text(
-                text = bolusStatusText(presentation),
+                text = legStatusText(delivery, extended),
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            // 单会话补偿：新会话覆盖掉的那笔延展只留一行提示（不参与取消，见 holder.priorExtended）。
-            val prior = coordinator.holder.priorExtended
-            if (prior != null) {
-                val endText = prior.expectedEndAtMillis?.let { shortTime24(Instant.ofEpochMilli(it)) }
-                Text(
-                    text = if (endText != null) {
-                        stringResource(R.string.bolus_v2_prior_extended_with_end, endText)
-                    } else {
-                        stringResource(R.string.bolus_v2_prior_extended)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
             if (expanded) {
-                val secondary = when {
-                    presentation.cancelStatus == CancelStatus.FAILED ->
-                        stringResource(R.string.bolus_v2_cancel_not_stopped)
-
-                    presentation.cancelStatus == CancelStatus.SENDING ->
-                        stringResource(R.string.bolus_v2_cancel_pending)
-
-                    else -> bolusCancelBlockedReason(
-                        row = presentation.cancelRow,
-                        deliveryState = presentation.deliveryState,
-                        connected = isConnected,
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                TextButton(
+                    onClick = onCancel,
+                    enabled = cancelEnabled,
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                 ) {
-                    if (!secondary.isNullOrBlank()) {
-                        Text(
-                            text = secondary,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (presentation.cancelStatus == CancelStatus.FAILED) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    } else {
-                        Spacer(Modifier.weight(1f))
-                    }
-                    TextButton(
-                        onClick = {
-                            coordinator.performCancel(isConnected, sendPumpCommands)
-                            now = System.currentTimeMillis()
-                        },
-                        enabled = presentation.cancelEnabled,
-                    ) {
-                        Text(stringResource(R.string.bolus_v2_cancel_row))
-                    }
+                    Text(
+                        text = stringResource(
+                            if (extended) R.string.bolus_v2_cancel_extended
+                            else R.string.bolus_v2_cancel_immediate
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
                 }
             }
         }
+        if (cancelStatus == CancelStatus.FAILED) {
+            Text(
+                text = stringResource(R.string.bolus_v2_cancel_not_stopped),
+                modifier = Modifier.padding(start = 15.dp, end = 4.dp, bottom = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
+
+/**
+ * 这一笔是「普通」还是「扩展」，由会话身份决定，**不随当前在跑哪一段翻转**。
+ *
+ * 只按 `hasImmediateLeg` 判：
+ * - 普通大剂量（本 App 发出的 total > 0）恒为普通，即使立即段已经输完、正在等 -91；
+ * - 泵侧发起的纯方波恒为扩展。
+ *
+ * 旧写法 `|| immediateLegDoneAtMillis != null` 会让普通那笔在输完后变成「扩展正在输注」，
+ * 两笔并存时两行都显示扩展、两个按钮都叫「取消扩展」，用户无法分辨（2026-11-11 真机）。
+ */
+private fun BolusDelivery.isExtendedLeg(): Boolean = !hasImmediateLeg
+
+@Composable
+private fun legStatusText(delivery: BolusDelivery, extended: Boolean): String =
+    when (delivery.state) {
+        BolusDeliveryState.CANCELLING -> stringResource(
+            if (extended) R.string.bolus_v2_leg_extended_cancelling
+            else R.string.bolus_v2_leg_immediate_cancelling
+        )
+
+        BolusDeliveryState.UNKNOWN -> stringResource(
+            if (extended) R.string.bolus_v2_leg_extended_unknown
+            else R.string.bolus_v2_leg_immediate_unknown
+        )
+
+        else -> stringResource(
+            if (extended) R.string.bolus_v2_leg_extended_running
+            else R.string.bolus_v2_leg_immediate_running
+        )
+    }
+
+/** 主行状态点：颜色只做「一眼分辨」，语义仍由文字承担。 */
+@Composable
+private fun dotColor(delivery: BolusDelivery, cancelStatus: CancelStatus): Color = when {
+    cancelStatus == CancelStatus.FAILED || delivery.state == BolusDeliveryState.UNKNOWN ->
+        MaterialTheme.colorScheme.error
+
+    delivery.state == BolusDeliveryState.CANCELLING ->
+        MaterialTheme.colorScheme.tertiary
+
+    else -> MaterialTheme.colorScheme.primary
+}
+
+/** 细条只展示「进行中」的相位；已落定的结局由大剂量页段二展示。 */
+private fun BolusDelivery.isStripVisible(): Boolean =
+    !isFinished && state in setOf(
+        BolusDeliveryState.CONFIRMING,
+        BolusDeliveryState.UNCONFIRMED,
+        BolusDeliveryState.ACTIVE,
+        BolusDeliveryState.CANCELLING,
+        BolusDeliveryState.UNKNOWN,
+    )
 
 /** 取消三态的时间推进：与页面取消行一致，每秒刷新一次。 */
 private const val STRIP_TICK_MS = 1_000L
