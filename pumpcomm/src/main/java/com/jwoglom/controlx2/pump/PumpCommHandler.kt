@@ -20,7 +20,9 @@ import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.InitiateConfirmedBolusSerializer
 import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.util.extractPumpSid
+import com.pumppan.controlx2.query.PumpCommandPort
 import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.PumpReadOnlyQueries
 import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
@@ -87,6 +89,42 @@ class PumpCommHandler(
     private lateinit var tandemBTHandler: TandemBluetoothHandler
     var currentSession: PumpSession? = null
         internal set
+
+    /**
+     * 查询层收敛 · 唯一出口（进程内唯一实例，由本 handler 持有）。
+     *
+     * 只读请求在这里过「同 opCode 单飞」；控制 / 签名 / 取消类仍直发，
+     * 判定见 [PumpReadOnlyQueries]。发送器每次取当前 session，断连时返回 false。
+     */
+    private val queryPort: PumpCommandPort by lazy {
+        PumpCommandPort { _, messages ->
+            messages.firstOrNull()?.let { dispatchDirect(it) } ?: false
+        }
+    }
+
+    /**
+     * 真实下发（不含「发不发」的决定）。只读查询经端口调用它，直发路径也用它。
+     * 调用方需已完成 null / 无外设 / 断连 / 无会话 守卫；这里再兜一次 session。
+     */
+    private fun dispatchDirect(message: com.jwoglom.pumpx2.pump.messages.Message): Boolean {
+        val session = currentSession ?: return false
+        PumpQueryService.noteWireRequest(
+            opCode = message.opCode().toInt() and 0xFF,
+            simpleName = message.javaClass.simpleName,
+        )
+        Timber.i("Pump send command: $message")
+        DiagMonitor.onTx(message.javaClass.simpleName) // DIAG-TEMP
+        PumpQueryService.noteInFlight(true)
+        return try {
+            runBlocking { session.sendCommand(message) }
+            true
+        } catch (t: Throwable) {
+            Timber.w(t, "Pump send failed: $message")
+            false
+        } finally {
+            PumpQueryService.noteInFlight(false)
+        }
+    }
 
     private var historyLogFetcher: PumpHistoryLogFetcher? = null
     private var historyLogSyncWorker: PumpHistoryLogSyncWorker? = null
@@ -285,6 +323,8 @@ class PumpCommHandler(
         ) {
             message?.let {
                 DiagMonitor.onRx(it.javaClass.simpleName) // DIAG-TEMP
+                // 查询层收敛：响应到达 → 清除对应请求 opCode 的在飞状态
+                queryPort.onMessage(it)
                 // 查询层收敛 · 第 0 步：只读计数
                 PumpQueryService.noteLegacyReply(
                     topic = PumpTopic.fromResponseSimpleName(it.javaClass.simpleName),
@@ -618,20 +658,22 @@ class PumpCommHandler(
                 return
             }
 
-            // 第 1 步观测：走到这里才是真实下发（前面三个 return 属于空尝试，不计 opCode）
-            PumpQueryService.noteWireRequest(
-                // opCode() 是 signed Byte，转成 0..255 才与协议对照表一致（如 178 而不是 -78）
-                opCode = message.opCode().toInt() and 0xFF,
-                simpleName = message.javaClass.simpleName,
-            )
-            Timber.i("Pump send command: $message")
-            DiagMonitor.onTx(message.javaClass.simpleName) // DIAG-TEMP
-            PumpQueryService.noteInFlight(true)
-            try {
-                runBlocking { session.sendCommand(message) }
-            } finally {
-                PumpQueryService.noteInFlight(false)
+            // 只读查询：收进唯一出口（同 opCode 单飞去重）。
+            // 控制 / 签名 / 取消类仍直发，豁免清单见 PumpReadOnlyQueries。
+            if (PumpReadOnlyQueries.isReadOnly(message.javaClass.simpleName)) {
+                val result = queryPort.request(
+                    message = message,
+                    minIntervalMs = 0L,   // 页面查询不节流，避免挡住用户主动刷新；节流只给大剂量调度器
+                    timeoutMs = 10_000L,
+                )
+                if (!result.sent) {
+                    Timber.d("query suppressed: op=${result.opCode} reason=${result.reject}")
+                }
+                return
             }
+
+            // 第 1 步观测：走到这里才是真实下发（前面三个 return 属于空尝试，不计 opCode）
+            dispatchDirect(message)
         }
 
         override fun toString(): String {

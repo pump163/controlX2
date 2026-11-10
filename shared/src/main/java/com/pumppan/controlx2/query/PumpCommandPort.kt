@@ -9,7 +9,7 @@ import timber.log.Timber
  * 查询器唯一出口的发送器实现。由调用方注入（大剂量线注入 `MainActivity.sendPumpCommands`），
  * 协议与传输都不变，只是把「发不发」的决定权收到 [PumpCommandPort] 一处。
  */
-interface PumpRequestSender {
+fun interface PumpRequestSender {
     /** @return 是否真的下发；断连 / 服务未就绪时返回 false */
     fun send(type: SendType, messages: List<Message>): Boolean
 }
@@ -95,10 +95,20 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
         }
     }
 
-    /** 收到响应：对应 opCode 不再算在飞。 */
+    /**
+     * 收到响应：对应 opCode 不再算在飞。
+     *
+     * 响应对象自身的 opCode 未必等于请求 opCode，优先按「请求侧」取，
+     * 取不到再退回响应自身的 opCode。
+     */
     fun onMessage(message: Message) {
         try {
-            inFlightSince.remove(opCodeOf(message))
+            val requestOpCode = try {
+                message.getRequestProps()?.opCode?.toInt()?.and(0xFF)
+            } catch (_: Throwable) {
+                null
+            }
+            inFlightSince.remove(requestOpCode ?: opCodeOf(message))
         } catch (t: Throwable) {
             safeLog(t)
         }
