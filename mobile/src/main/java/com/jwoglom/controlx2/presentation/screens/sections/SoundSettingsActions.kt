@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -308,60 +309,74 @@ fun SoundSettingsActions(
                 }
 
                 item {
+                    // X2 不支持 SetPumpSoundsRequest：与储药器等只读页保持同一套置灰样式。
+                    val applyEnabled = canControl
+                    val applyTextColor = if (applyEnabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    }
                     ListItem(
-                        headlineContent = { Text(context.getString(R.string.sound_apply_sound_settings)) },
+                        headlineContent = {
+                            Text(
+                                context.getString(R.string.sound_apply_sound_settings),
+                                color = applyTextColor
+                            )
+                        },
                         supportingContent = {
                             val reasonModel = determinePumpModel(deviceName.value ?: "")
-                            if (!canControl && reasonModel != null) {
-                                Text(
-                                    stringResource(
-                                        R.string.pumppan_model_unsupported_setting,
-                                        pumpModelDisplayName(reasonModel)
-                                    )
+                            val supportingText = if (!applyEnabled && reasonModel != null) {
+                                stringResource(
+                                    R.string.pumppan_model_unsupported_setting,
+                                    pumpModelDisplayName(reasonModel)
                                 )
                             } else {
-                                Text(context.getString(R.string.sound_send_set_pump_sounds_request_withse))
+                                context.getString(R.string.sound_send_set_pump_sounds_request_withse)
                             }
+                            Text(supportingText, color = applyTextColor)
                         },
                         leadingContent = {
                             Icon(
                                 Icons.Filled.Settings,
-                                contentDescription = stringResource(R.string.sound_apply_sound_settings)
+                                contentDescription = stringResource(R.string.sound_apply_sound_settings),
+                                tint = applyTextColor
                             )
                         },
-                        modifier = Modifier.clickable(enabled = canControl) {
-                            if (!soundValuesValid) {
+                        modifier = Modifier
+                            .alpha(if (applyEnabled) 1f else 0.45f)
+                            .clickable(enabled = applyEnabled) {
+                                if (!soundValuesValid) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.sound_invalid_value),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    return@clickable
+                                }
+                                val message = SetPumpSoundsRequest(
+                                    quickBolusText.toInt(),
+                                    generalText.toInt(),
+                                    reminderText.toInt(),
+                                    alertText.toInt(),
+                                    alarmText.toInt(),
+                                    0, // CGM 警报 A 固定为 0（泵接口约定，逆向推断）
+                                    cgmBText.toInt(),
+                                    changeBitmask,
+                                )
+                                sendPumpCommands(SendType.STANDARD, listOf(message))
+                                cgmBBaseline = cgmBText
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.sound_invalid_value),
+                                    context.getString(R.string.sound_apply_sent),
                                     Toast.LENGTH_SHORT
                                 ).show()
-                                return@clickable
-                            }
-                            val message = SetPumpSoundsRequest(
-                                quickBolusText.toInt(),
-                                generalText.toInt(),
-                                reminderText.toInt(),
-                                alertText.toInt(),
-                                alarmText.toInt(),
-                                0, // CGM 警报 A 固定为 0（泵接口约定，逆向推断）
-                                cgmBText.toInt(),
-                                changeBitmask,
-                            )
-                            sendPumpCommands(SendType.STANDARD, listOf(message))
-                            cgmBBaseline = cgmBText
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.sound_apply_sent),
-                                Toast.LENGTH_SHORT
-                            ).show()
 
-                            refreshScope.launch {
-                                delay(500)
-                                refresh()
-                            }
+                                refreshScope.launch {
+                                    delay(500)
+                                    refresh()
+                                }
 
-                        }
+                            }
                     )
                 }
 
