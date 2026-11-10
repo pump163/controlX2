@@ -3,6 +3,9 @@ package com.pumppan.controlx2.query
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import timber.log.Timber
 
 /**
@@ -30,7 +33,11 @@ fun interface PumpRequestSender {
  *
  * 状态全在内存、纯同步、无定时器；异常一律吞掉并记日志，绝不阻断发送主路径。
  */
-class PumpCommandPort(private val sender: PumpRequestSender) {
+class PumpCommandPort(
+    private val sender: PumpRequestSender,
+    /** 超过这个时长没有任何响应，链路判为 SUSPECT。配置项 `states.linkSilentAfterMs` 的默认值。 */
+    private val linkSilentAfterMs: Long = 30_000L,
+) {
 
     enum class Reject {
         /** 同一 opCode 在飞且未超时 */
@@ -40,6 +47,35 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
         /** 发送器返回 false（断连等） */
         SEND_FAILED,
     }
+
+    /** 链路状态。惰性计算，不开线程、不设定时器。 */
+    enum class LinkState {
+        /** 最近有响应且在 linkSilentAfterMs 内 */
+        OK,
+        /** 连续发送失败 或 静默超时，此时应暂停周期域、只放行探活 */
+        SUSPECT,
+        /** 显式标记断开（连接状态 false / 通信挂起） */
+        DOWN,
+    }
+
+    /** 一次查询能拿到的数据状态。安全判定只接受 FRESH。 */
+    enum class SnapshotState { FRESH, STALE, UNKNOWN }
+
+    enum class UnknownReason {
+        /** 链路断开 */
+        DISCONNECTED,
+        /** 从未收到过该请求的响应 */
+        NEVER_RECEIVED,
+        /** 收到过，但已超出 staleMaxMs */
+        EXPIRED,
+    }
+
+    data class Snapshot(
+        val message: Message?,
+        val ageMs: Long?,
+        val state: SnapshotState,
+        val reason: UnknownReason? = null,
+    )
 
     data class Result(val sent: Boolean, val reject: Reject?, val opCode: Int)
 
@@ -54,6 +90,19 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
 
     /** opCode → 最近一次成功发送的时刻（节流判定）。节流按请求类共享，不分 cargo。 */
     private val lastSentAt = ConcurrentHashMap<Int, Long>()
+
+    /** 最近一次收到任何响应的时刻；0 表示还没收到过。 */
+    private val lastResponseAt = AtomicLong(0L)
+
+    /** 请求 opCode → 最近一次响应（只用于回答「有没有 / 多旧」，不参与调度）。 */
+    private val latestResponse = ConcurrentHashMap<Int, Message>()
+    private val latestResponseAt = ConcurrentHashMap<Int, Long>()
+
+    /** 显式标记的断开状态（连接状态 false / 通信挂起事件）。 */
+    private val linkDown = AtomicBoolean(false)
+
+    /** 连续发送失败次数；≥2 判 SUSPECT，收到响应清零。 */
+    private val consecutiveSendFailures = AtomicInteger(0)
 
     /** 供诊断/单测：某 opCode 是否在飞（该 opCode 下任一条），以及最近一次的时刻。 */
     fun inFlightSince(opCode: Int): Long? =
@@ -97,9 +146,13 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
             if (ok) {
                 inFlightSince[key] = now
                 lastSentAt[opCode] = now
+                consecutiveSendFailures.set(0)
+            } else {
+                consecutiveSendFailures.incrementAndGet()
             }
             Result(ok, if (ok) null else Reject.SEND_FAILED, opCode)
         } catch (t: Throwable) {
+            consecutiveSendFailures.incrementAndGet()
             safeLog(t)
             Result(false, Reject.SEND_FAILED, opCode)
         }
@@ -111,19 +164,74 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
      * 响应对象自身的 opCode 未必等于请求 opCode，优先按「请求侧」取，
      * 取不到再退回响应自身的 opCode。
      */
-    fun onMessage(message: Message) {
+    fun onMessage(message: Message, now: Long = System.currentTimeMillis()) {
         try {
             val requestOpCode = try {
                 message.getRequestProps()?.opCode?.toInt()?.and(0xFF)
             } catch (_: Throwable) {
                 null
             }
+            val key = requestOpCode ?: opCodeOf(message)
             // 响应侧拿不到「请求时的 cargo」，只能按 opCode 清掉该请求类的全部在飞。
             // 这是有意放宽：同 opCode 多个 cargo（如 ActiveAamBits 2/4）同时会被一起清，
             // 只削弱防重复强度，不会丢数据。
-            clearInFlight(requestOpCode ?: opCodeOf(message))
+            clearInFlight(key)
+
+            // 任何一条响应都说明链路活着；同时记下该请求类的数据年龄。
+            // 这里同时解除 markLinkDown：通信挂起后只要泵还有回包，就说明链路已恢复。
+            linkDown.set(false)
+            lastResponseAt.set(now)
+            latestResponse[key] = message
+            latestResponseAt[key] = now
+            consecutiveSendFailures.set(0)
         } catch (t: Throwable) {
             safeLog(t)
+        }
+    }
+
+    /** 当前链路状态。惰性计算，不开线程、不设定时器。 */
+    fun linkState(now: Long = System.currentTimeMillis()): LinkState {
+        if (linkDown.get()) return LinkState.DOWN
+        if (consecutiveSendFailures.get() >= 2) return LinkState.SUSPECT
+        val last = lastResponseAt.get()
+        if (last == 0L) return LinkState.SUSPECT
+        return if (now - last <= linkSilentAfterMs) LinkState.OK else LinkState.SUSPECT
+    }
+
+    /** 连接 false / 通信挂起：调度侧应停表，所有周期查询让路。 */
+    fun markLinkDown() {
+        linkDown.set(true)
+    }
+
+    /** 连接恢复：清掉断开与失败了计数，等待重连探活。 */
+    fun markLinkUp() {
+        linkDown.set(false)
+        consecutiveSendFailures.set(0)
+    }
+
+    /**
+     * 某请求类当前的数据状态。**安全判定只接受 FRESH**；STALE 与 UNKNOWN 一律按「不确定」处理。
+     *
+     * 只回答「有没有 / 多旧」，不解析业务字段；值仍由调用方从 `DataStore` 取。
+     */
+    fun snapshot(
+        opCode: Int,
+        freshMs: Long,
+        staleMaxMs: Long,
+        now: Long = System.currentTimeMillis(),
+    ): Snapshot {
+        if (linkState(now) == LinkState.DOWN) {
+            return Snapshot(latestResponse[opCode], null, SnapshotState.UNKNOWN, UnknownReason.DISCONNECTED)
+        }
+        val message = latestResponse[opCode]
+            ?: return Snapshot(null, null, SnapshotState.UNKNOWN, UnknownReason.NEVER_RECEIVED)
+        val at = latestResponseAt[opCode]
+            ?: return Snapshot(message, null, SnapshotState.UNKNOWN, UnknownReason.NEVER_RECEIVED)
+        val age = (now - at).coerceAtLeast(0L)
+        return when {
+            age <= freshMs -> Snapshot(message, age, SnapshotState.FRESH)
+            age <= staleMaxMs -> Snapshot(message, age, SnapshotState.STALE)
+            else -> Snapshot(message, age, SnapshotState.UNKNOWN, UnknownReason.EXPIRED)
         }
     }
 
@@ -145,6 +253,11 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
     fun reset() {
         inFlightSince.clear()
         lastSentAt.clear()
+        latestResponse.clear()
+        latestResponseAt.clear()
+        lastResponseAt.set(0L)
+        linkDown.set(false)
+        consecutiveSendFailures.set(0)
     }
 
     /** 协议 opCode 是 signed Byte，`and 0xFF` 后才能与对照表（44 / 46 / 182 …）一致。 */

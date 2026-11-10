@@ -23,6 +23,7 @@ import com.jwoglom.controlx2.shared.util.extractPumpSid
 import com.pumppan.controlx2.query.PumpCommandPort
 import com.pumppan.controlx2.query.PumpQueryService
 import com.pumppan.controlx2.query.PumpReadOnlyQueries
+import com.pumppan.controlx2.query.PumpRequestSender
 import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.TandemError
@@ -106,9 +107,11 @@ class PumpCommHandler(
      * 判定见 [PumpReadOnlyQueries]。发送器每次取当前 session，断连时返回 false。
      */
     private val queryPort: PumpCommandPort by lazy {
-        PumpCommandPort { _, messages ->
-            messages.firstOrNull()?.let { dispatchDirect(it) } ?: false
-        }
+        PumpCommandPort(
+            sender = PumpRequestSender { _, messages ->
+                messages.firstOrNull()?.let { dispatchDirect(it) } ?: false
+            },
+        )
     }
 
     /**
@@ -402,6 +405,7 @@ class PumpCommHandler(
             }
             if (events != null && QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED in events) {
                 Timber.w("onReceiveQualifyingEvent: PUMP_COMMUNICATIONS_SUSPENDED — pausing sends")
+                queryPort.markLinkDown()
                 currentSession?.pauseSends(currentSession?.rateLimitConfig?.commSuspendedPauseMs ?: 5_000)
             }
             events?.forEach { event ->
