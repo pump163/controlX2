@@ -62,7 +62,8 @@ object QueryPolicyLoader {
     // 解析
     // ------------------------------------------------------------------
 
-    private fun parse(text: String, loadedAtMillis: Long): QueryPolicy {
+    /** 供单测直接喂文本；生产路径只经 [initialize]。 */
+    internal fun parse(text: String, loadedAtMillis: Long): QueryPolicy {
         val root = JSONObject(text)
         val missing = mutableListOf<String>()
         val clamped = mutableListOf<String>()
@@ -93,7 +94,14 @@ object QueryPolicyLoader {
                 continue
             }
             val path = "default.topics.$name"
-            checkUnknownKeys(o, setOf("intervalMs", "minIntervalMs", "priority", "onlyWhenVisible", "maxWindowMs"), path, d)
+            checkUnknownKeys(
+                o,
+                setOf(
+                    "intervalMs", "minIntervalMs", "priority", "onlyWhenVisible", "maxWindowMs",
+                    "floorIntervalMs", "floorPriority",
+                ),
+                path, d,
+            )
 
             val interval = d.long(o, "intervalMs", base?.intervalMs ?: 60_000L, 1_000L, 3_600_000L, path)
             val minInterval = d.long(o, "minIntervalMs", base?.minIntervalMs ?: 1_000L, 1_000L, 3_600_000L, path)
@@ -101,11 +109,25 @@ object QueryPolicyLoader {
             val onlyWhenVisible = d.bool(o, "onlyWhenVisible", base?.onlyWhenVisible ?: true, path)
             val maxWindow = d.optLong(o, "maxWindowMs", base?.maxWindowMs, 1_000L, 180_000L, path)
 
+            // 保底档（schema v2）：floorIntervalMs 是「最长允许的空窗」，到期强制发。
+            val floorInterval = d.optLong(o, "floorIntervalMs", base?.floorIntervalMs, 1_000L, 3_600_000L, path)
+            val floorPriority = if (o.has("floorPriority") && !o.isNull("floorPriority")) {
+                d.string(o, "floorPriority", base?.floorPriority ?: priority, path)
+            } else {
+                base?.floorPriority
+            }
+
             if (priority !in PRIORITIES) {
                 rejected += "$path.priority:unknown($priority)"
             }
             if (minInterval > interval) {
                 clamped += "$path.minIntervalMs>intervalMs"
+            }
+            if (floorInterval != null && floorInterval > interval) {
+                clamped += "$path.floorIntervalMs>intervalMs"
+            }
+            if (floorPriority != null && floorPriority !in PRIORITIES) {
+                rejected += "$path.floorPriority:unknown($floorPriority)"
             }
             if (rejected.isEmpty()) {
                 topics[name] = TopicPolicy(
@@ -114,6 +136,8 @@ object QueryPolicyLoader {
                     priority = priority,
                     onlyWhenVisible = onlyWhenVisible,
                     maxWindowMs = maxWindow,
+                    floorIntervalMs = floorInterval,
+                    floorPriority = floorPriority,
                 )
             }
         }
@@ -151,14 +175,26 @@ object QueryPolicyLoader {
 
         // ---- budget ----
         val bObj = default.optJSONObject("budget") ?: JSONObject()
-        checkUnknownKeys(bObj, setOf("perMinute", "burst", "burstWindowMs", "degradeOrder"), "default.budget", d)
+        checkUnknownKeys(
+            bObj,
+            setOf("perMinute", "burst", "burstWindowMs", "degradeOrder", "protectPriority"),
+            "default.budget", d,
+        )
         val perMinute = d.int(bObj, "perMinute", DEFAULT_BUDGET.perMinute, 1, 60, "default.budget")
         val burst = d.int(bObj, "burst", DEFAULT_BUDGET.burst, 1, 240, "default.budget")
         val burstWindow = d.long(bObj, "burstWindowMs", DEFAULT_BUDGET.burstWindowMs, 10_000L, 300_000L, "default.budget")
         val degradeOrder = d.stringList(bObj, "degradeOrder", DEFAULT_BUDGET.degradeOrder, "default.budget")
+        val protectPriority = d.stringList(bObj, "protectPriority", DEFAULT_BUDGET.protectPriority, "default.budget")
         if (perMinute <= 0) rejected += "default.budget.perMinute:<=0"
-        if (degradeOrder.size != PRIORITIES.size || !degradeOrder.containsAll(PRIORITIES) || degradeOrder.last() != "P0_CONFIRM") {
-            rejected += "default.budget.degradeOrder:invalid(${degradeOrder.joinToString(",")})"
+        val badProtect = protectPriority.filter { it !in PRIORITIES }
+        if (badProtect.isNotEmpty()) {
+            rejected += "default.budget.protectPriority:unknown(${badProtect.joinToString(",")})"
+        }
+        // v2：degradeOrder 只列「可降级」项，不要求覆盖全部优先级；protected 的不能出现在里面，
+        // 否则配置读起来像「先降 P0」。
+        val badDegrade = degradeOrder.filter { it !in PRIORITIES || it in protectPriority }
+        if (badDegrade.isNotEmpty()) {
+            rejected += "default.budget.degradeOrder:invalid(${badDegrade.joinToString(",")})"
         }
 
         // ---- events ----
@@ -212,9 +248,12 @@ object QueryPolicyLoader {
 
         if (rejected.isNotEmpty()) throw PolicyRejectedException(rejected)
 
+        // ---- overlays（schema v2）----
+        val overlays = parseOverlays(root.optJSONObject("overlays"), unknown)
+
         // 顶层未知键
         for (k in root.keys()) {
-            if (k !in setOf("schemaVersion", "note", "default", "models")) unknown += "root.$k:unknown"
+            if (k !in setOf("schemaVersion", "note", "default", "models", "overlays")) unknown += "root.$k:unknown"
         }
         for (k in default.keys()) {
             if (k !in setOf("topics", "freshness", "states", "budget", "events", "reconnect", "switches")) {
@@ -244,8 +283,81 @@ object QueryPolicyLoader {
                 hardcodedPolicyFound = STATIC_HARDCODED_POLICY,
             ),
             applyPendingOn = emptyList(),
+            overlays = overlays,
         )
     }
+
+    /**
+     * 解析 `overlays`：byModel / byApiVersion / byState 三层。
+     *
+     * 只做结构读取与键校验；真正的合并顺序在 [PolicyResolver]。任何结构错误只记 unknown，
+     * 不整体拒绝——叠加层坏掉时退回只用 default，比让整份策略失效安全。
+     */
+    private fun parseOverlays(o: JSONObject?, unknown: MutableList<String>): PolicyOverlays {
+        if (o == null) return PolicyOverlays.empty()
+
+        val byModel = LinkedHashMap<String, Map<String, TopicPolicyOverride>>()
+        o.optJSONObject("byModel")?.let { models ->
+            for (model in models.keys().asSequence().toList()) {
+                val layer = models.optJSONObject(model) ?: continue
+                byModel[model] = parseOverrides(layer, "overlays.byModel.$model", unknown)
+            }
+        }
+
+        val byApiVersion = mutableListOf<ApiVersionOverlay>()
+        o.optJSONArray("byApiVersion")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val entry = arr.optJSONObject(i) ?: continue
+                val minApi = (entry.opt("minApi") as? Number)?.toInt() ?: continue
+                val layer = entry.optJSONObject("topics") ?: continue
+                byApiVersion += ApiVersionOverlay(minApi, parseOverrides(layer, "overlays.byApiVersion[$i]", unknown))
+            }
+        }
+
+        val byState = LinkedHashMap<String, Map<String, TopicPolicyOverride>>()
+        o.optJSONObject("byState")?.let { states ->
+            for (state in states.keys().asSequence().toList()) {
+                val layer = states.optJSONObject(state) ?: continue
+                byState[state] = parseOverrides(layer, "overlays.byState.$state", unknown)
+            }
+        }
+
+        return PolicyOverlays(byModel = byModel, byApiVersion = byApiVersion, byState = byState)
+    }
+
+    private fun parseOverrides(
+        layer: JSONObject,
+        path: String,
+        unknown: MutableList<String>,
+    ): Map<String, TopicPolicyOverride> {
+        val out = LinkedHashMap<String, TopicPolicyOverride>()
+        for (name in layer.keys().asSequence().toList()) {
+            val o = layer.optJSONObject(name)
+            if (o == null) {
+                unknown += "$path.$name:notObject"
+                continue
+            }
+            val p = "$path.$name"
+            for (k in o.keys()) {
+                if (k !in OVERRIDE_KEYS) unknown += "$p.$k:unknown"
+            }
+            out[name] = TopicPolicyOverride(
+                intervalMs = (o.opt("intervalMs") as? Number)?.toLong(),
+                floorIntervalMs = (o.opt("floorIntervalMs") as? Number)?.toLong(),
+                minIntervalMs = (o.opt("minIntervalMs") as? Number)?.toLong(),
+                priority = o.opt("priority") as? String,
+                onlyWhenVisible = o.opt("onlyWhenVisible") as? Boolean,
+                maxWindowMs = (o.opt("maxWindowMs") as? Number)?.toLong(),
+                enabled = o.opt("enabled") as? Boolean,
+            )
+        }
+        return out
+    }
+
+    private val OVERRIDE_KEYS = setOf(
+        "intervalMs", "floorIntervalMs", "minIntervalMs", "priority",
+        "onlyWhenVisible", "maxWindowMs", "enabled",
+    )
 
     private class Reader(
         val missing: MutableList<String>,
@@ -358,8 +470,15 @@ object QueryPolicyLoader {
     // 内建缺省（与 assets 同名同值；FALLBACK 与 asset 必须逐项相等）
     // ------------------------------------------------------------------
 
-    private fun topic(interval: Long, min: Long, priority: String, visible: Boolean, window: Long? = null) =
-        TopicPolicy(interval, min, priority, visible, window)
+    private fun topic(
+        interval: Long,
+        min: Long,
+        priority: String,
+        visible: Boolean,
+        window: Long? = null,
+        floor: Long? = null,
+        floorPriority: String? = null,
+    ) = TopicPolicy(interval, min, priority, visible, window, floor, floorPriority)
 
     val DEFAULT_TOPICS: Map<String, TopicPolicy> = linkedMapOf(
         "DASHBOARD_BATCH" to topic(60_000, 15_000, "P1_STATE", true),
@@ -375,6 +494,9 @@ object QueryPolicyLoader {
         "STATUS_BATCH" to topic(300_000, 60_000, "P1_STATE", false),
         "HISTORY" to topic(300_000, 60_000, "P2_DECORATIVE", false),
         "BOLUS_OUTCOME" to topic(1_000, 1_000, "P0_CONFIRM", false, 60_000),
+        // schema v2 起改按数据域：这两域先接入，页面批逐步迁走。
+        "PUMP_VITALS" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
+        "IOB" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
     )
 
     val DEFAULT_FRESHNESS = FreshnessPolicy(30_000, 180_000, 900_000)
@@ -389,7 +511,13 @@ object QueryPolicyLoader {
         extendedSessionPollMs = 300_000,
     )
 
-    val DEFAULT_BUDGET = BudgetPolicy(10, 20, 60_000, listOf("P2_DECORATIVE", "P1_STATE", "P0_CONFIRM"))
+    val DEFAULT_BUDGET = BudgetPolicy(
+        perMinute = 10,
+        burst = 20,
+        burstWindowMs = 60_000,
+        degradeOrder = listOf("P2_DECORATIVE", "P1_STATE"),
+        protectPriority = listOf("P0_FLOOR", "P0_CONFIRM"),
+    )
 
     val DEFAULT_EVENTS: Map<String, EventPolicy> = linkedMapOf(
         "IOB_CHANGE" to EventPolicy(listOf("DASHBOARD_BATCH"), 60_000),
@@ -402,7 +530,8 @@ object QueryPolicyLoader {
 
     val DEFAULT_SWITCHES = SwitchesPolicy(true, true, true, true)
 
-    private val PRIORITIES = setOf("P0_CONFIRM", "P1_STATE", "P2_DECORATIVE")
+    /** 优先级集合。P0_FLOOR 是保底档专用，只有带 floorIntervalMs 的域会用它。 */
+    private val PRIORITIES = setOf("P0_FLOOR", "P0_CONFIRM", "P1_STATE", "P2_DECORATIVE")
 
     /**
      * 静态清单：截至第 0 步仍硬编码在代码里的策略值（对应 §4.5.1 E1 / §10.1 D3）。
@@ -426,7 +555,7 @@ object QueryPolicyLoader {
     )
 
     private fun fallbackPolicy(loadedAtMillis: Long): QueryPolicy = QueryPolicy(
-        schemaVersion = 1,
+        schemaVersion = 2,
         source = PolicySource.FALLBACK,
         hash = "fallback",
         loadedAtMillis = loadedAtMillis,
@@ -481,6 +610,13 @@ object QueryPolicyLoader {
         diag.put("ignoredKeys", JSONArray(p.diagnostics.ignoredKeys))
         diag.put("rejected", JSONArray(p.diagnostics.rejected))
         diag.put("hardcodedPolicyFound", JSONArray(p.diagnostics.hardcodedPolicyFound))
+        val ov = JSONObject()
+        ov.put("byModel", JSONArray(p.overlays.byModel.keys.toList()))
+        val apiArr = JSONArray()
+        p.overlays.byApiVersion.forEach { apiArr.put(it.minApi) }
+        ov.put("byApiVersion", apiArr)
+        ov.put("byState", JSONArray(p.overlays.byState.keys.toList()))
+        json.put("overlays", ov)
         json.put("diagnostics", diag)
         return json
     }

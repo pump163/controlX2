@@ -10,6 +10,10 @@ package com.pumppan.controlx2.query
  * 也避免混淆器改名后编译期耦合。未知类一律归到 UNKNOWN，不抛异常。
  */
 enum class PumpTopic {
+    /** 数据域：电池 / 储药 / 胰岛素 / 复位时长。保底域，不受预算拒绝。 */
+    PUMP_VITALS,
+    /** 数据域：IOB（ControlIQ 与非 ControlIQ 两种请求等价互替）。 */
+    IOB,
     DASHBOARD_BATCH,
     NOTIFICATIONS,
     ACTIONS,
@@ -38,21 +42,23 @@ enum class PumpTopic {
             return when (simpleName) {
                 null -> UNKNOWN
 
-                // 周期状态批（CommService 5 分钟）；首页与子页也会问同一批数据
+                // 数据域 PUMP_VITALS：电池 / 储药 / 胰岛素 / 复位时长（保底域）
                 "CurrentBatteryRequest",
                 "CurrentBatteryV1Request",
                 "CurrentBatteryV2Request",
                 "InsulinStatusRequest",
+                "TimeSinceResetRequest" -> PUMP_VITALS
+
                 "HistoryLogStatusRequest",
                 "ControlIQInfoV1Request",
                 "ControlIQInfoV2Request",
-                "TimeSinceResetRequest",
-                // 连接握手时问一次泵的 API 版本，属状态域
+                // 连接握手时问一次泵的 API 版本
                 "ApiVersionRequest" -> STATUS_BATCH
 
                 // 首页 / 各页面共同依赖的当前状态
                 "ControlIQIOBRequest",
-                "NonControlIQIOBRequest",
+                "NonControlIQIOBRequest" -> IOB
+
                 "CurrentBasalStatusRequest",
                 "LastBolusStatusRequest",
                 "LastBolusStatusV2Request" -> DASHBOARD_BATCH
@@ -115,14 +121,16 @@ enum class PumpTopic {
                 "CurrentBatteryV1Response",
                 "CurrentBatteryV2Response",
                 "InsulinStatusResponse",
-                "HistoryLogStatusResponse",
+                "TimeSinceResetResponse" -> PUMP_VITALS
+
                 "ControlIQInfoV1Response",
                 "ControlIQInfoV2Response",
-                "TimeSinceResetResponse",
+                "HistoryLogStatusResponse",
                 "ApiVersionResponse" -> STATUS_BATCH
 
                 "ControlIQIOBResponse",
-                "NonControlIQIOBResponse",
+                "NonControlIQIOBResponse" -> IOB
+
                 "CurrentBasalStatusResponse",
                 "LastBolusStatusResponse",
                 "LastBolusStatusV2Response" -> DASHBOARD_BATCH

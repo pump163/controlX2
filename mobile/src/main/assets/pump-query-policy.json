@@ -1,8 +1,10 @@
 {
-  "schemaVersion": 1,
-  "note": "查询策略：频率 / 阈值 / 状态门控 / 预算 / 事件冷却 / 重连序列。能力判定不在本文件（见 pump-capabilities.json）。第 0 步仅登记，不接任何消费者。",
+  "schemaVersion": 2,
+  "note": "查询策略：频率 / 保底 / 阈值 / 状态门控 / 预算 / 事件冷却 / 重连序列。能力判定不在本文件（见 pump-capabilities.json）。v2 起主题单位是数据域，页面只订阅；PUMP_VITALS 与 IOB 已接入，其余页面批逐步迁走。overlays 留空的维度表示暂不按该维度区分。",
   "default": {
     "topics": {
+      "PUMP_VITALS":     { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
+      "IOB":             { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
       "DASHBOARD_BATCH": { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "NOTIFICATIONS":   { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "ACTIONS":         { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
@@ -35,16 +37,17 @@
       "perMinute": 10,
       "burst": 20,
       "burstWindowMs": 60000,
-      "degradeOrder": ["P2_DECORATIVE", "P1_STATE", "P0_CONFIRM"]
+      "protectPriority": ["P0_FLOOR", "P0_CONFIRM"],
+      "degradeOrder": ["P2_DECORATIVE", "P1_STATE"]
     },
     "events": {
-      "IOB_CHANGE":    { "topics": ["DASHBOARD_BATCH"], "cooldownMs": 60000 },
-      "BOLUS_CHANGE":  { "topics": ["DASHBOARD_BATCH", "ACTIONS"], "cooldownMs": 5000 },
+      "IOB_CHANGE":    { "topics": ["IOB", "DASHBOARD_BATCH"], "cooldownMs": 60000 },
+      "BOLUS_CHANGE":  { "topics": ["BOLUS_OUTCOME", "ACTIONS"], "cooldownMs": 5000 },
       "CGM_CHANGE":    { "topics": ["CGM"], "cooldownMs": 5000 },
       "ALERT_CHANGE":  { "topics": ["NOTIFICATIONS"], "cooldownMs": 5000 }
     },
     "reconnect": {
-      "probeTopics": ["STATUS_BATCH"],
+      "probeTopics": ["PUMP_VITALS"],
       "probeDelayMs": 3000,
       "probeTimeoutMs": 15000,
       "batchAfterProbeMs": 5000,
@@ -55,6 +58,13 @@
       "pageRefreshEnabled": true,
       "backfillEnabled": true,
       "eventDrivenEnabled": true
+    }
+  },
+  "overlays": {
+    "byModel": {},
+    "byApiVersion": [],
+    "byState": {
+      "delivering": { "BOLUS_OUTCOME": { "intervalMs": 1000, "minIntervalMs": 1000 } }
     }
   }
 }
