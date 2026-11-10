@@ -38,12 +38,13 @@
 2. **状态闩锁修复已编译进包**（2026-11-10）：`BolusReconciler.finish()` else → `UNCONFIRMED`；`BolusSessionController.onCurrentBolusEmpty` 对 `UNKNOWN` 收空证据 → 自愈 `IDLE`。release 已出包并 `adb install -r`（`buildVersion=ce437f54`）。
 3. **查询层切片 0 已收口**：`PumpTopic` 映射补全，`UNKNOWN` 65% → **0%**；NOTIFICATIONS 从不可达变为最大单一消费者。
 4. **通知链路全链路实测通过**（2026-11-09）：大剂量超时触发 → 泵推 `[ALERT, HOME_SCREEN_CHANGE]` → `AlertStatusResponse[INCOMPLETE_BOLUS_ALERT]` → 通知页 `Notifications fetched` → 泵上取消 → 通知页消失。
-5. **推送已完成**：15 条历史 + `ce437f54` 已推 `i18n-origin/pumppan`。
+5. **推送已完成**：15 条历史 + `ce437f54` + `39e3c2c5` 已推 `i18n-origin/pumppan`。
 6. 五步真机测试（`0/0/0` 干跑 → `0.05U` 立即 → 方波 0:100 → `-96` 取消 → 双波 50:50，合计 ≤0.5U）**已在 2026-11-08 第四轮完成**（`950ef9eb`）：v2 发送路径连打两笔 0.05U、第二笔取消，确认非旧弹窗兜底。剩余疑点见 #59–#64。
 
 #### 其余待办
 
 1. **大剂量 v2 剩余代码**：① 通知改造（补 `setContentIntent`、正文开始/结束时间、`maxRequests=60` 跟随延后段时长；约 3 文件 40–50 行）；② #61 剂量校验三态（空/非法/合法，挂在字段值上，已定案待实现）；③ #64 横幅重构为泵输注状态视图（两层模型、可见性规则、待验两项）。**已完成**：第 2 页三按钮 + 自动命名预设、入口状态机 `phaseToPage`、三段式页、`BolusStatusStrip` 底栏细条。
+   **2026-11-10 新增**：第二步校验统一（`isImmediateLegLive` / `BolusForm.validate(delivery)` / `ACTIVE` 分流 /「扩展」开关禁用 / 顶部常驻提示）；P0 延展判定改用结束证据（`expectedEnd` 只作展示）+ `46` 补证按大剂量页可见性门控；细条改两级取消并补「被覆盖的延展段」提示（`priorExtended`）。**仍未做**：细条「预计结束/剩余量」（用户暂缓，蓝牙断连吞数据）、多笔两行分别取消（结构性改造，见 `docs/feature/细条-多笔并存-评估与待办.md`）。
 2. **大剂量批次 A 状态**：S0–S6 全部完成，`-98` 生产通道**已于 2026-11-06 真机送达**（泵回 `-97` 拒绝，非发送层丢弃，见 WORKLOG §95）；2026-11-08 第四轮真机确认 v2 发送路径可连打两笔 0.05U 并可取消。批次 B（向导）已落地 IOB 口径与结果页交接；批次 C（定时大剂量提醒）仅登记、不设计（§5.1）。
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
 4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
