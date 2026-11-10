@@ -127,6 +127,15 @@ class BolusEntryCoordinator(
 
     private var coldStartReconciled = false
 
+    /**
+     * 「大剂量」页是否在前台（含大剂量 / 向导 / 预设标签与流程页）。
+     *
+     * 只门控延展补证（`46` 轮询）：页面不开时不做无谓取证，避免加重 BLE 通信负担。
+     * 立即段的 `44` 取证不受此门控 —— 细条与通知依赖它保持新鲜。
+     */
+    @Volatile
+    var bolusPageVisible: Boolean = false
+
     /** 主 ticker：确认阶梯、延展兜底、查询调度都由它推进；无活跃会话时自动退出。 */
     private var tickerJob: Job? = null
 
@@ -364,7 +373,12 @@ class BolusEntryCoordinator(
 
                     controller.onTick(now)
                     if (wasReconciling) reconciler.onTick()
-                    scheduler.tick(controller.session, isPumpConnected(), now)
+                    scheduler.tick(
+                        controller.session,
+                        isPumpConnected(),
+                        now,
+                        extendedPollAllowed = bolusPageVisible,
+                    )
 
                     val changed = controller.session != before || wasReconciling
                     if (changed) {

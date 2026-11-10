@@ -333,8 +333,9 @@
     <string name="debug_clears_saved_debug_logs">Clears the saved debug log files.</string>
     <string name="debug_empty_database">Empty local database</string>
     <string name="debug_remove_all_saved_history_logs_sqlite">Removes all history records from the local database.</string>
-    <string name="debug_disable_qualifying_event_toasts">Disable Qualifying Event Toasts</string>
-    <string name="debug_enable_qualifying_event_toasts">Enable Qualifying Event Toasts</string>
+    <!-- pumppan: label states the tap action, matching the zh-rCN wording -->
+    <string name="debug_disable_qualifying_event_toasts">Tap to disable qualifying event toasts</string>
+    <string name="debug_enable_qualifying_event_toasts">Tap to enable qualifying event toasts</string>
     <string name="debug_toast_on_qualifying_events">Show toast notifications when CommService receives qualifying events.</string>
     <string name="debug_disable_http_debug_api">Disable HTTP Debug API</string>
     <string name="debug_enable_http_debug_api">Enable HTTP Debug API</string>
@@ -539,6 +540,14 @@
     <string name="bolus_v2_banner_cancelling">Cancelling bolus — waiting for the pump…</string>
     <string name="bolus_v2_banner_unknown">Bolus state unknown (connection lost)</string>
     <string name="bolus_v2_confirm_in_progress">A bolus is already in progress on the pump. You can still continue; the pump may reject it.</string>
+    <!-- pumppan: immediate leg still running → no new bolus of any shape -->
+    <string name="bolus_v2_error_immediate_leg_running">The immediate part of the previous bolus has not finished.</string>
+    <!-- pumppan: extended leg running → immediate bolus only; dual/square must be reverted -->
+    <string name="bolus_v2_error_extended_running">An extended bolus is running. Only an immediate bolus can be started; turn off Extended to continue.</string>
+    <!-- pumppan: persistent hint at the top of the flow while the extended leg runs -->
+    <string name="bolus_v2_ongoing_extended">Extended bolus in progress; only an immediate bolus can be started.</string>
+    <string name="bolus_v2_prior_extended">Another extended bolus is still running</string>
+    <string name="bolus_v2_prior_extended_with_end">Another extended bolus is still running, expected to end at %1$s</string>
     <string name="bolus_v2_notif_channel_name">Bolus progress (V2)</string>
     <string name="bolus_v2_notif_channel_description">Silent progress updates for an active bolus</string>
     <string name="bolus_v2_notif_cancel_confirm_title">Cancel bolus?</string>
@@ -1112,8 +1121,9 @@
     <string name="safety_limits_back_to">Back to %1$s</string>
     <string name="sound_back_to">Back to %1$s</string>
     <string name="app_cannot_get_bluetooth_manager">cannot get BluetoothManager</string>
-    <string name="dashboard_dashboard">Dashboard</string>
-    <string name="dashboard_notifications">Notifications</string>
+    <!-- pumppan 定制：导航栏英文缩写（原 Dashboard / Notifications），只影响底栏与图标无障碍描述 -->
+    <string name="dashboard_dashboard">Home</string>
+    <string name="dashboard_notifications">Notifs</string>
     <string name="dashboard_actions">Actions</string>
     <string name="dashboard_profiles">Profiles</string>
     <string name="dashboard_settings">Settings</string>

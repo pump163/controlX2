@@ -103,16 +103,19 @@ data class BolusFlowState(
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
         ciqVersion: CiqVersion? = null,
-    ): List<BolusValidationError> = BolusForm.validate(draft(), ciqEnabled, limits, ciqVersion)
+        delivery: BolusDelivery? = null,
+    ): List<BolusValidationError> =
+        BolusForm.validate(draft(), ciqEnabled, limits, ciqVersion, delivery)
 
     /** 前进一格；剂量步骤校验不过则原地返回错误，不推进。 */
     fun advance(
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
         ciqVersion: CiqVersion? = null,
+        delivery: BolusDelivery? = null,
     ): BolusAdvance = when (step) {
         BolusFlowStep.SHAPE -> {
-            val errors = validationErrors(ciqEnabled, limits, ciqVersion)
+            val errors = validationErrors(ciqEnabled, limits, ciqVersion, delivery)
             if (errors.isEmpty()) BolusAdvance.Ok(copy(step = BolusFlowStep.CONFIRM))
             else BolusAdvance.Invalid(errors)
         }

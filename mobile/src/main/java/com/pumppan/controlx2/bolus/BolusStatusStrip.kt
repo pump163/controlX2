@@ -1,7 +1,9 @@
 package com.pumppan.controlx2.bolus
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,10 +26,12 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.shared.util.SendType
+import com.jwoglom.controlx2.shared.util.shortTime24
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.pumppan.controlx2.bolus.state.CancelStatus
 import com.pumppan.controlx2.bolus.state.presentBolusStatus
 import kotlinx.coroutines.delay
+import java.time.Instant
 
 /**
  * 底栏常驻细条（设计定案：**任何页面都能一键取消**的唯一常驻入口）。
@@ -36,7 +40,10 @@ import kotlinx.coroutines.delay
  * - 显隐：只在会话「进行中」出现；无会话 / 已落定即消失（结局由大剂量页段二展示）。
  * - 抑制：`Landing` 在大剂量页（`BOLUS_V2`）不渲染本组件 —— 该页段二自带取消，
  *   避免同屏出现两个取消入口。
- * - 数据：与首页卡片 / 段二共用 [presentBolusStatus] 的同一份派生，只做单行布局。
+ * - 数据：与首页卡片 / 段二共用 [presentBolusStatus] 的同一份派生。
+ * - 交互：**两级确认** —— 点整条才露出「取消」按钮，再点按钮才真正发 `-96`；
+ *   取消在途 / 失败时自动展开，进度与失败原因必须可见。取消是最高级别动作，但不该为误触买单。
+ * - 结构：外层用 `Column`，单笔时视觉与单行一致，将来多笔并存可直接叠行。
  */
 @Composable
 fun BolusStatusStrip(
@@ -70,6 +77,18 @@ fun BolusStatusStrip(
         now = now,
         holder = coordinator.holder,
     )
+    // 两级确认：默认只显示状态，点整条才展开取消按钮。
+    // 这两句必须在 `isOngoing` 提前返回之前，保证 composable 的 slot 结构稳定。
+    var expanded by remember { mutableStateOf(false) }
+    LaunchedEffect(presentation.cancelStatus) {
+        // 取消在途 / 失败时强制展开：进度和失败原因不能被收起掩掉。
+        if (presentation.cancelStatus != CancelStatus.IDLE) expanded = true
+    }
+    LaunchedEffect(delivery?.bolusId) {
+        // 换了一笔会话就收回按钮，避免误点到上一笔的取消。
+        expanded = false
+    }
+
     if (!presentation.isOngoing) return
 
     Surface(
@@ -78,21 +97,40 @@ fun BolusStatusStrip(
         shadowElevation = 4.dp,
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
+        // 外层 Column：单笔时视觉与单行一致，将来多笔并存可直接叠行。
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp)
+                .clickable(enabled = presentation.cancelStatus != CancelStatus.SENDING) {
+                    expanded = !expanded
+                }
                 .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
+            Text(
+                text = bolusStatusText(presentation),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // 单会话补偿：新会话覆盖掉的那笔延展只留一行提示（不参与取消，见 holder.priorExtended）。
+            val prior = coordinator.holder.priorExtended
+            if (prior != null) {
+                val endText = prior.expectedEndAtMillis?.let { shortTime24(Instant.ofEpochMilli(it)) }
                 Text(
-                    text = bolusStatusText(presentation),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text = if (endText != null) {
+                        stringResource(R.string.bolus_v2_prior_extended_with_end, endText)
+                    } else {
+                        stringResource(R.string.bolus_v2_prior_extended)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            if (expanded) {
                 val secondary = when {
                     presentation.cancelStatus == CancelStatus.FAILED ->
                         stringResource(R.string.bolus_v2_cancel_not_stopped)
@@ -106,28 +144,36 @@ fun BolusStatusStrip(
                         connected = isConnected,
                     )
                 }
-                if (!secondary.isNullOrBlank()) {
-                    Text(
-                        text = secondary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (presentation.cancelStatus == CancelStatus.FAILED) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!secondary.isNullOrBlank()) {
+                        Text(
+                            text = secondary,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (presentation.cancelStatus == CancelStatus.FAILED) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
+                    TextButton(
+                        onClick = {
+                            coordinator.performCancel(isConnected, sendPumpCommands)
+                            now = System.currentTimeMillis()
                         },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                        enabled = presentation.cancelEnabled,
+                    ) {
+                        Text(stringResource(R.string.bolus_v2_cancel_row))
+                    }
                 }
-            }
-            TextButton(
-                onClick = {
-                    coordinator.performCancel(isConnected, sendPumpCommands)
-                    now = System.currentTimeMillis()
-                },
-                enabled = presentation.cancelEnabled,
-            ) {
-                Text(stringResource(R.string.bolus_v2_cancel_row))
             }
         }
     }

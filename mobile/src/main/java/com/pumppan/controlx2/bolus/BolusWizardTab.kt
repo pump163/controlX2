@@ -295,6 +295,17 @@ fun BolusWizardTab(
             }
         }
 
+        // 延展大剂量在输注：泵只接受立即大剂量，在页面顶部常驻提示。
+        // 与「大剂量」流程页同一条文案，避免同一约束出现两种说法。
+        if (extendedBolusActive == true) {
+            Text(
+                text = stringResource(R.string.bolus_v2_ongoing_extended),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            )
+        }
+
         if (wizard.step == BolusWizardStep.INPUT) {
             WizardInputPage(
                 carbsText = wizard.carbsText,

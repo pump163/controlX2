@@ -12,7 +12,8 @@ import timber.log.Timber
  * 规则：
  * - **同一 opCode 只允许一个请求在飞**；超时才允许重发；10 秒内问过的不重复发。
  * - 立即段：每 [immediatePollIntervalMs] 查一次 `44`（当前大剂量状态）。
- * - 延展段：连接时由 [BolusReconciler] 对账一次，运行期每 [extendedPollIntervalMs] 用 `46` 兜底。
+ * - 延展段：连接时由 [BolusReconciler] 对账一次，运行期每 [extendedPollIntervalMs] 用 `46` 兜底；
+ *   补证只在「大剂量」页开着时进行（由调用方传入 `extendedPollAllowed`），页面不开时不发。
  * - 纯方波（无立即段）不发 `44`（延展的 `45` 全程为零，没有信息量）。
  * - 确认阶梯期间（CONFIRMING / UNCONFIRMED）用立即段间隔取证据；落到 UNKNOWN 后停止。
  *
@@ -56,9 +57,16 @@ class BolusPollScheduler(
     /**
      * 由协调器 ticker 每秒调用。未连接时只清超时窗口，不发请求。
      *
+     * @param extendedPollAllowed 是否允许发延展补证（`46`）。只有「大剂量」页开着时才为 true：
+     *   页面不开时不做无谓取证，避免加重 BLE 通信负担；立即段的 `44` 不受此门控。
      * @return 是否本次真的发出了请求（供单测/诊断）。
      */
-    fun tick(delivery: BolusDelivery?, connected: Boolean, now: Long): Boolean {
+    fun tick(
+        delivery: BolusDelivery?,
+        connected: Boolean,
+        now: Long,
+        extendedPollAllowed: Boolean = true,
+    ): Boolean {
         if (delivery == null || delivery.isFinished) {
             currentInFlightAt = null
             extendedInFlightAt = null
@@ -86,7 +94,7 @@ class BolusPollScheduler(
             }
         }
 
-        if (needsExtendedPoll(delivery)) {
+        if (needsExtendedPoll(delivery, extendedPollAllowed)) {
             // 确认阶段还没证明「已经开始」，用立即段间隔拿 46 证据；进入 ACTIVE 后回到 5 分钟兜底。
             val interval = if (delivery.state == BolusDeliveryState.ACTIVE) {
                 extendedPollIntervalMs
@@ -120,9 +128,19 @@ class BolusPollScheduler(
         else -> false
     }
 
-    private fun needsExtendedPoll(delivery: BolusDelivery): Boolean {
-        if (delivery.expectedEndAtMillis == null) return false
+    private fun needsExtendedPoll(delivery: BolusDelivery, allowed: Boolean): Boolean {
+        if (!allowed) return false
         if (delivery.endObservedAtMillis != null) return false
+        // 只有「可能存在延展段」才需要 46 兜底：纯方波，或立即段已结束（双波的延展腿）。
+        // 不能因 expectedEndAtMillis 为 null 就停轮询 —— 泵发起的延展常拿不到预计结束时刻，
+        // 一旦停轮询就永远等不到 46 归零的结束证据，状态会一直挂在 ACTIVE。
+        // 普通（NORMAL）大剂量：有立即段且尚未归零，没有延展腿，不发 46。
+        if (delivery.hasImmediateLeg &&
+            delivery.immediateLegDoneAtMillis == null &&
+            delivery.expectedEndAtMillis == null
+        ) {
+            return false
+        }
         return when (delivery.state) {
             BolusDeliveryState.CONFIRMING,
             BolusDeliveryState.UNCONFIRMED,

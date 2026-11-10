@@ -1,6 +1,7 @@
 package com.pumppan.controlx2.bolus.state
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -130,5 +131,65 @@ class BolusSessionHolderTest {
         holder.clear()
         assertEquals(BolusActivity.IDLE, holder.isAnyBolusActive(connected = true))
         assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
+    }
+
+    @Test
+    fun begin_overwritingExtendedOnlySession_keepsPriorSnapshot() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 42,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        // 双波立即段结束、延展段仍在跑：泵允许再发起立即大剂量，旧会话会被覆盖。
+        holder.update(now) { it.copy(immediateLegDoneAtMillis = now) }
+        assertTrue(holder.session!!.isExtendedRunning)
+
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 43,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        assertEquals(42, holder.priorExtended?.bolusId)
+        assertEquals(43, holder.session?.bolusId)
+    }
+
+    @Test
+    fun begin_sameIdRecovery_doesNotReportSecondSession() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 42,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        holder.update(now) { it.copy(immediateLegDoneAtMillis = now) }
+        // 对账 / 同笔恢复用同一个 id 重开：不能误报「另有一笔延展」。
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 42,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        assertNull(holder.priorExtended)
+    }
+
+    @Test
+    fun clear_dropsPriorSnapshot() {
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 42,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        holder.update(now) { it.copy(immediateLegDoneAtMillis = now) }
+        holder.begin(
+            state = BolusDeliveryState.ACTIVE,
+            bolusId = 43,
+            expectedEndAtMillis = now + 60_000,
+            now = now,
+        )
+        holder.clear()
+        assertNull(holder.priorExtended)
     }
 }

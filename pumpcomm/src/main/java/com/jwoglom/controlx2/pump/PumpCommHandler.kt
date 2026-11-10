@@ -552,8 +552,10 @@ class PumpCommHandler(
             callbacks.pumpCommState.lastTimeSinceReset = null
             callbacks.pumpCommState.debugPromptResponseCounts.clear()
             isConnected = false
+            // pumppan: peripheral/name 在启动阶段或已释放后可能为 null；
+            // 原来用 `peripheral?.name!!` 会抛 NPE，导致紧随其后的通知更新与 Toast 一起被跳过。
             callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_PUMP_DISCONNECTED,
-                peripheral?.name!!.toByteArray()
+                (peripheral?.name ?: "").toByteArray()
             )
             callbacks.markConnectionTime()
             callbacks.updateNotification(callbacks.getApplicationContext()
@@ -732,8 +734,9 @@ class PumpCommHandler(
             }
             CommServiceCodes.CHECK_PUMP_CONNECTED.ordinal -> {
                 if (pumpConnectedPrecondition()) {
+                    // pumppan: 与 onPumpDisconnected 同因，lastPeripheral/name 可能为 null，避免 NPE
                     callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_PUMP_CONNECTED,
-                        pump.lastPeripheral?.name!!.toByteArray()
+                        (pump.lastPeripheral?.name ?: "").toByteArray()
                     )
                 }
             }

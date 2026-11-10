@@ -11,6 +11,12 @@ enum class BolusValidationError {
     LATER_REQUIRED,
     DURATION_OUT_OF_RANGE,
     SHAPE_INCONSISTENT,
+
+    /** 立即段仍在输注：任何形态的新大剂量都不允许（泵不接受）。 */
+    IMMEDIATE_LEG_RUNNING,
+
+    /** 延展段在跑：只允许立即大剂量；双波 / 方波必须改回普通形态。 */
+    EXTENDED_RUNNING_REQUIRES_NORMAL,
 }
 
 data class BolusSplit(
@@ -65,8 +71,27 @@ object BolusForm {
         ciqEnabled: Boolean?,
         limits: BolusLimits = BolusLimits.Default,
         ciqVersion: CiqVersion? = null,
+        /**
+         * 当前输注会话；null 表示调用方不在流程内（预设编辑等纯数值校验），不施加运行中约束。
+         */
+        delivery: BolusDelivery? = null,
     ): List<BolusValidationError> {
         val errors = mutableListOf<BolusValidationError>()
+
+        // 泵的运行中约束（与型号能力无关，任何型号都一样）：
+        // - 立即段在打 → 任何形态都不能发起；
+        // - 只剩延展段在跑 → 只能发起立即大剂量，双波 / 方波必须打回改形态。
+        // 放在最前并 early return：此时后面的剂量规则已无意义，只留一条最相关的错误。
+        if (delivery != null) {
+            if (delivery.isImmediateLegLive) {
+                errors += BolusValidationError.IMMEDIATE_LEG_RUNNING
+                return errors
+            }
+            if (delivery.isExtendedRunning && draft.shape != BolusShape.NORMAL) {
+                errors += BolusValidationError.EXTENDED_RUNNING_REQUIRES_NORMAL
+                return errors
+            }
+        }
 
         if (draft.nowMilliunits < 0 || draft.laterMilliunits < 0 || draft.extendedSeconds < 0) {
             errors += BolusValidationError.NEGATIVE_AMOUNT

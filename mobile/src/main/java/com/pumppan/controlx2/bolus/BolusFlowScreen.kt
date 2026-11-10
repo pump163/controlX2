@@ -101,8 +101,11 @@ fun BolusFlowScreen(
             else -> null
         }
     }
+    // 当前输注会话（泵真相层，含泵上发起的那一笔）：
+    // 第二步校验必须区分「立即段在打」与「只剩延展段在跑」，两种情形的允许范围不同。
+    val runningDelivery = BolusRuntime.coordinator?.sessionState?.value
     val errors = if (state.step == BolusFlowStep.SHAPE) {
-        state.validationErrors(ciqEnabled, limits, ciqVersion)
+        state.validationErrors(ciqEnabled, limits, ciqVersion, runningDelivery)
     } else {
         emptyList()
     }
@@ -121,17 +124,24 @@ fun BolusFlowScreen(
     }
     val scope = rememberCoroutineScope()
 
-    // 确认页兜底：正常路径进不来，但通知跳转 / 草稿恢复等入口可能带着延展形状直接落到确认页。
-    // 与「应用」用同一个能力函数；拦下时清掉延展段（不并入立即段），退回输入页并提示。
-    val extendedBlocked = state.shape != BolusShape.NORMAL && !limits.canStartRemoteExtended()
+    // 确认页兜底：正常路径进不来，但通知跳转 / 草稿恢复 / 预设等入口可能带着延展形状直接落到确认页。
+    // 两种原因分开提示：型号不支持远程延展；或延展大剂量正在输注（此时只允许立即大剂量）。
+    val extendedRunningNow = runningDelivery?.isExtendedRunning == true
+    val extendedBlocked =
+        state.shape != BolusShape.NORMAL && (extendedRunningNow || !limits.canStartRemoteExtended())
     LaunchedEffect(state.step, extendedBlocked) {
         if (state.step == BolusFlowStep.CONFIRM && extendedBlocked) {
-            val modelName = limits.modelDisplayName ?: context.getString(R.string.bolus_v2_current_model)
-            Toast.makeText(
-                context,
-                context.getString(R.string.bolus_v2_extended_unsupported_model, modelNameInSentence(modelName)),
-                Toast.LENGTH_LONG,
-            ).show()
+            val message = if (extendedRunningNow) {
+                context.getString(R.string.bolus_v2_error_extended_running)
+            } else {
+                val modelName = limits.modelDisplayName
+                    ?: context.getString(R.string.bolus_v2_current_model)
+                context.getString(
+                    R.string.bolus_v2_extended_unsupported_model,
+                    modelNameInSentence(modelName),
+                )
+            }
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             onStateChange(
                 state.copy(
                     step = BolusFlowStep.SHAPE,
@@ -245,7 +255,7 @@ fun BolusFlowScreen(
                 TextButton(
                     onClick = {
                         smallImmediateConfirm = false
-                        when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
+                        when (val result = state.advance(ciqEnabled, limits, ciqVersion, runningDelivery)) {
                             is BolusAdvance.Ok -> onStateChange(result.state)
                             is BolusAdvance.Invalid -> Unit
                         }
@@ -284,6 +294,16 @@ fun BolusFlowScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
+            // 延展段在输注期间，流程页顶部常驻一行提示：本次只能发立即大剂量。
+            // SHAPE 步不重复（开关下方已有一句，紧邻禁用控件更能解释原因）。
+            if (state.step != BolusFlowStep.SHAPE && runningDelivery?.isExtendedRunning == true) {
+                Text(
+                    text = stringResource(R.string.bolus_v2_ongoing_extended),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             // 输入/确认/结局每一屏顶部都保留同一行提醒（确认页是最后一次拦人的位置）。
             LastBolusReminder(
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -308,6 +328,8 @@ fun BolusFlowScreen(
                     limits = limits,
                     ciqVersion = ciqVersion,
                     onChange = onStateChange,
+                    // 延展大剂量在输注时直接禁用「扩展」开关：泵只接受立即大剂量。
+                    extendedBlockedByRunning = extendedRunningNow,
                 )
 
                 BolusFlowStep.CONFIRM -> BolusConfirmPanel(
@@ -332,7 +354,7 @@ fun BolusFlowScreen(
             BolusFlowStep.SHAPE -> {
                 // §4.6.7：三枚按钮（返回 / 「+」存预设 / 下一步），固定在页面底部。
                 val canSavePreset =
-                    errors.isEmpty() && state.advance(ciqEnabled, limits, ciqVersion) is BolusAdvance.Ok
+                    errors.isEmpty() && state.advance(ciqEnabled, limits, ciqVersion, runningDelivery) is BolusAdvance.Ok
                 BolusBottomBar {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onExit, modifier = Modifier.weight(1f)) {
@@ -366,7 +388,7 @@ fun BolusFlowScreen(
                                 if (needsSmallImmediateConfirm(state)) {
                                     smallImmediateConfirm = true
                                 } else {
-                                    when (val result = state.advance(ciqEnabled, limits, ciqVersion)) {
+                                    when (val result = state.advance(ciqEnabled, limits, ciqVersion, runningDelivery)) {
                                         is BolusAdvance.Ok -> onStateChange(result.state)
                                         is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
                                     }

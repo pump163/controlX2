@@ -55,6 +55,16 @@ class BolusSessionHolder(
     var session: BolusDelivery? = null
         private set
 
+    /**
+     * 被新会话覆盖掉、且覆盖时「只剩延展段在跑」的那一笔（只读快照）。
+     *
+     * 单会话模型下细条只能显示最新一笔；保留这份快照只为让细条补一行提示，
+     * 避免用户误以为延展已经结束。**不参与取消**：没有独立的 `bolusId` 路由、
+     * 取消节流与三态，直接拿它发 `-96` 会污染当前会话的取消状态。
+     */
+    var priorExtended: BolusDelivery? = null
+        private set
+
     /** 会话快照每次变更后回调；持久化层在这里做「仅状态跃迁」过滤。 */
     var onSessionChanged: ((BolusDelivery?) -> Unit)? = null
 
@@ -77,6 +87,13 @@ class BolusSessionHolder(
         expectedEndAtMillis: Long? = null,
         now: Long = clock(),
     ) {
+        // 覆盖前留一份「只剩延展」的只读快照，供细条提示还有一笔在跑；
+        // 每次 begin 都重置，避免上一笔的旧提示长期挂着。
+        // 只有「新 id 且与旧 id 不同」才算被覆盖：对账 / 无 id 的同笔恢复不能误报第二笔。
+        val previous = session
+        priorExtended = previous
+            ?.takeIf { !it.isFinished && it.isExtendedRunning }
+            ?.takeIf { bolusId != null && it.bolusId != bolusId }
         session = BolusDelivery(
             state = state,
             bolusId = bolusId,
@@ -107,6 +124,7 @@ class BolusSessionHolder(
 
     fun clear() {
         session = null
+        priorExtended = null
         reconciling = false
         cancelAttempts.clear()
         lastCancelAtMillis = 0L
@@ -116,6 +134,7 @@ class BolusSessionHolder(
     /** 只清会话，保留对账标记：对账期间的消息不能把「对账中」提前结束。 */
     fun clearSession() {
         session = null
+        priorExtended = null
         onSessionChanged?.invoke(null)
     }
 

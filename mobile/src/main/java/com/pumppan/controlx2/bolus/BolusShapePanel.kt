@@ -73,6 +73,12 @@ fun BolusShapePanel(
      * 预设编辑传入 false：只存数值、不预设泵型号，X2 上也能编辑方波/双波/百分比条目。
      */
     respectModelCapabilities: Boolean = true,
+    /**
+     * 有延展大剂量正在输注：禁用「扩展」开关并说明原因。
+     * 泵的约束是「延展进行中只能再发起立即大剂量」，所以这里直接不给选，而不是填完再打回。
+     * 预设编辑不传（保持可编辑），只看型号能力。
+     */
+    extendedBlockedByRunning: Boolean = false,
 ) {
     val context = LocalContext.current
     val prefs = remember { Prefs(context) }
@@ -117,6 +123,8 @@ fun BolusShapePanel(
 
         Spacer(Modifier.height(12.dp))
 
+        // 「扩展」开关同时受两条约束：型号是否支持远程延展、延展大剂量是否正在输注。
+        val switchEnabled = extendedSupported && !extendedBlockedByRunning
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
@@ -124,7 +132,7 @@ fun BolusShapePanel(
             Text(
                 text = stringResource(R.string.bolus_v2_extended_toggle),
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (extendedSupported) {
+                color = if (switchEnabled) {
                     MaterialTheme.colorScheme.onSurface
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -133,8 +141,18 @@ fun BolusShapePanel(
             )
             Switch(
                 checked = extended,
-                enabled = extendedSupported,
-                onCheckedChange = { if (extendedSupported) onChange(state.withExtended(it, limits)) },
+                enabled = switchEnabled,
+                onCheckedChange = { if (switchEnabled) onChange(state.withExtended(it, limits)) },
+            )
+        }
+
+        // 延展在跑时的原因说明：与「型号不支持」并列，两者互斥（延展在跑必然说明支持）。
+        if (extendedBlockedByRunning) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = stringResource(R.string.bolus_v2_ongoing_extended),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -367,6 +385,10 @@ internal fun errorText(
             BolusForm.maxExtendedSeconds(ciqEnabled, limits, ciqVersion) / 60,
         )
     BolusValidationError.SHAPE_INCONSISTENT -> stringResource(R.string.bolus_v2_error_shape)
+    BolusValidationError.IMMEDIATE_LEG_RUNNING ->
+        stringResource(R.string.bolus_v2_error_immediate_leg_running)
+    BolusValidationError.EXTENDED_RUNNING_REQUIRES_NORMAL ->
+        stringResource(R.string.bolus_v2_error_extended_running)
 }
 
 /** 数值字段：模型存整型 milliunits，输入按配置的步进量化，显示位数随步进自适应。 */

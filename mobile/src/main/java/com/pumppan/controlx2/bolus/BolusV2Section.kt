@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,6 +93,14 @@ fun BolusV2Section(
     val delivery = BolusRuntime.coordinator?.sessionState?.value
     val outcome = BolusRuntime.coordinator?.outcomeState?.value ?: BolusOutcome.Pending
     val page = deliveryToPage(delivery, outcome)
+
+    // 延展结束补证（46 轮询）只在「大剂量」页开着时进行；离开即停，
+    // 避免在首页 / 通知页等位置做无谓取证，加重 BLE 通信负担。立即段的 44 不受此门控。
+    val coordinator = BolusRuntime.coordinator
+    DisposableEffect(coordinator) {
+        coordinator?.bolusPageVisible = true
+        onDispose { coordinator?.bolusPageVisible = false }
+    }
 
     // 相位非 DRAFT 时收回流程页并销毁草稿（§4.7）；进行中的输注由状态机页面照常展示，不清会话。
     // 向导来源的草稿被收回 = 已成功发送：向导输入随之清空（跨标签保留到此结束）。
@@ -187,8 +196,9 @@ fun BolusV2Section(
                             session = session,
                             limits = limits,
                             profile = profile,
-                            // 是否允许把结果交给确认页：与「大剂量」页新增入口同一判定（[allowsNewFlow]），
-                            // 只看泵状态推出的页面相位 —— DONE（已完成 / 已取消）允许，不再误报「尚未结束」。
+                            // 是否允许把结果交给确认页：与「大剂量」页新增入口同一判定（[allowsNewFlow]）。
+                            // DONE（已完成 / 已取消）允许；DRAFT 除空闲外还包含「立即段已结束、只剩延展段在跑」——
+                            // 泵接受此时再发起立即大剂量，形态限制由流程第二步的校验统一把关。
                             canStartFlow = page.allowsNewFlow(),
                             onSessionChange = { session = it },
                             sendPumpCommands = sendPumpCommands,
@@ -285,8 +295,10 @@ private fun BolusTabPage(
             holder = BolusRuntime.coordinator?.holder,
         )
         StateDescription(status)
-        // 硬约束：只有空闲（DRAFT）/ 已完成（DONE）才允许进输入页；任何进行中的相位
-        // （申请中 / 已确认 / 输注中 / 取消中 / 状态未知）都不给入口，也不允许程序性进入。
+        // 硬约束：只有空闲（DRAFT）/ 已完成（DONE）才允许进输入页；进行中的相位
+        // （立即段在输注 / 申请中 / 取消中 / 状态未知）不给入口，也不允许程序性进入。
+        // DRAFT 还包含「立即段已结束、只剩延展段在跑」：泵允许此时再发起立即大剂量，
+        // 但双波 / 方波会被流程第二步打回（见 BolusForm.validate）。
         // 与向导标签的 canStartFlow 共用 [allowsNewFlow]，两边不再各写一套判定。
         val startFlow = {
             if (page.allowsNewFlow()) {
