@@ -43,14 +43,23 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
 
     data class Result(val sent: Boolean, val reject: Reject?, val opCode: Int)
 
-    /** opCode → 最近一次成功发送的时刻（在飞 + 超时判定）。 */
-    private val inFlightSince = ConcurrentHashMap<Int, Long>()
+    /**
+     * 单飞键 → 最近一次成功发送的时刻（在飞 + 超时判定）。
+     *
+     * 键 = opCode（高 32 位）+ cargo 摘要（低 32 位）。只用 opCode 会把
+     * `ActiveAamBitsRequest`（opCode 固定 -110，cargo 分别是 2 与 4）的两个请求
+     * 当成同一条，第二条被误判 IN_FLIGHT 而丢数据（2026-11-10 真机发现）。
+     */
+    private val inFlightSince = ConcurrentHashMap<Long, Long>()
 
-    /** opCode → 最近一次成功发送的时刻（节流判定）。 */
+    /** opCode → 最近一次成功发送的时刻（节流判定）。节流按请求类共享，不分 cargo。 */
     private val lastSentAt = ConcurrentHashMap<Int, Long>()
 
-    /** 供诊断/单测：某 opCode 是否在飞，以及从何时起。 */
-    fun inFlightSince(opCode: Int): Long? = inFlightSince[opCode]
+    /** 供诊断/单测：某 opCode 是否在飞（该 opCode 下任一条），以及最近一次的时刻。 */
+    fun inFlightSince(opCode: Int): Long? =
+        inFlightSince.entries
+            .filter { opCodeOfKey(it.key) == opCode }
+            .maxOfOrNull { it.value }
 
     /** 供诊断/单测：某 opCode 最近一次成功发送的时刻。 */
     fun lastSentAt(opCode: Int): Long? = lastSentAt[opCode]
@@ -70,12 +79,13 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
         now: Long = System.currentTimeMillis(),
     ): Result {
         val opCode = opCodeOf(message)
+        val key = queryKey(message)
         return try {
-            val since = inFlightSince[opCode]
+            val since = inFlightSince[key]
             if (since != null) {
                 if (now - since < timeoutMs) return Result(false, Reject.IN_FLIGHT, opCode)
                 // 超时 = 丢包，允许重发；不清 lastSentAt，节流窗口仍独立生效。
-                inFlightSince.remove(opCode)
+                inFlightSince.remove(key)
             }
 
             val last = lastSentAt[opCode]
@@ -85,7 +95,7 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
 
             val ok = sender.send(type, listOf(message))
             if (ok) {
-                inFlightSince[opCode] = now
+                inFlightSince[key] = now
                 lastSentAt[opCode] = now
             }
             Result(ok, if (ok) null else Reject.SEND_FAILED, opCode)
@@ -108,20 +118,27 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
             } catch (_: Throwable) {
                 null
             }
-            inFlightSince.remove(requestOpCode ?: opCodeOf(message))
+            // 响应侧拿不到「请求时的 cargo」，只能按 opCode 清掉该请求类的全部在飞。
+            // 这是有意放宽：同 opCode 多个 cargo（如 ActiveAamBits 2/4）同时会被一起清，
+            // 只削弱防重复强度，不会丢数据。
+            clearInFlight(requestOpCode ?: opCodeOf(message))
         } catch (t: Throwable) {
             safeLog(t)
         }
     }
 
+    /** 清掉某 opCode 下的全部在飞（键含 cargo，所以要按 opCode 扫描）。 */
     fun clearInFlight(opCode: Int) {
-        inFlightSince.remove(opCode)
+        val it = inFlightSince.entries.iterator()
+        while (it.hasNext()) {
+            if (opCodeOfKey(it.next().key) == opCode) it.remove()
+        }
     }
 
     /** 把某 opCode 的节流起点设为 now（新会话 / 对账结束后压制立刻重发）。 */
     fun markThrottle(opCode: Int, now: Long) {
         lastSentAt[opCode] = now
-        inFlightSince.remove(opCode)
+        clearInFlight(opCode)
     }
 
     /** 全清（单测 / 会话切换）。 */
@@ -132,6 +149,32 @@ class PumpCommandPort(private val sender: PumpRequestSender) {
 
     /** 协议 opCode 是 signed Byte，`and 0xFF` 后才能与对照表（44 / 46 / 182 …）一致。 */
     private fun opCodeOf(message: Message): Int = message.opCode().toInt() and 0xFF
+
+    /** 单飞键：opCode 放高 32 位，cargo 摘要放低 32 位。 */
+    private fun queryKey(message: Message): Long {
+        val op = opCodeOf(message).toLong()
+        return (op shl 32) or (cargoDigest(message) and 0xFFFFFFFFL)
+    }
+
+    private fun opCodeOfKey(key: Long): Int = (key ushr 32).toInt() and 0xFF
+
+    /**
+     * cargo 摘要：同 opCode 下用 cargo 区分不同子请求。
+     *
+     * 目前只有 `ActiveAamBitsRequest` 需要（opCode 恒为 -110，cargo 是 2 或 4）。
+     * cargo 为空或取不到时返回 0，等价于旧的「只看 opCode」，不会改变其他请求的行为。
+     */
+    private fun cargoDigest(message: Message): Long {
+        val cargo = try {
+            message.cargo
+        } catch (_: Throwable) {
+            null
+        } ?: return 0L
+        if (cargo.isEmpty()) return 0L
+        var h = 1125899906842597L
+        for (b in cargo) h = h * 31 + b.toLong()
+        return h
+    }
 
     private fun safeLog(t: Throwable) {
         try {
