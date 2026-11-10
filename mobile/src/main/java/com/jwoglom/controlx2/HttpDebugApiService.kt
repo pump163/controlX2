@@ -12,6 +12,7 @@ import com.jwoglom.controlx2.shared.diag.DiagMonitor // DIAG-TEMP
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.util.AppVersionInfo
 import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
 import com.pumppan.controlx2.query.QueryPolicyLoader
 import com.jwoglom.pumpx2.pump.TandemError
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -1369,6 +1370,25 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 counters.put("maxInFlight", snap.maxInFlight)
                 root.put("counters", counters)
                 root.put("policy", QueryPolicyLoader.buildJson(QueryPolicyLoader.current()))
+                // 协调器段：只有真的挂了实例才输出，避免把「有类没人调」误读成「在跑」
+                QueryCoordinatorHolder.current()?.let { coordinator ->
+                    val coordinatorJson = JSONObject()
+                    coordinatorJson.put("mode", coordinator.modeName())
+                    coordinatorJson.put("nextDueIn", mapToJson(coordinator.nextDueIn()))
+                    val plans = JSONArray()
+                    coordinator.recentPlans().takeLast(10).forEach { plan ->
+                        val p = JSONObject()
+                        p.put("at", plan.atMillis)
+                        p.put("domains", JSONArray(plan.domains))
+                        p.put("requests", plan.requestCount)
+                        p.put("sent", plan.sent)
+                        p.put("rejected", plan.rejected)
+                        p.put("mode", plan.mode.name)
+                        plans.put(p)
+                    }
+                    coordinatorJson.put("recentPlans", plans)
+                    root.put("coordinator", coordinatorJson)
+                }
                 root.put("observedEngine", "LEGACY")
             } catch (t: Throwable) {
                 root.put("error", t.javaClass.simpleName)
