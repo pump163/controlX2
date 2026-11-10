@@ -30,17 +30,25 @@ class QueryPolicyLoaderTest {
     }
 
     @Test
-    fun pumpVitalsAndIobCarryFloor() {
+    fun dashboardResidentFieldsCarryFloor() {
         val policy = loadAsset()
 
-        val vitals = policy.topics.getValue("PUMP_VITALS")
-        val iob = policy.topics.getValue("IOB")
+        // 首页最小显示状态里常驻的字段：电池/储药、IOB、血糖、基础率、上次大剂量、CIQ。
+        // 这些「屏蔽不屏蔽都在」的字段必须有保底，否则页面一降级就看不到。
+        val resident = listOf("PUMP_VITALS", "IOB", "BASAL", "BOLUS_LAST", "CGM", "CONTROL_IQ")
 
-        assertEquals(60_000L, vitals.floorIntervalMs)
-        assertEquals("P0_FLOOR", vitals.floorPriority)
-        assertEquals(60_000L, vitals.effectiveIntervalMs())
-        assertEquals(60_000L, iob.floorIntervalMs)
-        assertTrue(vitals.hasFloor() && iob.hasFloor())
+        resident.forEach { domain ->
+            val topic = policy.topics.getValue(domain)
+            assertTrue("$domain missing floor", topic.hasFloor())
+            assertEquals("$domain floor priority", "P0_FLOOR", topic.floorPriority)
+            assertTrue("$domain must not depend on visibility", !topic.onlyWhenVisible)
+        }
+
+        // 高频三域 60 秒；血糖与 CIQ 允许低频，但保底仍是「最长空窗」
+        assertEquals(60_000L, policy.topics.getValue("PUMP_VITALS").effectiveIntervalMs())
+        assertEquals(60_000L, policy.topics.getValue("BASAL").effectiveIntervalMs())
+        assertEquals(300_000L, policy.topics.getValue("CGM").effectiveIntervalMs())
+        assertEquals(300_000L, policy.topics.getValue("CONTROL_IQ").effectiveIntervalMs())
     }
 
     @Test

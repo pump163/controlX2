@@ -486,17 +486,19 @@ object QueryPolicyLoader {
         "ACTIONS" to topic(60_000, 15_000, "P1_STATE", true),
         "CARTRIDGE" to topic(60_000, 15_000, "P1_STATE", true),
         "PROFILE" to topic(60_000, 15_000, "P1_STATE", true),
-        "CONTROL_IQ" to topic(60_000, 15_000, "P1_STATE", true),
+        "CONTROL_IQ" to topic(300_000, 15_000, "P1_STATE", false, null, 300_000, "P0_FLOOR"),
         "SAFETY_LIMITS" to topic(60_000, 15_000, "P1_STATE", true),
         "PUMP_GLOBALS" to topic(60_000, 15_000, "P1_STATE", true),
-        "CGM" to topic(60_000, 15_000, "P1_STATE", true),
+        "CGM" to topic(300_000, 15_000, "P1_STATE", false, null, 300_000, "P0_FLOOR"),
         "HOME_MIRROR" to topic(60_000, 15_000, "P2_DECORATIVE", true),
         "STATUS_BATCH" to topic(300_000, 60_000, "P1_STATE", false),
         "HISTORY" to topic(300_000, 60_000, "P2_DECORATIVE", false),
         "BOLUS_OUTCOME" to topic(1_000, 1_000, "P0_CONFIRM", false, 60_000),
-        // schema v2 起改按数据域：这两域先接入，页面批逐步迁走。
+        // schema v2 起改按数据域：首页常驻字段全部带保底，页面批逐步迁走。
         "PUMP_VITALS" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
         "IOB" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
+        "BASAL" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
+        "BOLUS_LAST" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
     )
 
     val DEFAULT_FRESHNESS = FreshnessPolicy(30_000, 180_000, 900_000)

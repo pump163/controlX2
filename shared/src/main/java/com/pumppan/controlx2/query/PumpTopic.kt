@@ -14,6 +14,10 @@ enum class PumpTopic {
     PUMP_VITALS,
     /** 数据域：IOB（ControlIQ 与非 ControlIQ 两种请求等价互替）。 */
     IOB,
+    /** 数据域：当前基础率。首页常驻，保底。 */
+    BASAL,
+    /** 数据域：上一次大剂量。首页常驻，保底。 */
+    BOLUS_LAST,
     DASHBOARD_BATCH,
     NOTIFICATIONS,
     ACTIONS,
@@ -50,18 +54,20 @@ enum class PumpTopic {
                 "TimeSinceResetRequest" -> PUMP_VITALS
 
                 "HistoryLogStatusRequest",
-                "ControlIQInfoV1Request",
-                "ControlIQInfoV2Request",
                 // 连接握手时问一次泵的 API 版本
                 "ApiVersionRequest" -> STATUS_BATCH
+
+                // CIQ 状态（首页常驻，保底）
+                "ControlIQInfoV1Request",
+                "ControlIQInfoV2Request" -> CONTROL_IQ
 
                 // 首页 / 各页面共同依赖的当前状态
                 "ControlIQIOBRequest",
                 "NonControlIQIOBRequest" -> IOB
 
-                "CurrentBasalStatusRequest",
+                "CurrentBasalStatusRequest" -> BASAL
                 "LastBolusStatusRequest",
-                "LastBolusStatusV2Request" -> DASHBOARD_BATCH
+                "LastBolusStatusV2Request" -> BOLUS_LAST
 
                 // 历史回补
                 "HistoryLogRequest" -> HISTORY
@@ -123,17 +129,18 @@ enum class PumpTopic {
                 "InsulinStatusResponse",
                 "TimeSinceResetResponse" -> PUMP_VITALS
 
-                "ControlIQInfoV1Response",
-                "ControlIQInfoV2Response",
                 "HistoryLogStatusResponse",
                 "ApiVersionResponse" -> STATUS_BATCH
+
+                "ControlIQInfoV1Response",
+                "ControlIQInfoV2Response" -> CONTROL_IQ
 
                 "ControlIQIOBResponse",
                 "NonControlIQIOBResponse" -> IOB
 
-                "CurrentBasalStatusResponse",
+                "CurrentBasalStatusResponse" -> BASAL
                 "LastBolusStatusResponse",
-                "LastBolusStatusV2Response" -> DASHBOARD_BATCH
+                "LastBolusStatusV2Response" -> BOLUS_LAST
 
                 "HistoryLogResponse",
                 "HistoryLogStreamResponse" -> HISTORY

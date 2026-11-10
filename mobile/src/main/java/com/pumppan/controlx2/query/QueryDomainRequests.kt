@@ -1,13 +1,17 @@
 package com.pumppan.controlx2.query
 
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQIOBRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBasalStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentEGVGuiDataRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
 
@@ -32,6 +36,21 @@ object QueryDomainRequests {
 
         // IOB：X2 上两种请求可互替，先固定用 ControlIQ 版
         "IOB" -> listOf(ControlIQIOBRequest())
+
+        // 当前基础率：首页常驻卡片，保底
+        "BASAL" -> listOf(CurrentBasalStatusRequest())
+
+        // 上一次大剂量：首页常驻卡片，保底
+        "BOLUS_LAST" -> listOf(LastBolusStatusRequest())
+
+        // 血糖：CGM 会话/传感器状态 + EGV 图形值
+        "CGM" -> listOf(
+            CGMStatusRequest(),
+            CurrentEGVGuiDataRequest(),
+        )
+
+        // CIQ 状态：闭环开关与当前工作态；频率可低，但不能不查
+        "CONTROL_IQ" -> listOf(ControlIQInfoV2Request())
 
         // 运行态：暂停 / 运动 / 睡眠 / 临时基础率 / 闭环状态都在这一批里
         "PUMP_STATE" -> listOf(
