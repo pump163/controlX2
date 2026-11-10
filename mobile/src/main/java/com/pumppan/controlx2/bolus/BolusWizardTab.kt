@@ -55,6 +55,8 @@ import com.pumppan.controlx2.bolus.state.BolusSource
 import com.pumppan.controlx2.bolus.state.BolusTabSession
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 import com.pumppan.controlx2.bolus.state.WizardConfig
+import com.pumppan.controlx2.query.QueryDomainRequests
+import com.pumppan.controlx2.bolus.wizard.BolusInfusionCheck
 import com.pumppan.controlx2.bolus.wizard.BolusWizardCalculator
 import com.pumppan.controlx2.bolus.wizard.BolusWizardGlucose
 import com.pumppan.controlx2.bolus.wizard.BolusWizardRuntime
@@ -131,17 +133,11 @@ fun BolusWizardTab(
     val fireQuery: () -> Unit = {
         val stamp = System.currentTimeMillis()
         BolusWizardRuntime.update { it.withFetchStamp(stamp) }
+        // 只声明「要这个一次性任务」，请求清单集中在 QueryDomainRequests.BOLUS_PRECHECK；
+        // 此后增减请求只改那一处，向导不用跟着动。
         sendPumpCommands(
             SendType.BUST_CACHE,
-            listOf(
-                BolusCalcDataSnapshotRequest(),
-                CurrentEGVGuiDataRequest(),
-                // IOB 必须真向泵要一次，且只认 ControlIQIOBResponse。
-                ControlIQIOBRequest(),
-                // 输注状态同样走泵真相层：`45` 判大剂量正在输注，`47` 判延展进行中。
-                CurrentBolusStatusRequest(),
-                ExtendedBolusStatusRequest(),
-            ),
+            QueryDomainRequests.forDomain(QueryDomainRequests.BOLUS_PRECHECK),
         )
     }
 
@@ -187,6 +183,12 @@ fun BolusWizardTab(
     val activityFresh = queryAt > 0L &&
         bolusStatusAt != null && bolusStatusAt!! >= queryAt &&
         extendedBolusAt != null && extendedBolusAt!! >= queryAt
+    // 三态：false 既可能是「确认没有」，也可能是「这次没问明白」，必须分开。
+    val infusionCheck = BolusInfusionCheck.evaluate(
+        freshQuery = activityFresh,
+        bolusDelivering = bolusDelivering == true,
+        extendedBolusActive = extendedBolusActive == true,
+    )
     val infusionVeto = snapshot.iobUnavailable == WizardIobUnavailableReason.INFUSION_ACTIVITY
 
     // 按「计算」时若手上不是本次查询的 IOB，就先发查询，等读数回来再算。
@@ -295,11 +297,16 @@ fun BolusWizardTab(
             }
         }
 
-        // 延展大剂量在输注：泵只接受立即大剂量，在页面顶部常驻提示。
-        // 与「大剂量」流程页同一条文案，避免同一约束出现两种说法。
-        if (extendedBolusActive == true) {
+        // 在跑的大剂量 / 状态不明：两者都必须挡住向导，但说法不同。
+        // 「没问明白」不能说成「有延展在跑」，否则用户会以为泵上真的有东西。
+        val infusionWarning = when (infusionCheck) {
+            BolusInfusionCheck.DELIVERING -> R.string.bolus_v2_ongoing_extended
+            BolusInfusionCheck.UNKNOWN -> R.string.bolus_v2_infusion_unknown
+            BolusInfusionCheck.NONE -> null
+        }
+        if (infusionWarning != null) {
             Text(
-                text = stringResource(R.string.bolus_v2_ongoing_extended),
+                text = stringResource(infusionWarning),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),

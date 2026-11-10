@@ -540,6 +540,7 @@
     <string name="bolus_v2_error_extended_running">延展大剂量正在输注，只能输注立即大剂量。请关闭“扩展大剂量”后再继续。</string>
     <!-- pumppan: 流程页顶部常驻提示（延展段在跑） -->
     <string name="bolus_v2_ongoing_extended">延展大剂量正在输注；本次只能发起立即大剂量。</string>
+    <string name="bolus_v2_infusion_unknown">无法确认泵上的输注状态，请稍后重试。</string>
     <!-- pumppan: 细条第二行 —— 被新会话覆盖掉的延展段（单会话补偿，仅提示、不参与取消） -->
     <string name="bolus_v2_prior_extended">另有一笔延展大剂量在输注</string>
     <string name="bolus_v2_prior_extended_with_end">另有一笔延展大剂量在输注，预计 %1$s 结束</string>

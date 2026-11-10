@@ -1,6 +1,7 @@
 package com.pumppan.controlx2.query
 
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BolusCalcDataSnapshotRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQIOBRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQInfoV2Request
@@ -24,6 +25,9 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequ
  * 只登记**只读**请求；控制 / 签名 / 取消类不进这张表（它们必须独立下发）。
  */
 object QueryDomainRequests {
+
+    /** 一次性任务：大剂量前置检查（参数 + 血糖 + IOB + 两种在跑的大剂量）。 */
+    const val BOLUS_PRECHECK = "BOLUS_PRECHECK"
 
     /** 未登记的域返回空列表；协调器会跳过空域，不会「发了个空包」。 */
     fun forDomain(domain: String): List<Message> = when (domain) {
@@ -57,6 +61,16 @@ object QueryDomainRequests {
             HomeScreenMirrorRequest(),
             ControlIQInfoV2Request(),
             TempRateRequest(),
+        )
+
+        // 一次性任务：大剂量前置检查。向导只声明「要这个任务」，
+        // 具体请求清单留在这里，页面不再自己列。
+        BOLUS_PRECHECK -> listOf(
+            BolusCalcDataSnapshotRequest(),
+            CurrentEGVGuiDataRequest(),
+            ControlIQIOBRequest(),
+            CurrentBolusStatusRequest(),
+            ExtendedBolusStatusRequest(),
         )
 
         // 在运行的大剂量：立即大剂量与延展大剂量各一条

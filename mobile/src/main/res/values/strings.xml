@@ -546,6 +546,7 @@
     <string name="bolus_v2_error_extended_running">An extended bolus is running. Only an immediate bolus can be started; turn off Extended to continue.</string>
     <!-- pumppan: persistent hint at the top of the flow while the extended leg runs -->
     <string name="bolus_v2_ongoing_extended">Extended bolus in progress; only an immediate bolus can be started.</string>
+    <string name="bolus_v2_infusion_unknown">Cannot confirm the pump\'s delivery state. Try again in a moment.</string>
     <string name="bolus_v2_prior_extended">Another extended bolus is still running</string>
     <string name="bolus_v2_prior_extended_with_end">Another extended bolus is still running, expected to end at %1$s</string>
     <string name="bolus_v2_notif_channel_name">Bolus progress (V2)</string>
