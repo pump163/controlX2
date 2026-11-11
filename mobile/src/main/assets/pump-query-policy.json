@@ -28,7 +28,7 @@
     },
     "states": {
       "connectedSettleMs": 8000,
-      "linkSilentAfterMs": 30000,
+      "linkSilentAfterMs": 90000,
       "visibilityDebounceMs": 1000,
       "skipCgmTopicWhenSessionStopped": true,
       "skipCiqTopicsWhenClosedLoopOff": true,
@@ -50,10 +50,10 @@
     },
     "reconnect": {
       "probeTopics": ["PUMP_VITALS"],
-      "probeDelayMs": 3000,
-      "probeTimeoutMs": 15000,
+      "probeDelayMs": 1000,
+      "probeTimeoutMs": 5000,
       "batchAfterProbeMs": 5000,
-      "maxBatchAtOnce": 2
+      "maxBatchAtOnce": 3
     },
     "switches": {
       "periodicEnabled": true,
