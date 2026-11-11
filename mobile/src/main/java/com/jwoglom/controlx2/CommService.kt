@@ -29,7 +29,12 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.controlx2.pump.BleChangeReceiver
 import com.jwoglom.controlx2.pump.BolusManager
 import com.pumppan.controlx2.query.PumpQueryService
+import com.pumppan.controlx2.query.QueryCoordinator
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
+import com.pumppan.controlx2.query.QueryPolicy
 import com.pumppan.controlx2.query.PumpTopic
+import com.pumppan.controlx2.query.QueryPolicyLoader
 import com.jwoglom.controlx2.pump.CommServiceCallbacks
 import com.jwoglom.controlx2.pump.PumpCommHandler
 import com.jwoglom.pumpx2.pump.messages.request.control.SetTempRateRequest
@@ -89,6 +94,19 @@ import java.time.Instant
 import com.jwoglom.controlx2.R
 
 
+/**
+ * 协调器节拍。5s 足够覆盖最短的 30s 生效周期，也不会把「到期判定」本身变成负担——
+ * tick 只做内存计算，SHADOW 阶段不下发任何报文。
+ */
+private const val QUERY_TICK_MS = 5_000L
+
+/**
+ * 窗口期节拍：大剂量确认窗（`BOLUS_OUTCOME` 1s）需要 1s 的调度节拍，
+ * 平时仍回 5s，避免屏灭时常驻 1s 唤醒。
+ */
+private const val QUERY_WINDOW_TICK_MS = 1_000L
+
+
 class CommService : Service(), CommServiceCallbacks {
     // pumppan: 通知栏文案跟随语言开关（Service 的 base context 不会继承 Application 的包装）
     override fun attachBaseContext(newBase: Context) {
@@ -99,6 +117,9 @@ class CommService : Service(), CommServiceCallbacks {
     private val scope = CoroutineScope(supervisorJob + Dispatchers.Main.immediate)
 
     private var serviceLooper: Looper? = null
+    private var queryCoordinator: QueryCoordinator? = null
+    private var queryTickHandler: Handler? = null
+    private var queryTickRunnable: Runnable? = null
     private var pumpCommHandler: PumpCommHandler? = null
     private var pumpFinderCommHandler: PumpFinderCommHandler? = null
 
@@ -297,7 +318,7 @@ class CommService : Service(), CommServiceCallbacks {
         if (Prefs(applicationContext).pumpFinderServiceEnabled()) {
             pumpFinderCommHandler = PumpFinderCommHandler(serviceLooper!!, this)
         } else {
-            pumpCommHandler = PumpCommHandler(serviceLooper!!, this)
+            pumpCommHandler = newPumpCommHandler()
 
             pumpCommHandler?.postDelayed(periodicUpdateTask, periodicUpdateIntervalMs)
             pumpCommHandler?.postDelayed(checkForUpdatesTask, checkForUpdatesDelayMs)
@@ -311,6 +332,108 @@ class CommService : Service(), CommServiceCallbacks {
     }
 
     override fun onBind(intent: Intent?) = null
+
+    /**
+     * 统一的 handler 构造入口：构造后立刻注入查询策略里的链路阈值。
+     *
+     * 三个创建点（服务启动 / 结束找泵 / 重新找泵）都走这里，避免某一处忘了注入
+     * 而让端口退回 30s 默认值——那正是上一版「配置改了但端口行为没变」的原因。
+     */
+    private fun newPumpCommHandler(): PumpCommHandler {
+        val policy = QueryPolicyLoader.current()
+        val states = policy.states
+        val handler = PumpCommHandler(serviceLooper!!, this).also {
+            it.applyQueryLinkPolicy(
+                linkSilentAfterMs = states.linkSilentAfterMs,
+                connectSettleMs = states.connectedSettleMs,
+            )
+            val flap = policy.flap
+            it.applyQueryFlapPolicy(
+                windowMs = flap.windowMs,
+                disconnectsInWindow = flap.disconnectsInWindow,
+                shortLivedMs = flap.shortLivedMs,
+                shortLivedCount = flap.shortLivedCount,
+                stableAfterMs = flap.stableAfterMs,
+                quietAfterReconnectMs = flap.quietAfterReconnectMs,
+                probeIntervalMs = flap.probeIntervalMs,
+            )
+        }
+        startQueryObservation(handler, policy)
+        return handler
+    }
+
+    /**
+     * S2/S4：把协调器接到真实端口上跑。
+     *
+     * 三个不能省的点：
+     * 1. 端口必须是 handler 里那一个实例——另建一个会得到不同的在飞登记和静默窗，
+     *    「被拒/在飞」统计就和真实下发对不上；
+     * 2. `activeDomains` 是「有清单可算」的全集，`dispatchedDomains` 才是「真下发」的子集。
+     *    两者分开，才能在全局 ACTIVE 下逐域迁移而不双发；
+     * 3. 窗口域（`BOLUS_OUTCOME`）只在窗口开着时才发，窗口由大剂量会话开启。
+     */
+    private fun startQueryObservation(handler: PumpCommHandler, policy: QueryPolicy) {
+        stopQueryObservation()
+        val coordinator = QueryCoordinator(
+            policy = policy,
+            port = handler.queryPortForOrchestration(),
+            // S4：全局切 ACTIVE，但只让 BOLUS_OUTCOME 真下发；
+            // 其余已接管域通过 dispatchedDomains 排除，仍按 SHADOW 只算不发，避免与页面旧路径双发。
+            mode = QueryCoordinator.Mode.ACTIVE,
+            activeDomains = QueryDomainRequests.pollingDomains() + QueryDomainRequests.BOLUS_OUTCOME,
+            dispatchedDomains = setOf(
+                QueryDomainRequests.BOLUS_OUTCOME,
+                // S4 第一批：这四域只在对应页面可见时才查（策略里 onlyWhenVisible），
+                // 页面改由订阅驱动、删掉自己的 60s 定时器，因此不会与旧路径双发。
+                QueryDomainRequests.NOTIFICATIONS,
+                QueryDomainRequests.CARTRIDGE,
+                QueryDomainRequests.SAFETY_LIMITS,
+                QueryDomainRequests.PUMP_GLOBALS,
+                // 控制页（暂停 / 运动 / 睡眠 / 临时基础率）：批次与页面原表完全一致。
+                QueryDomainRequests.PUMP_STATE,
+                // 首页三档：常显 60s / 次常显 120s / 糖+闭环 300s。
+                // 清单仍出自页面 `dashboardTier*Commands`，页面只保留首帧/下拉/连接补拉。
+                QueryDomainRequests.DASHBOARD_BATCH,
+                QueryDomainRequests.DASHBOARD_DETAIL,
+                QueryDomainRequests.DASHBOARD_CGM,
+                QueryDomainRequests.CGM_STATUS,
+                QueryDomainRequests.CONTROL_IQ_SETTINGS,
+                QueryDomainRequests.PROFILE,
+            ),
+        )
+        queryCoordinator = coordinator
+        QueryCoordinatorHolder.attach(coordinator)
+
+        val looper = serviceLooper ?: return
+        val ticker = object : Runnable {
+            override fun run() {
+                try {
+                    coordinator.tick()
+                } catch (t: Throwable) {
+                    // 调度异常绝不能因为一次异常把服务带崩；坏了就只记日志。
+                    Timber.w(t, "query coordinator tick failed")
+                }
+                val next = if (runCatching { coordinator.hasOpenWindow() }.getOrDefault(false)) {
+                    QUERY_WINDOW_TICK_MS
+                } else {
+                    QUERY_TICK_MS
+                }
+                queryTickHandler?.postDelayed(this, next)
+            }
+        }
+        queryTickRunnable = ticker
+        queryTickHandler = Handler(looper).also { it.postDelayed(ticker, QUERY_TICK_MS) }
+    }
+
+    private fun stopQueryObservation() {
+        queryTickHandler?.let { h ->
+            queryTickRunnable?.let { h.removeCallbacks(it) }
+        }
+        queryTickHandler = null
+        queryTickRunnable = null
+        queryCoordinator = null
+        QueryCoordinatorHolder.detach()
+    }
 
     @androidx.annotation.VisibleForTesting
     internal fun handleMessageReceived(path: String, data: ByteArray, sourceNodeId: String) {
@@ -345,7 +468,7 @@ class CommService : Service(), CommServiceCallbacks {
                 sendStopPumpFinderComm()
                 if (String(data) == "init_comm") {
                     pumpFinderCommHandler = null
-                    pumpCommHandler = PumpCommHandler(serviceLooper!!, this)
+                    pumpCommHandler = newPumpCommHandler()
                     val filterToMac = Prefs(applicationContext).pumpFinderPumpMac().orEmpty()
                     val pairingCodeType = Prefs(applicationContext).pumpFinderPairingCodeType().orEmpty()
                     val pairingCodeTypeEnum = if (pairingCodeType.isNotEmpty())
@@ -365,7 +488,7 @@ class CommService : Service(), CommServiceCallbacks {
             MessagePaths.TO_SERVER_RESTART_PUMP_FINDER -> {
                 Timber.i("restart-pump-finder")
                 sendStopPumpFinderComm()
-                pumpCommHandler = PumpCommHandler(serviceLooper!!, this)
+                pumpCommHandler = newPumpCommHandler()
                 Prefs(applicationContext).setPumpFinderServiceEnabled(true)
                 Timber.i("restart-pump-finder")
                 triggerAppReload(applicationContext)
@@ -907,6 +1030,7 @@ class CommService : Service(), CommServiceCallbacks {
         super.onDestroy()
         com.jwoglom.controlx2.shared.diag.DiagMonitor.onServiceEvent("SERVICE_DESTROY") // DIAG-TEMP
         unregisterAppReloadShutdownHook(appReloadShutdownHook)
+        stopQueryObservation()
         pumpCommHandler?.stopHistoryLogSyncWorker()
         scope.cancel()
         messageBus.close()

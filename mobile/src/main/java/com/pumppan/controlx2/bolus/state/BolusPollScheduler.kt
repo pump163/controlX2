@@ -30,6 +30,11 @@ class BolusPollScheduler(
     private val immediatePollIntervalMs: Long = 10_000L,
     private val extendedPollIntervalMs: Long = 300_000L,
     private val requestTimeoutMs: Long = 10_000L,
+    /**
+     * `44` 是否已交由查询器代管（大剂量确认窗开着时为 true）。
+     * 代管期间本类完全不发 44，避免「协调器 1s + 调度器 10s」同一秒撞两条。
+     */
+    private val currentPollDelegated: () -> Boolean = { false },
 ) {
     // opCode 只用于「清在飞」与「重设节流起点」，构造期算一次即可。
     private val currentOpCode: Int = currentRequest().opCode().toInt() and 0xFF
@@ -78,7 +83,7 @@ class BolusPollScheduler(
 
         var sent = false
 
-        if (needsCurrentPoll(delivery)) {
+        if (needsCurrentPoll(delivery) && !currentPollDelegated()) {
             val r = port.request(
                 message = currentRequest(),
                 minIntervalMs = immediatePollIntervalMs,

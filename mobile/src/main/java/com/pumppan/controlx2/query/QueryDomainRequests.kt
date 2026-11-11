@@ -1,6 +1,8 @@
 package com.pumppan.controlx2.query
 
 import com.jwoglom.pumpx2.pump.messages.Message
+import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BasalLimitSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.BolusCalcDataSnapshotRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CGMStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ControlIQIOBRequest
@@ -10,11 +12,20 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBolusStatus
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentBatteryV2Request
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentEGVGuiDataRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.GlobalMaxBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
+import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier1Commands
+import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier2Commands
+import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier3Commands
+import com.jwoglom.controlx2.presentation.screens.sections.cgmStatusCycleCommands
+import com.jwoglom.controlx2.presentation.screens.sections.controlIQSettingsCycleCommands
+import com.jwoglom.controlx2.presentation.screens.sections.profileActionsCommands
 
 /**
  * 「一个数据域包含哪些请求」的唯一登记处。
@@ -28,6 +39,25 @@ object QueryDomainRequests {
 
     /** 一次性任务：大剂量前置检查（参数 + 血糖 + IOB + 两种在跑的大剂量）。 */
     const val BOLUS_PRECHECK = "BOLUS_PRECHECK"
+    const val BOLUS_OUTCOME = "BOLUS_OUTCOME"
+
+    /** 页面域：只在对应页面可见时由协调器下发（策略里 `onlyWhenVisible=true`）。 */
+    const val DASHBOARD_BATCH = "DASHBOARD_BATCH"
+    /** 首页第二档：上次大剂量 / 基础率 / 底栏状态 / 最大大剂量（120s）。 */
+    const val DASHBOARD_DETAIL = "DASHBOARD_DETAIL"
+    /** 首页第三档：血糖 + 闭环状态（300s，二者强相关一起问）。 */
+    const val DASHBOARD_CGM = "DASHBOARD_CGM"
+    const val PUMP_STATE = "PUMP_STATE"
+    const val NOTIFICATIONS = "NOTIFICATIONS"
+    const val CARTRIDGE = "CARTRIDGE"
+    const val SAFETY_LIMITS = "SAFETY_LIMITS"
+    const val PUMP_GLOBALS = "PUMP_GLOBALS"
+
+    /** 子页域：CGM 页与闭环设置页各自一个域，可见时才按 60s 走。 */
+    const val CGM_STATUS = "CGM_STATUS"
+    const val CONTROL_IQ_SETTINGS = "CONTROL_IQ_SETTINGS"
+    /** 基础率档案（IDP 多轮）：页面等待循环推进后续轮次，域只负责每 60s 重发第一轮。 */
+    const val PROFILE = "PROFILE"
 
     /** 未登记的域返回空列表；协调器会跳过空域，不会「发了个空包」。 */
     fun forDomain(domain: String): List<Message> = when (domain) {
@@ -56,12 +86,55 @@ object QueryDomainRequests {
         // CIQ 状态：闭环开关与当前工作态；频率可低，但不能不查
         "CONTROL_IQ" -> listOf(ControlIQInfoV2Request())
 
+        // 首页三档：都在页面同一份 getter 里切分，避免两处导出一份清单后各自漂移。
+        // 第一档只补 IOB（电量/储药由 PUMP_VITALS 保底域负责）。
+        DASHBOARD_BATCH -> dashboardTier1Commands
+
+        // 第二档：变动慢的几项，120s。
+        DASHBOARD_DETAIL -> dashboardTier2Commands
+
+        // 第三档：血糖 + 闭环，300s；CGM 会话 STOPPED 时两条糖查询被门控剔除。
+        DASHBOARD_CGM -> dashboardTier3Commands
+
+        // CGM 子页：只要会话状态一条
+        CGM_STATUS -> cgmStatusCycleCommands
+
+        // 闭环设置子页：闭环参数 + 睡眠时段
+        CONTROL_IQ_SETTINGS -> controlIQSettingsCycleCommands
+
+        // 基础率档案（IDP 多轮）：页面自己的等待循环负责推进后续轮次，
+        // 这里每 60s 只重发第一轮，与页面原先的 intervalOf(60) 完全等价。
+        PROFILE -> profileActionsCommands
+
         // 运行态：暂停 / 运动 / 睡眠 / 临时基础率 / 闭环状态都在这一批里
-        "PUMP_STATE" -> listOf(
+        PUMP_STATE -> listOf(
             HomeScreenMirrorRequest(),
             ControlIQInfoV2Request(),
             TempRateRequest(),
         )
+
+        // 通知详情：7 条通知包。只有通知页可见时才查（页面订阅），
+        // 不再由首页每 60s 顺带刷一遍——泵的 ALERT 事件已能触发补查。
+        NOTIFICATIONS -> NotificationBundle.allRequests()
+
+        // 耗材/装填：整批保留页面原本的 4 条（LoadStatus 决定菜单可用性，
+        // CGMStatus 决定 CGM 区状态，HomeMirror/TimeSinceReset 供底部状态栏）。
+        // 之后 PUMP_STATE/CGM 域接管时再按「一条请求只归一个域」裁剪。
+        CARTRIDGE -> listOf(
+            HomeScreenMirrorRequest(),
+            CGMStatusRequest(),
+            TimeSinceResetRequest(),
+            LoadStatusRequest(),
+        )
+
+        // 安全限制：最大大剂量与基础率上限，设置页可见时查
+        SAFETY_LIMITS -> listOf(
+            GlobalMaxBolusSettingsRequest(),
+            BasalLimitSettingsRequest(),
+        )
+
+        // 泵全局设置（声音等级 / QuickBolus）：设置子页可见时查
+        PUMP_GLOBALS -> listOf(PumpGlobalsRequest())
 
         // 一次性任务：大剂量前置检查。向导只声明「要这个任务」，
         // 具体请求清单留在这里，页面不再自己列。
@@ -73,14 +146,39 @@ object QueryDomainRequests {
             ExtendedBolusStatusRequest(),
         )
 
-        // 在运行的大剂量：立即大剂量与延展大剂量各一条
-        "BOLUS_OUTCOME" -> listOf(
+        // 窗口域（1s，仅在大剂量确认窗内开）：只发 44。
+        //
+        // 为什么这里不含 46：46（延展）是条件查询——只有确认存在第二笔延展时才该问，
+        // 判断在 `BolusPollScheduler.needsExtendedPoll`。塞进 1s 窗口会让确认期变成
+        // 2 条/秒，正好违背「不因抖动叠加补查」。44 的节拍由协调器接管，46 仍归调度器。
+        BOLUS_OUTCOME -> listOf(
             CurrentBolusStatusRequest(),
-            ExtendedBolusStatusRequest(),
         )
 
         else -> emptyList()
     }
 
     fun isSupported(domain: String): Boolean = forDomain(domain).isNotEmpty()
+
+    /**
+     * 已登记请求清单的域全集。
+     *
+     * 给 SHADOW 观测用：影子模式不发包，但需要把「本该发什么」算全，
+     * 否则只观测两个域就失去对照意义。
+     */
+    fun registeredDomains(): Set<String> = setOf(
+        "PUMP_VITALS", "IOB", "BASAL", "BOLUS_LAST", "CGM", "CONTROL_IQ",
+        DASHBOARD_BATCH, DASHBOARD_DETAIL, DASHBOARD_CGM,
+        CGM_STATUS, CONTROL_IQ_SETTINGS, PROFILE,
+        PUMP_STATE, NOTIFICATIONS, CARTRIDGE, SAFETY_LIMITS, PUMP_GLOBALS,
+        BOLUS_PRECHECK, BOLUS_OUTCOME,
+    )
+
+    /**
+     * 周期性轮询域（排除大剂量的一次性预检/结果域）。
+     *
+     * 影子观测只该看轮询域：BOLUS_OUTCOME 的 intervalMs 是 1s，且真实语义是「大剂量进行中
+     * 才该查」，把它算进固定节拍会让「本该发多少条」虚高，对照失去意义。
+     */
+    fun pollingDomains(): Set<String> = registeredDomains() - setOf(BOLUS_PRECHECK, BOLUS_OUTCOME)
 }

@@ -317,8 +317,26 @@ class BolusSessionController(
     }
 
     private fun onCurrentBolusActive(bolusId: Int, current: BolusDelivery?, now: Long) {
+        // 44 只在「这一笔已经登记为延展」时补证据，绝不再造一笔普通出来。
+        // 2026-11-11 22:47:39 真机：延展 6934 在跑，44 回来 bolusId=0，46 把 id 带进占位主笔，
+        // 占位继承 hasImmediateLeg=true，细条就从「扩展正在输注」翻成「普通正在输注」。
+        val ownedByExtended = holder.extendedSession
+            ?.takeIf { !it.isFinished && it.bolusId == bolusId }
+        if (ownedByExtended != null) {
+            holder.updateExtended(now) { it.copy(state = BolusDeliveryState.ACTIVE) }
+            return
+        }
         if (current == null) {
             holder.begin(BolusDeliveryState.ACTIVE, bolusId, hasImmediateLeg = true, now = now)
+            return
+        }
+        // 同一笔纯方波：44 只是旁证，类型不翻转（含已落定后迟到的那条）。
+        if (!current.hasImmediateLeg && current.bolusId == bolusId) {
+            if (current.state == BolusDeliveryState.CANCELLING) {
+                holder.update(now) { it.copy(lastEvidenceAtMillis = now) }
+            } else {
+                holder.update(now) { it.copy(state = BolusDeliveryState.ACTIVE) }
+            }
             return
         }
         if (current.isFinished) {
@@ -489,11 +507,17 @@ class BolusSessionController(
 
             else ->
                 holder.update(now) {
+                    // 占位主笔（对账/恢复留下的 UNCONFIRMED、无 id、无立即段证据）被 46 认领时，
+                    // 类型必须跟着证据改成「延展」；继承默认的 hasImmediateLeg=true 会让细条
+                    // 把一笔方波显示成「普通正在输注」（2026-11-11 22:47:39 真机）。
+                    val adoptingPlaceholder = it.bolusId == null &&
+                        (it.state == BolusDeliveryState.UNCONFIRMED || it.state == BolusDeliveryState.IDLE)
                     it.copy(
                         state = BolusDeliveryState.ACTIVE,
                         // 46 的 id 只在主笔还没有 id 时用于认领；绝不改写已有的 id，
                         // 否则主笔会被写成第二槽那笔的 id，两槽重合。
                         bolusId = it.bolusId ?: bolusId,
+                        hasImmediateLeg = if (adoptingPlaceholder) false else it.hasImmediateLeg,
                         expectedEndAtMillis = expectedEnd ?: it.expectedEndAtMillis,
                         lastEvidenceAtMillis = now,
                     )

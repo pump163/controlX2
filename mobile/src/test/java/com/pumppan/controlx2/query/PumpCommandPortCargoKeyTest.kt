@@ -63,7 +63,8 @@ class PumpCommandPortCargoKeyTest {
         port.markThrottle(146, 1100)
         assertNull("markThrottle 应清掉该 opCode 下的全部在飞键", port.inFlightSince(146))
 
-        val again = port.request(bits(2), timeoutMs = 8000, now = 1101)
+        // 1101 落在 250ms 去重窗内，会被判 DUPLICATE；退到窗口外才能验「清在飞后可重发」。
+        val again = port.request(bits(2), timeoutMs = 8000, now = 1400)
         assertTrue("清在飞后应允许重发（minIntervalMs=0）", again.sent)
     }
 }

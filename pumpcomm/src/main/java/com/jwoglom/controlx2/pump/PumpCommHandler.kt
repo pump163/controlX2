@@ -88,6 +88,15 @@ const val CacheSeconds = 30
 private const val QUERY_IN_FLIGHT_TIMEOUT_MS = 8_000L
 
 /**
+ * 批量下发的最小间隔。
+ *
+ * 16 条首页批请求如果连发，会在几十毫秒内全塞进 blessed 写队列；链路在距离极限时
+ * 一旦开始连续写失败，10s 内累计 3 次就会触发剪线重连，正是「越抖越重发」的来源。
+ * 200ms 让一批 16 条铺开约 3 秒，单条失败也不会在同一个失败窗口里叠满 3 次。
+ */
+private const val BULK_SEND_GAP_MS = 200L
+
+/**
  * 蓝牙链路策略（诊断包 2026-11-11 实测后调整，见 docs/bug/断连诊断包分析-20261111.md）。
  *
  * 阈值不再写死在这里，改由 `assets/ble-link-policy.json`（可被
@@ -130,6 +139,56 @@ class PumpCommHandler(
             sender = PumpRequestSender { _, messages ->
                 messages.firstOrNull()?.let { dispatchDirect(it) } ?: false
             },
+            // 先用兜底值；策略由 mobile 侧在构造后立刻注入（pumpcomm 不能依赖 mobile 的 QueryPolicy）。
+            linkSilentAfterMs = queryLinkSilentAfterMs,
+        )
+    }
+
+    /** `states.linkSilentAfterMs`：策略注入前保持端口默认 30s。 */
+    @Volatile
+    private var queryLinkSilentAfterMs: Long = PumpCommandPort.DEFAULT_LINK_SILENT_MS
+
+    /** `states.connectedSettleMs`：重连后握手静默窗；0 表示不设窗。 */
+    @Volatile
+    private var queryConnectSettleMs: Long = 0L
+
+    /**
+     * 注入查询策略里的链路相关阈值（由 mobile 侧 `QueryPolicyLoader` 提供）。
+     *
+     * 之所以用参数而不是读配置：`pumpcomm` 模块看不到 mobile 模块的 `QueryPolicy`，
+     * 而策略值又必须只有一份来源。
+     */
+    fun applyQueryLinkPolicy(linkSilentAfterMs: Long, connectSettleMs: Long) {
+        queryLinkSilentAfterMs = linkSilentAfterMs
+        queryConnectSettleMs = connectSettleMs
+        queryPort.setLinkSilentAfterMs(linkSilentAfterMs)
+    }
+
+    /**
+     * S5：注入 `flap` 段（边界抖动判定阈值）。
+     *
+     * 与链路静默阈值同理，`pumpcomm` 看不到 mobile 的 `QueryPolicy`，只能由 mobile 侧
+     * 在构造后立刻把这一组值传进来；漏传时端口用设计 §14 的默认值，不会退化成「不判抖动」。
+     */
+    fun applyQueryFlapPolicy(
+        windowMs: Long,
+        disconnectsInWindow: Int,
+        shortLivedMs: Long,
+        shortLivedCount: Int,
+        stableAfterMs: Long,
+        quietAfterReconnectMs: Long,
+        probeIntervalMs: Long,
+    ) {
+        queryPort.configureFlap(
+            PumpCommandPort.FlapConfig(
+                windowMs = windowMs,
+                disconnectsInWindow = disconnectsInWindow,
+                shortLivedMs = shortLivedMs,
+                shortLivedCount = shortLivedCount,
+                stableAfterMs = stableAfterMs,
+                quietAfterReconnectMs = quietAfterReconnectMs,
+                probeIntervalMs = probeIntervalMs,
+            )
         )
     }
 
@@ -162,6 +221,58 @@ class PumpCommHandler(
             false
         } finally {
             PumpQueryService.noteInFlight(false)
+        }
+    }
+
+    /**
+     * 供 mobile 侧构造 `QueryCoordinator` 用。
+     *
+     * 必须复用同一个实例：端口内部维护单飞登记和静默窗，另建一个等于把链路状态拆成
+     * 两份，SHADOW 观测到的「在飞/被拒」就和真实下发对不上。
+     */
+    fun queryPortForOrchestration(): PumpCommandPort = queryPort
+
+    /**
+     * 批量下发错峰。
+     *
+     * 原来是一次 forEach 连着 `pump.command()`，16 条首页批请求会在几十毫秒内全塞进
+     * blessed 的写队列。实测写失败 10s 内累计 3 次就会剪连接，而链路在距离极限时
+     * 恰恰是最容易连续失败的场景——所以批量本身要按 200ms 节拍铺开，而不是靠
+     * 事后重试。
+     *
+     * 第一条立即发（交互请求不能凭空慢 200ms），其余的按序号延迟；每次执行前重新
+     * 判一遍断连/bolus 守卫，因为排到队尾时连接状态可能已经变了。
+     */
+    private fun dispatchBulkPaced(
+        messages: List<com.jwoglom.pumpx2.pump.messages.Message>,
+        prepare: (com.jwoglom.pumpx2.pump.messages.Message) -> Unit = {},
+    ) {
+        messages.forEachIndexed { index, message ->
+            val action = Runnable {
+                try {
+                    if (isBolusCommand(message)) {
+                        Timber.e("bulk dispatch blocked bolus command: $message")
+                        return@Runnable
+                    }
+                    if (!pumpConnectedPrecondition()) return@Runnable
+                    prepare(message)
+                    // 走端口而不是直发：批量错峰只解决「一次塞太密」，挡不住两条批量链各发一遍。
+                    // 端口负责在飞上限与窗口去重，这里只负责让节奏慢下来。
+                    val result = queryPort.request(
+                        message = message,
+                        timeoutMs = QUERY_IN_FLIGHT_TIMEOUT_MS,
+                    )
+                    if (result.sent) {
+                        Timber.i("pumpCommHandler send command (paced): $message")
+                    } else {
+                        Timber.d("paced query suppressed: op=${result.opCode} reason=${result.reject}")
+                    }
+                } catch (t: Throwable) {
+                    Timber.w(t, "bulk dispatch failed: $message")
+                }
+            }
+            val delayMs = index * BULK_SEND_GAP_MS
+            if (delayMs <= 0L) action.run() else postDelayed(action, delayMs)
         }
     }
 
@@ -524,13 +635,21 @@ class PumpCommHandler(
             }
             if (events != null && QualifyingEvent.PUMP_COMMUNICATIONS_SUSPENDED in events) {
                 Timber.w("onReceiveQualifyingEvent: PUMP_COMMUNICATIONS_SUSPENDED — pausing sends")
-                queryPort.markLinkDown()
+                queryPort.markLinkDown(recordFlap = false)
                 currentSession?.pauseSends(currentSession?.rateLimitConfig?.commSuspendedPauseMs ?: 5_000)
             }
-            events?.forEach { event ->
-                event.suggestedHandlers.forEach { handler ->
-                    Timber.i("onReceiveQualifyingEvent: running handler for $event message: ${handler.get()}")
-                    handler.get()?.let { command(it) }
+            // S5：边界抖动期事件补查一律丢弃，不排队、不延后。
+            // 排队只会在回稳瞬间倾泻一串请求，正好撞上库的初始化序列；
+            // 事件本身仍转发给手机/手表（UI 需要知道发生了什么），只是不再追问泵。
+            val edge = queryPort.linkState() == PumpCommandPort.LinkState.EDGE
+            if (edge) {
+                Timber.i("onReceiveQualifyingEvent: EDGE，跳过补查（events=%s）", events)
+            } else {
+                events?.forEach { event ->
+                    event.suggestedHandlers.forEach { handler ->
+                        Timber.i("onReceiveQualifyingEvent: running handler for $event message: ${handler.get()}")
+                        handler.get()?.let { command(it) }
+                    }
                 }
             }
             callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_RECEIVE_QUALIFYING_EVENT, com.jwoglom.controlx2.shared.PumpQualifyingEventsSerializer.toBytes(events))
@@ -684,6 +803,10 @@ class PumpCommHandler(
 
         override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
             DiagMonitor.onConnected("onPumpConnected") // DIAG-TEMP
+            // 新链路：先解除端口断开态并进入静默窗，握手与基线请求期间不放行业务查询。
+            // 静默窗时长取 states.connectedSettleMs（当前 8s）；库的 initializeConnection /
+            // sendBaseCommands 本身就在占用链路，此时补查是纯叠加。
+            queryPort.markLinkUp(quietMs = queryConnectSettleMs)
             // 新链路：清空上一轮的写失败计数与冷却，避免旧账影响本次判定。
             writeFailureTimes.clear()
             readQueryCooldownUntil = 0L
@@ -717,6 +840,9 @@ class PumpCommHandler(
         ): Boolean {
             DiagMonitor.onDisconnected(status?.name, "callback", "peripheral=${peripheral?.name}") // DIAG-TEMP
             Timber.i("service onPumpDisconnected: isConnected=false status=$status") // DIAG-TEMP
+            // 断开的**最早可靠信号**：别等静默超时，立刻让查询侧停表。
+            // 依实测，App 层「多久没回包」不能用来判断链路生死，连接回调才是依据。
+            queryPort.markLinkDown()
             stopAppReassert()
             currentSession?.close()
             currentSession = null
@@ -968,55 +1094,44 @@ class PumpCommHandler(
             }
             CommServiceCodes.SEND_PUMP_COMMANDS_BULK.ordinal -> {
                 Timber.i("pumpCommHandler send commands raw: ${String(msg.obj as ByteArray)}")
-                PumpMessageSerializer.fromBulkBytes(msg.obj as ByteArray).forEach {
-                    if (isBolusCommand(it)) {
-                        Timber.e("SEND_PUMP_COMMAND blocked bolus command")
-                    } else if (pumpConnectedPrecondition()) {
-                        Timber.i("pumpCommHandler send command: $it")
-                        pump.command(it)
-                    }
-                }
+                dispatchBulkPaced(PumpMessageSerializer.fromBulkBytes(msg.obj as ByteArray))
             }
             CommServiceCodes.SEND_PUMP_COMMANDS_BUST_CACHE_BULK.ordinal -> {
                 Timber.i("pumpCommHandler send commands bust cache raw: ${String(msg.obj as ByteArray)}")
-                PumpMessageSerializer.fromBulkBytes(msg.obj as ByteArray).forEach {
-                    if (callbacks.pumpCommState.lastResponseMessage.containsKey(Pair(it.characteristic, it.responseOpCode)) && !isBolusCommand(it)) {
+                dispatchBulkPaced(PumpMessageSerializer.fromBulkBytes(msg.obj as ByteArray)) { it ->
+                    if (callbacks.pumpCommState.lastResponseMessage.containsKey(Pair(it.characteristic, it.responseOpCode))) {
                         Timber.i("pumpCommHandler busted cache: $it")
                         callbacks.pumpCommState.lastResponseMessage.remove(Pair(it.characteristic, it.responseOpCode))
-                    }
-                    if (isBolusCommand(it)) {
-                        Timber.e("SEND_PUMP_COMMAND blocked bolus command")
-                    } else if (pumpConnectedPrecondition()) {
-                        Timber.i("pumpCommHandler send command bust cache: $it")
-                        pump.command(it)
                     }
                 }
             }
             CommServiceCodes.CACHED_PUMP_COMMANDS_BULK.ordinal -> {
                 Timber.i("pumpCommHandler cached pump commands raw: ${String(msg.obj as ByteArray)}")
+                val toSend = mutableListOf<com.jwoglom.pumpx2.pump.messages.Message>()
                 PumpMessageSerializer.fromBulkBytes(msg.obj as ByteArray).forEach {
-                    if (callbacks.pumpCommState.lastResponseMessage.containsKey(Pair(it.characteristic, it.responseOpCode)) && !isBolusCommand(it)) {
-                        val response = callbacks.pumpCommState.lastResponseMessage.get(Pair(it.characteristic, it.responseOpCode))
-                        val ageSeconds = Duration.between(response?.second, Instant.now()).seconds
+                    val cacheKey = Pair(it.characteristic, it.responseOpCode)
+                    val response = callbacks.pumpCommState.lastResponseMessage[cacheKey]
+                    if (response != null && !isBolusCommand(it)) {
+                        val ageSeconds = Duration.between(response.second, Instant.now()).seconds
                         if (ageSeconds <= CacheSeconds) {
+                            // 命中缓存不占蓝牙带宽，立即回给 UI，不参与错峰。
                             Timber.i("pumpCommHandler cached hit: $response")
                             callbacks.sendWearCommMessage(
                                 MessagePaths.FROM_PUMP_RECEIVE_CACHED_MESSAGE,
-                                PumpMessageSerializer.toBytes(response?.first)
+                                PumpMessageSerializer.toBytes(response.first)
                             )
                         } else {
                             Timber.i("pumpCommHandler expired cache hit $ageSeconds sec: $response")
-                            if (!isBolusCommand(it) && pumpConnectedPrecondition()) {
-                                pump.command(it)
-                            }
+                            toSend += it
                         }
                     } else if (isBolusCommand(it)) {
                         Timber.e("CACHED_PUMP_COMMANDS_BULK blocked bolus command")
-                    } else if (pumpConnectedPrecondition()) {
+                    } else {
                         Timber.i("pumpCommHandler cached miss: $it")
-                        pump.command(it)
+                        toSend += it
                     }
                 }
+                dispatchBulkPaced(toSend)
             }
             CommServiceCodes.SEND_PUMP_COMMAND_RAW_UNSAFE.ordinal -> {
                 // Debug-only path used by POST /api/pump/raw-command. Unlike

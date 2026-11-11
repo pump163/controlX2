@@ -8,6 +8,10 @@
       "BASAL":           { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
       "BOLUS_LAST":      { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
       "DASHBOARD_BATCH": { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "DASHBOARD_DETAIL": { "intervalMs": 120000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "DASHBOARD_CGM":   { "intervalMs": 300000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "CGM_STATUS":          { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "CONTROL_IQ_SETTINGS": { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "NOTIFICATIONS":   { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "ACTIONS":         { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "CARTRIDGE":       { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
@@ -15,6 +19,7 @@
       "CONTROL_IQ":      { "intervalMs": 300000, "floorIntervalMs": 300000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": false },
       "SAFETY_LIMITS":   { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "PUMP_GLOBALS":    { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "PUMP_STATE":      { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "CGM":             { "intervalMs": 300000, "floorIntervalMs": 300000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": false },
       "HOME_MIRROR":     { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P2_DECORATIVE", "onlyWhenVisible": true },
       "STATUS_BATCH":    { "intervalMs": 300000, "minIntervalMs": 60000, "priority": "P1_STATE", "onlyWhenVisible": false },
@@ -60,6 +65,15 @@
       "pageRefreshEnabled": true,
       "backfillEnabled": true,
       "eventDrivenEnabled": true
+    },
+    "flap": {
+      "windowMs": 300000,
+      "disconnectsInWindow": 3,
+      "shortLivedMs": 30000,
+      "shortLivedCount": 2,
+      "stableAfterMs": 180000,
+      "quietAfterReconnectMs": 15000,
+      "probeIntervalMs": 60000
     }
   },
   "overlays": {

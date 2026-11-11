@@ -4,6 +4,7 @@ import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ActiveAamBitsRequest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -109,5 +110,33 @@ class PumpCommandPortSnapshotTest {
         failing.request(response(), timeoutMs = 8000, now = 1000)
 
         assertEquals(PumpCommandPort.LinkState.SUSPECT, failing.linkState(now = 1000))
+    }
+
+    @Test
+    fun shortLivedConnectionMarksEdgeAndStableWindowExitsIt() {
+        val port = port()
+        port.onMessage(response(), now = 1_000)
+
+        // 连上 14s 就断：命中「重连 60s 内又断」，进入 EDGE。
+        port.markLinkUp(now = 1_000, quietMs = 0)
+        port.markLinkDown(now = 15_000)
+        port.markLinkUp(now = 16_000, quietMs = 0)
+        assertEquals(PumpCommandPort.LinkState.EDGE, port.linkState(now = 16_000))
+
+        // 稳定 3 分钟且期间有响应 → 退出 EDGE。
+        port.onMessage(response(), now = 195_000)
+        assertEquals(PumpCommandPort.LinkState.OK, port.linkState(now = 196_000))
+    }
+
+    @Test
+    fun edgeExtendsQuietWindowAfterReconnect() {
+        val port = port()
+        port.onMessage(response(), now = 1_000)
+        port.markLinkUp(now = 1_000, quietMs = 0)
+        port.markLinkDown(now = 15_000)
+        // EDGE 下重连静默窗取 max(入参, 15s)，避免与库的初始化抢链路。
+        port.markLinkUp(now = 16_000, quietMs = 8_000)
+        assertTrue(port.inQuietWindow(now = 16_000 + 14_000))
+        assertFalse(port.inQuietWindow(now = 16_000 + 15_500))
     }
 }

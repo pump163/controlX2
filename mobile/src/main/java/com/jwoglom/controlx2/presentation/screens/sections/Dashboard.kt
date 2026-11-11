@@ -27,6 +27,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,7 +75,6 @@ import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.presentation.util.cgmQueryAllowed
 import com.jwoglom.controlx2.presentation.util.isCgmQuery
-import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
@@ -164,17 +166,31 @@ fun Dashboard(
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
+    // 首页三档一起订阅 / 一起退订：界面没变，变的是三档的到期周期（60s / 120s / 300s）。
+    val dashboardDomains = listOf(
+        QueryDomainRequests.DASHBOARD_BATCH,
+        QueryDomainRequests.DASHBOARD_DETAIL,
+        QueryDomainRequests.DASHBOARD_CGM,
+    )
+    fun subscribeDashboard(visible: Boolean) =
+        dashboardDomains.forEach { QueryCoordinatorHolder.setVisible(it, visible) }
+
+    // 页面离开组合时退订（导航 back stack 场景下 onStop 不一定触发）。
+    DisposableEffect(Unit) {
+        onDispose { subscribeDashboard(false) }
+    }
+
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        subscribeDashboard(false)
         refreshScope.cancel()
     }) {
         Timber.i("reloading Dashboard from onStart lifecyclestate")
+        subscribeDashboard(true)
         fetchDataStoreFields(SendType.STANDARD, "Dashboard.onStart", includeNotifications = true)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading Dashboard from interval")
-        fetchDataStoreFields(SendType.STANDARD, "Dashboard.interval")
-    }
+    // 周期刷新已交给 QueryCoordinator（三档各自的周期）；页面只保留首帧、下拉刷新
+    // 与连接建立三类补拉——首帧仍发一次全量，保证进页面第一眼就是齐的。
 
     LaunchedEffect(refreshing) {
         waitForLoaded()
@@ -327,6 +343,45 @@ val dashboardCommands: List<Message>
 // QualifyingEvent.suggestedHandlers 触发最小补查，避免每分钟无差别刷 7 条。
 val dashboardNotificationCommands: List<Message>
     get() = NotificationBundle.allRequests().filter { msg ->
+        !msg.props().minApi.get().greaterThan(apiVersion()) &&
+            (cgmQueryAllowed() || !msg.isCgmQuery())
+    }
+
+// ── 首页按「常显 / 次常显 / 慢变」分三档，交给协调器各自的周期 ────────────────
+// 界面排版不动（仍是原来那张卡片布局），只是查询不再一次性整批打出去。
+
+/**
+ * 第一档（60s）：电量 / 储药 / IOB。
+ * 电量与储药已经在常驻保底域 `PUMP_VITALS` 里按 60s 走，这里只补 IOB——
+ * 否则同一 opCode 每拍发两遍，只能靠节流挡掉一遍，等于白占一拍的在飞名额。
+ */
+val dashboardTier1Commands: List<Message>
+    get() = listOf(ControlIQIOBRequest())
+
+/**
+ * 第二档（120s）：上次大剂量 / 基础率 / 底栏状态 / 最大大剂量。
+ * 都是「一条事件才变一次」的量，降到 2 分钟一次不会影响可读性。
+ */
+val dashboardTier2Commands: List<Message>
+    get() = listOf(
+        LastBolusStatusRequestBuilder.create(apiVersion()),
+        CurrentBasalStatusRequest(),
+        HomeScreenMirrorRequest(),
+        GlobalMaxBolusSettingsRequest(),
+    ).filter { msg -> !msg.props().minApi.get().greaterThan(apiVersion()) }
+
+/**
+ * 第三档（300s）：血糖 + 闭环状态。
+ * 两者强相关（没血糖就开不了 CIQ，未连接态还会变），所以必须一起问；
+ * 但 CGM 本身 5 分钟才出一个新值，60s 追问只是重复读旧数，压到 5 分钟。
+ */
+val dashboardTier3Commands: List<Message>
+    get() = listOf(
+        CGMStatusRequest(),
+        CurrentEGVGuiDataRequest(),
+        ControlIQInfoRequestBuilder.create(apiVersion()),
+        HistoryLogStatusRequest(),
+    ).filter { msg ->
         !msg.props().minApi.get().greaterThan(apiVersion()) &&
             (cgmQueryAllowed() || !msg.isCgmQuery())
     }

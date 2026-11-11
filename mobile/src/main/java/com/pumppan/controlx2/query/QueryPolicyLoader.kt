@@ -246,6 +246,32 @@ object QueryPolicyLoader {
             eventDrivenEnabled = d.bool(wObj, "eventDrivenEnabled", DEFAULT_SWITCHES.eventDrivenEnabled, "default.switches"),
         )
 
+        // ---- flap（S5：边界抖动判定，见设计 §14）----
+        val flapObj = default.optJSONObject("flap") ?: JSONObject()
+        checkUnknownKeys(
+            flapObj,
+            setOf(
+                "windowMs", "disconnectsInWindow", "shortLivedMs", "shortLivedCount",
+                "stableAfterMs", "quietAfterReconnectMs", "probeIntervalMs",
+            ),
+            "default.flap", d,
+        )
+        val flap = FlapPolicy(
+            windowMs = d.long(flapObj, "windowMs", DEFAULT_FLAP.windowMs, 60_000L, 1_800_000L, "default.flap"),
+            disconnectsInWindow = d.int(flapObj, "disconnectsInWindow", DEFAULT_FLAP.disconnectsInWindow, 2, 10, "default.flap"),
+            shortLivedMs = d.long(flapObj, "shortLivedMs", DEFAULT_FLAP.shortLivedMs, 5_000L, 120_000L, "default.flap"),
+            shortLivedCount = d.int(flapObj, "shortLivedCount", DEFAULT_FLAP.shortLivedCount, 2, 5, "default.flap"),
+            stableAfterMs = d.long(flapObj, "stableAfterMs", DEFAULT_FLAP.stableAfterMs, 30_000L, 900_000L, "default.flap"),
+            quietAfterReconnectMs = d.long(
+                flapObj, "quietAfterReconnectMs", DEFAULT_FLAP.quietAfterReconnectMs,
+                0L, 60_000L, "default.flap",
+            ),
+            probeIntervalMs = d.long(
+                flapObj, "probeIntervalMs", DEFAULT_FLAP.probeIntervalMs,
+                15_000L, 300_000L, "default.flap",
+            ),
+        )
+
         if (rejected.isNotEmpty()) throw PolicyRejectedException(rejected)
 
         // ---- overlays（schema v2）----
@@ -256,7 +282,7 @@ object QueryPolicyLoader {
             if (k !in setOf("schemaVersion", "note", "default", "models", "overlays")) unknown += "root.$k:unknown"
         }
         for (k in default.keys()) {
-            if (k !in setOf("topics", "freshness", "states", "budget", "events", "reconnect", "switches")) {
+            if (k !in setOf("topics", "freshness", "states", "budget", "events", "reconnect", "switches", "flap")) {
                 unknown += "default.$k:unknown"
             }
         }
@@ -273,6 +299,7 @@ object QueryPolicyLoader {
             events = events,
             reconnect = reconnect,
             switches = switches,
+            flap = flap,
             diagnostics = PolicyDiagnostics(
                 missingKeys = missing,
                 clamped = clamped,
@@ -529,6 +556,9 @@ object QueryPolicyLoader {
     )
 
     val DEFAULT_RECONNECT = ReconnectPolicy(listOf("STATUS_BATCH"), 3_000, 15_000, 5_000, 2)
+
+    /** S5 缺省值：与设计 §14 的实测阈值一致；配置缺段时按这套生效。 */
+    val DEFAULT_FLAP = FlapPolicy()
 
     val DEFAULT_SWITCHES = SwitchesPolicy(true, true, true, true)
 

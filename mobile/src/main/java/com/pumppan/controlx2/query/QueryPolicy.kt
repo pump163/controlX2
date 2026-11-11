@@ -22,6 +22,8 @@ data class QueryPolicy(
     val events: Map<String, EventPolicy>,
     val reconnect: ReconnectPolicy,
     val switches: SwitchesPolicy,
+    /** 边界抖动（flap / EDGE）判定与处置参数，见设计 §14。 */
+    val flap: FlapPolicy = FlapPolicy(),
     val diagnostics: PolicyDiagnostics,
     val applyPendingOn: List<String>,
     val overlays: PolicyOverlays = PolicyOverlays.empty(),
@@ -49,6 +51,11 @@ data class QueryPolicy(
         // 否则改了配置也看不出「到底哪份在生效」。
         out["states.skipCgmTopicWhenSessionStopped"] = states.skipCgmTopicWhenSessionStopped
         out["states.skipCiqTopicsWhenClosedLoopOff"] = states.skipCiqTopicsWhenClosedLoopOff
+        out["flap.windowMs"] = flap.windowMs
+        out["flap.disconnectsInWindow"] = flap.disconnectsInWindow
+        out["flap.shortLivedMs"] = flap.shortLivedMs
+        out["flap.stableAfterMs"] = flap.stableAfterMs
+        out["flap.quietAfterReconnectMs"] = flap.quietAfterReconnectMs
         out["overlays.byModel"] = overlays.byModel.keys.joinToString(",")
         out["overlays.byState"] = overlays.byState.keys.joinToString(",")
         out["overlays.byApiVersion"] = overlays.byApiVersion.joinToString(",") { ">=" + it.minApi }
@@ -116,6 +123,22 @@ data class ReconnectPolicy(
     val probeTimeoutMs: Long,
     val batchAfterProbeMs: Long,
     val maxBatchAtOnce: Int,
+)
+
+/**
+ * 边界抖动（range-edge flap）参数：信号在可达极限附近时「连上十几秒又断」。
+ *
+ * 判定用连接回调的时间戳，不用 DiagMonitor（设备侧监控已关，拿不到可信时长）。
+ * 默认值取 2026-11-11 实测：正常连接中位 101.5s，抖动样本 11s / 35s。
+ */
+data class FlapPolicy(
+    val windowMs: Long = 300_000L,
+    val disconnectsInWindow: Int = 3,
+    val shortLivedMs: Long = 30_000L,
+    val shortLivedCount: Int = 2,
+    val stableAfterMs: Long = 180_000L,
+    val quietAfterReconnectMs: Long = 15_000L,
+    val probeIntervalMs: Long = 60_000L,
 )
 
 data class SwitchesPolicy(

@@ -16,7 +16,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +37,8 @@ import com.jwoglom.controlx2.shared.util.snakeCaseToSpace
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.pumpx2.pump.PumpState
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.LastBolusStatusRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.calculator.BolusCalcUnits
@@ -282,37 +289,27 @@ fun ApprovedDialogRegion(
             )
         },
         text = {
+            // 首条状态立刻问一次；随后 1s 的确认期轮询交给查询器（BOLUS_OUTCOME 域 + 60s 窗口），
+            // 页面不再自带 60×1s 的循环——那会把同一 opCode 与协调器各发一遍。
             LaunchedEffect(Unit) {
                 sendPumpCommands(SendType.BUST_CACHE, listOf(CurrentBolusStatusRequest()))
-                refreshScopeLaunch {
-                    var requestCount = 0
-                    while (requestCount < 60) {
-                        delay(1000)
-                        val currentResponse = dataStore.bolusCurrentResponse.value
-                        if (currentResponse?.bolusId == 0) {
-                            Timber.d("BolusWindow: bolusId is 0, stopping status polling")
-                            break
-                        }
-                        sendPumpCommands(SendType.BUST_CACHE, listOf(CurrentBolusStatusRequest()))
-                        requestCount++
-                    }
-                }
+                QueryCoordinatorHolder.openWindow(QueryDomainRequests.BOLUS_OUTCOME)
             }
 
+            // 对话框离开组合即关窗；泵上的大剂量结束后也立即关，不必空转到 60s 到期。
+            DisposableEffect(Unit) {
+                onDispose { QueryCoordinatorHolder.closeWindow(QueryDomainRequests.BOLUS_OUTCOME) }
+            }
+
+            var sawActiveBolus by remember { mutableStateOf(false) }
             LaunchedEffect(bolusCurrentResponse.value) {
                 Timber.i("bolusCurrentResponse: ${bolusCurrentResponse.value}")
-                if (bolusCurrentResponse.value?.bolusId != 0) {
-                    refreshScopeLaunch {
-                        repeat(5) {
-                            delay(1000)
-                            val currentResponse = dataStore.bolusCurrentResponse.value
-                            if (currentResponse?.bolusId == 0) {
-                                Timber.d("BolusWindow: bolusId is 0, stopping status polling")
-                                return@repeat
-                            }
-                            sendPumpCommands(SendType.BUST_CACHE, listOf(CurrentBolusStatusRequest()))
-                        }
-                    }
+                val bolusId = bolusCurrentResponse.value?.bolusId ?: 0
+                if (bolusId != 0) {
+                    sawActiveBolus = true
+                } else if (sawActiveBolus) {
+                    Timber.d("BolusWindow: bolusId is 0, closing status window")
+                    QueryCoordinatorHolder.closeWindow(QueryDomainRequests.BOLUS_OUTCOME)
                 }
             }
 

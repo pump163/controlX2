@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,6 +63,7 @@ import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
 
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.SetQuickBolusSettingsRequest
@@ -127,17 +129,22 @@ fun QuickBolusSettingsActions(
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
+    // 页面离开组合时退订。导航库的 onStop 在 back stack 场景不一定触发，
+    // 只靠 LifecycleStateObserver 会留下「页面关了、协调器还在轮询」的泄漏。
+    DisposableEffect(Unit) {
+        onDispose { QueryCoordinatorHolder.setVisible("PUMP_GLOBALS", false) }
+    }
+
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        QueryCoordinatorHolder.setVisible("PUMP_GLOBALS", false)
         refreshScope.cancel()
     }) {
         Timber.i("reloading QuickBolusSettingsActions from onStart lifecyclestate")
+        QueryCoordinatorHolder.setVisible("PUMP_GLOBALS", true)
         fetchDataStoreFields(SendType.STANDARD)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading QuickBolusSettingsActions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
-    }
+    // 周期刷新交给 QueryCoordinator（PUMP_GLOBALS 域）；页面只保留进页面首刷与下拉刷新。
 
     LaunchedEffect(refreshing) {
         waitForLoaded()

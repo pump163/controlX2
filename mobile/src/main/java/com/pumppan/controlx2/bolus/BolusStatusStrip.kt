@@ -40,6 +40,7 @@ import com.pumppan.controlx2.bolus.state.BolusTarget
 import com.pumppan.controlx2.bolus.state.CancelStatus
 import com.pumppan.controlx2.bolus.state.CancelRowState
 import kotlinx.coroutines.delay
+import timber.log.Timber
 
 /**
  * 底栏常驻细条（设计定案：**任何页面都能一键取消**的唯一常驻入口）。
@@ -93,7 +94,32 @@ fun BolusStatusStrip(
         expanded = false
     }
 
-    if (mainDelivery == null && extendedDelivery == null) return
+    if (mainDelivery == null && extendedDelivery == null) {
+        // 诊断：细条从「有」变「无」也要留痕，否则现场只看到「闪」却查不到前后状态。
+        LaunchedEffect(Unit) {
+            Timber.d(
+                "bolus strip: hidden main=%s(%s) ext=%s(%s)",
+                coordinator.sessionState.value?.bolusId,
+                coordinator.sessionState.value?.state,
+                coordinator.extendedState.value?.bolusId,
+                coordinator.extendedState.value?.state,
+            )
+        }
+        return
+    }
+
+    // 诊断：每次显隐 / 状态变化打一行，含 bolusId 与两笔状态，用于定位「没有真实输注却闪细条」。
+    LaunchedEffect(mainDelivery?.bolusId, mainDelivery?.state, extendedDelivery?.bolusId, extendedDelivery?.state) {
+        Timber.d(
+            "bolus strip: visible main=%s(%s) ext=%s(%s) stateRaw=%s/%s",
+            mainDelivery?.bolusId,
+            mainDelivery?.state,
+            extendedDelivery?.bolusId,
+            extendedDelivery?.state,
+            coordinator.sessionState.value?.state,
+            coordinator.extendedState.value?.state,
+        )
+    }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -254,14 +280,17 @@ private fun dotColor(delivery: BolusDelivery, cancelStatus: CancelStatus): Color
     else -> MaterialTheme.colorScheme.primary
 }
 
-/** 细条只展示「进行中」的相位；已落定的结局由大剂量页段二展示。 */
+/**
+ * 细条只展示「确有这一笔、且正在进行」的相位（§6 定版口径）。
+ *
+ * - 必须带 `bolusId`：对账/恢复留下的 UNCONFIRMED、UNKNOWN 占位没有 id，不代表真实输注；
+ * - 只认 `ACTIVE` / `CANCELLING`：CONFIRMING 是「已发出、等回包」，还没证据；
+ * - 泵上发起的一笔同样会经 46 拿到 id 后显示，仍可取消，便利性不变。
+ */
 private fun BolusDelivery.isStripVisible(): Boolean =
-    !isFinished && state in setOf(
-        BolusDeliveryState.CONFIRMING,
-        BolusDeliveryState.UNCONFIRMED,
+    bolusId != null && !isFinished && state in setOf(
         BolusDeliveryState.ACTIVE,
         BolusDeliveryState.CANCELLING,
-        BolusDeliveryState.UNKNOWN,
     )
 
 /** 取消三态的时间推进：与页面取消行一致，每秒刷新一次。 */

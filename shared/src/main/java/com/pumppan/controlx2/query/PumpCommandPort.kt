@@ -35,8 +35,23 @@ fun interface PumpRequestSender {
  */
 class PumpCommandPort(
     private val sender: PumpRequestSender,
-    /** 超过这个时长没有任何响应，链路判为 SUSPECT。配置项 `states.linkSilentAfterMs` 的默认值。 */
-    private val linkSilentAfterMs: Long = 30_000L,
+    /** 超过这个时长没有任何响应，链路判为 SUSPECT。由调用方注入 `states.linkSilentAfterMs`。 */
+    linkSilentAfterMs: Long = DEFAULT_LINK_SILENT_MS,
+    /**
+     * 全局在飞上限（不区分 opCode）。
+     *
+     * 为什么不是只靠单飞去重：单飞只挡「同一条请求重发」，挡不住一次批量塞 16 条不同请求。
+     * 实测写失败会在 10s 内连续 3 次就剪线，而批量下发正是最容易凑齐的姿势。上限 3
+     * 是兜底，真正让写入错峰的是 `PumpCommHandler` 的批量 200ms 间隔。
+     */
+    private val maxInFlight: Int = DEFAULT_MAX_IN_FLIGHT,
+    /**
+     * 同一条请求（opCode+cargo）的窗口内去重时长；0 表示关闭。
+     *
+     * 250ms 的依据：泵回 ACK 只需 20-40ms，单飞挡不住「两路各发一遍」；而页面/批量链
+     * 之间的重复都发生在几十毫秒内，250ms 足以覆盖，又不会误伤 1s 级的轮询域。
+     */
+    private val dedupeWindowMs: Long = DEFAULT_DEDUPE_WINDOW_MS,
 ) {
 
     enum class Reject {
@@ -46,7 +61,25 @@ class PumpCommandPort(
         THROTTLED,
         /** 发送器返回 false（断连等） */
         SEND_FAILED,
+        /** 刚重连，仍在握手静默窗内（`states.connectedSettleMs`） */
+        QUIET,
+        /** 全局在飞已达上限（批量过密时的兜底） */
+        BUSY,
+        /** 同一请求在去重窗口内已经发过（挡住「两路各发一遍」） */
+        DUPLICATE,
     }
+
+    /** 静默超时阈值；允许在策略加载后注入，避免端口先于策略初始化。 */
+    @Volatile
+    private var linkSilentAfterMs: Long = linkSilentAfterMs
+
+    /**
+     * 重连后的静默窗截止时刻（`System.currentTimeMillis` 语义）；0 表示不在窗口内。
+     *
+     * 为什么需要：重连后库要跑 `initializeConnection → sendBaseCommands`，这段本身
+     * 就在占用链路；App 此时补查是纯叠加，正是边界抖动期最不该做的事。
+     */
+    private val quietUntil = AtomicLong(0L)
 
     /** 链路状态。惰性计算，不开线程、不设定时器。 */
     enum class LinkState {
@@ -56,6 +89,11 @@ class PumpCommandPort(
         SUSPECT,
         /** 显式标记断开（连接状态 false / 通信挂起） */
         DOWN,
+        /**
+         * 边界抖动（range-edge flap）：短时间内反复连断，链路能连上但站不稳。
+         * 比 SUSPECT 更严：周期域只留保底，事件补查一律丢弃，重连静默窗拉长。
+         */
+        EDGE,
     }
 
     /** 一次查询能拿到的数据状态。安全判定只接受 FRESH。 */
@@ -88,6 +126,9 @@ class PumpCommandPort(
      */
     private val inFlightSince = ConcurrentHashMap<Long, Long>()
 
+    /** 单飞键 → 最近一次成功发送的时刻，用于窗口内去重（见 [Reject.DUPLICATE]）。 */
+    private val lastSentAtKey = ConcurrentHashMap<Long, Long>()
+
     /** opCode → 最近一次成功发送的时刻（节流判定）。节流按请求类共享，不分 cargo。 */
     private val lastSentAt = ConcurrentHashMap<Int, Long>()
 
@@ -103,6 +144,115 @@ class PumpCommandPort(
 
     /** 连续发送失败次数；≥2 判 SUSPECT，收到响应清零。 */
     private val consecutiveSendFailures = AtomicInteger(0)
+
+    /**
+     * 边界抖动（flap）判定参数。默认值即设计 §14 的实测口径，可由策略文件的 `flap` 段注入。
+     *
+     * 判定只用**连接回调**的时间戳（`markLinkUp` / `markLinkDown` 的 `now`），
+     * 不使用 DiagMonitor（设备侧监控已关，拿不到可信的连接时长）。
+     */
+    data class FlapConfig(
+        val windowMs: Long = 300_000L,
+        val disconnectsInWindow: Int = 3,
+        val shortLivedMs: Long = 30_000L,
+        val shortLivedCount: Int = 2,
+        val stableAfterMs: Long = 180_000L,
+        val quietAfterReconnectMs: Long = 15_000L,
+        val probeIntervalMs: Long = 60_000L,
+    )
+
+    @Volatile
+    private var flap = FlapConfig()
+
+    private val flapLock = Any()
+
+    /** 窗口内的断开时刻（只保留 `windowMs` 内的）。 */
+    private val disconnectAt = ArrayDeque<Long>()
+
+    /** 最近若干次连接的存活时长，用于「连续短命连接」判定。 */
+    private val connectedForHistory = ArrayDeque<Long>()
+
+    private var lastConnectedAt = 0L
+    private var lastDisconnectAt = 0L
+    private var edgeActive = false
+    private var flapTriggers = 0
+
+    /** 策略加载后注入 `flap` 段；窗口变化时清掉旧样本，避免用旧口径判新阈值。 */
+    fun configureFlap(config: FlapConfig) {
+        synchronized(flapLock) {
+            flap = config
+            disconnectAt.clear()
+            connectedForHistory.clear()
+            edgeActive = false
+        }
+    }
+
+    /** 当前是否处于 EDGE（顺带做退出判定：稳定期内无断开且拿到过响应）。 */
+    fun isEdgeActive(now: Long = System.currentTimeMillis()): Boolean =
+        synchronized(flapLock) { edgeActive(now) }
+
+    /** 抖动诊断快照，供 `/api/query/stats` 的 `coordinator.link` 段。 */
+    fun flapInfo(now: Long = System.currentTimeMillis()): Map<String, Any?> = synchronized(flapLock) {
+        mapOf(
+            "edge" to edgeActive(now),
+            "triggers" to flapTriggers,
+            "disconnectsInWindow" to disconnectAt.count { now - it <= flap.windowMs },
+            "windowMs" to flap.windowMs,
+            "stableAfterMs" to flap.stableAfterMs,
+            "quietAfterReconnectMs" to flap.quietAfterReconnectMs,
+            "probeIntervalMs" to flap.probeIntervalMs,
+        )
+    }
+
+    /**
+     * 记录一次断开，并判定是否进入 EDGE。
+     *
+     * 三条触发条件（设计 §14.2）：
+     * 1. `windowMs` 内断开 ≥ `disconnectsInWindow` 次；
+     * 2. 连续 `shortLivedCount` 次连接存活 < `shortLivedMs`；
+     * 3. 本次连接存活 < 2×`shortLivedMs`（默认 60s）就又断——同一位置的反复连断。
+     */
+    private fun recordDisconnect(now: Long, connectedForMs: Long) {
+        synchronized(flapLock) {
+            lastDisconnectAt = now
+            disconnectAt.addLast(now)
+            while (disconnectAt.isNotEmpty() && now - disconnectAt.first() > flap.windowMs) {
+                disconnectAt.removeFirst()
+            }
+            connectedForHistory.addLast(connectedForMs)
+            while (connectedForHistory.size > maxOf(2, flap.shortLivedCount)) {
+                connectedForHistory.removeFirst()
+            }
+
+            val dense = disconnectAt.size >= flap.disconnectsInWindow
+            val shortStreak = connectedForHistory.size >= flap.shortLivedCount &&
+                connectedForHistory.takeLast(flap.shortLivedCount).all { it < flap.shortLivedMs }
+            val shortReconnect = connectedForMs in 0 until (flap.shortLivedMs * 2)
+
+            if (dense || shortStreak || shortReconnect) {
+                if (!edgeActive) {
+                    edgeActive = true
+                    flapTriggers++
+                    Timber.w(
+                        "query port: EDGE 抖动判定命中 dense=%s shortStreak=%s shortReconnect=%s connectedForMs=%d",
+                        dense, shortStreak, shortReconnect, connectedForMs,
+                    )
+                }
+            }
+        }
+    }
+
+    /** EDGE 退出：稳定期内无断开，且这段时间里至少收到过一次响应。 */
+    private fun edgeActive(now: Long): Boolean {
+        if (!edgeActive) return false
+        if (now - lastDisconnectAt < flap.stableAfterMs) return true
+        if (lastResponseAt.get() <= lastDisconnectAt) return true
+        edgeActive = false
+        disconnectAt.clear()
+        connectedForHistory.clear()
+        Timber.i("query port: EDGE 退出（稳定 %dms 且已有响应）", now - lastDisconnectAt)
+        return false
+    }
 
     /** 供诊断/单测：某 opCode 是否在飞（该 opCode 下任一条），以及最近一次的时刻。 */
     fun inFlightSince(opCode: Int): Long? =
@@ -130,6 +280,13 @@ class PumpCommandPort(
         val opCode = opCodeOf(message)
         val key = queryKey(message)
         return try {
+            // 重连静默窗：握手/基线下发期间不放行任何业务查询。
+            if (now < quietUntil.get()) return Result(false, Reject.QUIET, opCode)
+
+            // 全局在飞兜底：先清掉早已超时的登记，再看是否已经塞满。
+            pruneStaleInFlight(now)
+            if (inFlightSince.size >= maxInFlight) return Result(false, Reject.BUSY, opCode)
+
             val since = inFlightSince[key]
             if (since != null) {
                 if (now - since < timeoutMs) return Result(false, Reject.IN_FLIGHT, opCode)
@@ -142,10 +299,20 @@ class PumpCommandPort(
                 return Result(false, Reject.THROTTLED, opCode)
             }
 
+            // 同一条请求的去重窗口。单飞只能挡「还在飞」的那一段，泵回 ACK 很快（实测 20-40ms），
+            // 于是两个页面/两条批量链各发一次时，第二条会顺利通过单飞——2026-11-11 21:36
+            // 抓到的现象就是同一请求相隔 25ms 连发两遍。用 key（opCode+cargo）而不是 opCode，
+            // 避免 ActiveAamBits 这类同 opCode 不同 cargo 的请求被误杀。
+            val lastSameKey = lastSentAtKey[key]
+            if (dedupeWindowMs > 0L && lastSameKey != null && now - lastSameKey < dedupeWindowMs) {
+                return Result(false, Reject.DUPLICATE, opCode)
+            }
+
             val ok = sender.send(type, listOf(message))
             if (ok) {
                 inFlightSince[key] = now
                 lastSentAt[opCode] = now
+                lastSentAtKey[key] = now
                 consecutiveSendFailures.set(0)
             } else {
                 consecutiveSendFailures.incrementAndGet()
@@ -192,21 +359,64 @@ class PumpCommandPort(
     /** 当前链路状态。惰性计算，不开线程、不设定时器。 */
     fun linkState(now: Long = System.currentTimeMillis()): LinkState {
         if (linkDown.get()) return LinkState.DOWN
+        // EDGE 优先于 SUSPECT：抖动期「有响应但站不稳」，判定依据是连接事件而不是静默。
+        if (isEdgeActive(now)) return LinkState.EDGE
         if (consecutiveSendFailures.get() >= 2) return LinkState.SUSPECT
         val last = lastResponseAt.get()
         if (last == 0L) return LinkState.SUSPECT
         return if (now - last <= linkSilentAfterMs) LinkState.OK else LinkState.SUSPECT
     }
 
-    /** 连接 false / 通信挂起：调度侧应停表，所有周期查询让路。 */
-    fun markLinkDown() {
+    /**
+     * 连接 false / 通信挂起：调度侧应停表，所有周期查询让路。
+     *
+     * @param recordFlap 是否计入抖动统计。真实断开（连接回调）计入；
+     *   `PUMP_COMMUNICATIONS_SUSPENDED` 这类逻辑挂起不计入——否则一次挂起会被当成
+     *   一次断开，把「短命连接」的样本污染成假 EDGE。
+     */
+    fun markLinkDown(now: Long = System.currentTimeMillis(), recordFlap: Boolean = true) {
+        val connectedFor = if (lastConnectedAt > 0L) (now - lastConnectedAt).coerceAtLeast(0L) else Long.MAX_VALUE
         linkDown.set(true)
+        quietUntil.set(0L)
+        if (recordFlap) recordDisconnect(now, connectedFor)
     }
 
-    /** 连接恢复：清掉断开与失败了计数，等待重连探活。 */
-    fun markLinkUp() {
+    /**
+     * 连接恢复：清掉断开与失败计数，并按需进入静默窗。
+     *
+     * EDGE 期间静默窗取 `max(quietMs, flap.quietAfterReconnectMs)`：库在重连后要跑
+     * `initializeConnection → sendBaseCommands`，这段不能与 App 的补查抢链路。
+     *
+     * @param quietMs 静默窗时长，取 `states.connectedSettleMs`；0 表示不设窗（单测用）。
+     */
+    fun markLinkUp(now: Long = System.currentTimeMillis(), quietMs: Long = 0L) {
+        lastConnectedAt = now
         linkDown.set(false)
         consecutiveSendFailures.set(0)
+        val effectiveQuiet = if (isEdgeActive(now)) maxOf(quietMs, flap.quietAfterReconnectMs) else quietMs
+        quietUntil.set(if (effectiveQuiet > 0) now + effectiveQuiet else 0L)
+    }
+
+    /** 策略加载后注入 `states.linkSilentAfterMs`；非正值忽略，保持默认。 */
+    fun setLinkSilentAfterMs(ms: Long) {
+        if (ms > 0L) linkSilentAfterMs = ms
+    }
+
+    /** 是否仍处于重连静默窗内（供诊断/单测）。 */
+    fun inQuietWindow(now: Long = System.currentTimeMillis()): Boolean = now < quietUntil.get()
+
+    /** 诊断用：当前生效的静默阈值。 */
+    fun linkSilentAfterMsValue(): Long = linkSilentAfterMs
+
+    /** 诊断用：全局在飞上限。 */
+    fun maxInFlightValue(): Int = maxInFlight
+
+    /** 清掉「早已不可能再有响应」的在飞登记，避免全局计数被死条目永久占满。 */
+    private fun pruneStaleInFlight(now: Long) {
+        val it = inFlightSince.entries.iterator()
+        while (it.hasNext()) {
+            if (now - it.next().value > IN_FLIGHT_TTL_MS) it.remove()
+        }
     }
 
     /**
@@ -252,11 +462,13 @@ class PumpCommandPort(
     /** 全清（单测 / 会话切换）。 */
     fun reset() {
         inFlightSince.clear()
+        lastSentAtKey.clear()
         lastSentAt.clear()
         latestResponse.clear()
         latestResponseAt.clear()
         lastResponseAt.set(0L)
         linkDown.set(false)
+        quietUntil.set(0L)
         consecutiveSendFailures.set(0)
     }
 
@@ -295,5 +507,19 @@ class PumpCommandPort(
         } catch (_: Throwable) {
             // 端口自身不允许再抛
         }
+    }
+
+    companion object {
+        /** 未注入策略时的兜底静默阈值；与 `pump-query-policy.json` 旧默认同值。 */
+        const val DEFAULT_LINK_SILENT_MS = 30_000L
+
+        /** 全局在飞兜底上限。 */
+        const val DEFAULT_MAX_IN_FLIGHT = 3
+
+        /** 同一条请求的窗口内去重时长。 */
+        const val DEFAULT_DEDUPE_WINDOW_MS = 250L
+
+        /** 在飞登记的过期清理阈值：超过它仍未收到回包，本来也会被单飞超时判为丢包。 */
+        private const val IN_FLIGHT_TTL_MS = 10_000L
     }
 }

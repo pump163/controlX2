@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,10 +54,10 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.Notificati
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
-import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
 import com.jwoglom.controlx2.shared.util.canControlPump
 
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -131,17 +132,24 @@ fun Notifications(
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        // 退订：页面不可见时协调器不再每 60s 查通知包（策略 NOTIFICATIONS.onlyWhenVisible）。
+        QueryCoordinatorHolder.setVisible("NOTIFICATIONS", false)
         refreshScope.cancel()
     }) {
         Timber.i("reloading Notifications from onStart lifecyclestate")
+        QueryCoordinatorHolder.setVisible("NOTIFICATIONS", true)
         fetchDataStoreFields(SendType.STANDARD)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading Notifications from interval")
-        fetchDataStoreFields(SendType.STANDARD)
+    // 页面真正离开组合时才退订。导航库的 onStop 在这里并不总触发（详情页返回后
+    // 上一页仍留在 back stack），只靠 LifecycleStateObserver 会留下「页面已经关了、
+    // 协调器还以为你在看」的泄漏。
+    DisposableEffect(Unit) {
+        onDispose { QueryCoordinatorHolder.setVisible("NOTIFICATIONS", false) }
     }
 
+    // 周期刷新已交给 QueryCoordinator（NOTIFICATIONS 域，5s 节拍按 60s 到期判定）；
+    // 页面只保留进页面首刷与下拉刷新两条直发路径。
     LaunchedEffect(refreshing) {
         waitForLoaded()
     }

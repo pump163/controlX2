@@ -341,6 +341,9 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 method == Method.GET && uri == "/api/historylog/stream" -> handleHistoryLogStream(session)
                 // 查询层收敛 · 第 0 步：只读诊断端点
                 method == Method.GET && uri == "/api/query/stats" -> handleQueryStats()
+                // S4 窗口验证：不用真打一笔大剂量，也能核对 1s 窗口的节拍与去重。
+                // GET /api/query/window?action=open|close|status&domain=BOLUS_OUTCOME&ms=60000
+                method == Method.GET && uri == "/api/query/window" -> handleQueryWindow(session)
                 method == Method.POST && uri == "/api/pump/debug-write-bt-characteristic" -> handlePumpDebugWriteBtCharacteristic(session)
                 // DIAG-TEMP BEGIN：临时断连监控取回端点
                 method == Method.GET && uri == "/api/diag/state" -> handleDiagState()
@@ -1403,9 +1406,40 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                         p.put("sent", plan.sent)
                         p.put("rejected", plan.rejected)
                         p.put("mode", plan.mode.name)
+                        // 跳过原因必须可读：否则「某个域一直没进计划」只能靠猜
+                        val skippedJson = JSONObject()
+                        plan.skipped.forEach { (domain, reason) ->
+                            skippedJson.put(domain, reason.name)
+                        }
+                        p.put("skipped", skippedJson)
                         plans.put(p)
                     }
                     coordinatorJson.put("recentPlans", plans)
+                    // 链路侧实况：静默阈值/静默窗/在飞上限只有能从这里读到，才谈得上「验证配置生效」
+                    val link = JSONObject()
+                    coordinator.linkInfo().forEach { (key, value) ->
+                        link.put(key, value ?: JSONObject.NULL)
+                    }
+                    coordinatorJson.put("link", link)
+                    // 窗口与真下发清单：S4 之后「模式 ACTIVE 但只有窗口域在发」必须能一眼看出，
+                    // 否则会把「其他域 sent=0」误读成协调器坏了。
+                    val window = JSONObject()
+                    window.put("domains", JSONArray(coordinator.windowInfo()["domains"] as? List<*> ?: emptyList<Any>()))
+                    val remaining = JSONObject()
+                    @Suppress("UNCHECKED_CAST")
+                    (coordinator.windowInfo()["remainingMs"] as? Map<String, Long>)?.forEach { (k, v) ->
+                        remaining.put(k, v)
+                    }
+                    window.put("remainingMs", remaining)
+                    @Suppress("UNCHECKED_CAST")
+                    window.put(
+                        "dispatched",
+                        JSONArray(coordinator.windowInfo()["dispatched"] as? List<*> ?: emptyList<Any>()),
+                    )
+                    coordinatorJson.put("window", window)
+                    // 页面订阅实况：S4 逐页迁移时，「页面明明开着却 skipped=NOT_VISIBLE」
+                    // 只能靠这一行区分是订阅没接上，还是页面真的没打开。
+                    coordinatorJson.put("visible", JSONArray(coordinator.visibleInfo()))
                     root.put("coordinator", coordinatorJson)
                 }
                 root.put("observedEngine", "LEGACY")
@@ -1419,6 +1453,39 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
             val o = JSONObject()
             map.forEach { (k, v) -> o.put(k, v) }
             return o
+        }
+
+        /**
+         * 窗口域调试：只开/关窗口与回读，不发任何泵报文。
+         *
+         * 存在的意义是把「窗口期 1s 节拍、去重、窗口关闭后不发」这三件事能在没有真实大剂量的
+         * 情况下验证完，避免为了验证去真打一笔胰岛素。
+         */
+        private fun handleQueryWindow(session: IHTTPSession): Response {
+            val coordinator = com.pumppan.controlx2.query.QueryCoordinatorHolder.current()
+                ?: return errorResponse("coordinator not attached", Response.Status.SERVICE_UNAVAILABLE)
+            val action = session.parameters["action"]?.firstOrNull() ?: "status"
+            val domain = session.parameters["domain"]?.firstOrNull()
+                ?: com.pumppan.controlx2.query.QueryDomainRequests.BOLUS_OUTCOME
+            val ms = session.parameters["ms"]?.firstOrNull()?.toLongOrNull()
+
+            when (action) {
+                "open" -> coordinator.openWindow(domain, ms)
+                "close" -> coordinator.closeWindow(domain)
+                "status" -> Unit
+                else -> return errorResponse("action must be open|close|status", Response.Status.BAD_REQUEST)
+            }
+
+            val json = JSONObject()
+            json.put("action", action)
+            json.put("domain", domain)
+            json.put("open", coordinator.isWindowOpen(domain))
+            val info = JSONObject()
+            info.put("domains", JSONArray(coordinator.windowInfo()["domains"] as? List<*> ?: emptyList<Any>()))
+            info.put("dispatched", JSONArray(coordinator.windowInfo()["dispatched"] as? List<*> ?: emptyList<Any>()))
+            json.put("window", info)
+            json.put("mode", coordinator.modeName())
+            return newFixedLengthResponse(Response.Status.OK, "application/json", json.toString())
         }
 
         private fun handleDiagFiles(): Response {

@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -60,11 +61,12 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.enums.CGMSessionState
-import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
 import com.jwoglom.controlx2.shared.util.canControlPump
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 import com.jwoglom.pumpx2.pump.messages.request.control.SetDexcomG7PairingCodeRequest
@@ -148,17 +150,20 @@ fun CGMActions(
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
+    // 可见性订阅：周期由查询器按该域统一节拍，页面只保留首帧/下拉/连接补拉。
+    DisposableEffect(Unit) {
+        onDispose { QueryCoordinatorHolder.setVisible(QueryDomainRequests.CGM_STATUS, false) }
+    }
+
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        QueryCoordinatorHolder.setVisible(QueryDomainRequests.CGM_STATUS, false)
         refreshScope.cancel()
     }) {
         Timber.i("reloading CGMActions from onStart lifecyclestate")
+        QueryCoordinatorHolder.setVisible(QueryDomainRequests.CGM_STATUS, true)
         fetchDataStoreFields(SendType.STANDARD)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading CGMActions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
-    }
 
     LaunchedEffect(refreshing) {
         waitForLoaded()
@@ -571,6 +576,13 @@ val cgmActionsCommands = listOf(
     HomeScreenMirrorRequest(),
     CGMStatusRequest()
 )
+
+/**
+ * 周期域：CGM 页只需要会话状态那一条。
+ * 底栏 HomeMirror 归首页第二档负责，这里不重复问（一条请求只归一个域）。
+ */
+val cgmStatusCycleCommands: List<Message>
+    get() = listOf(CGMStatusRequest())
 
 val cgmActionsFields = listOf(
     dataStore.cgmSessionState

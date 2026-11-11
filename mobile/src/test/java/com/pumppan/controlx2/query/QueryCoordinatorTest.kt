@@ -66,7 +66,7 @@ class QueryCoordinatorTest {
     )
 
     private fun healthyPort(): PumpCommandPort {
-        val port = PumpCommandPort(RecordingSender(), linkSilentAfterMs = 30_000L)
+        val port = PumpCommandPort(RecordingSender(), linkSilentAfterMs = 30_000L, maxInFlight = 10)
         // 喂一条回包让 linkState = OK（lastResponseAt 用 0 表示「从未收到」，所以时间从 1000 起）
         port.onMessage(ActiveAamBitsRequest(byteArrayOf(2)), now = 1_000)
         return port
@@ -77,7 +77,7 @@ class QueryCoordinatorTest {
     @Test
     fun shadowPlansWithoutSending() {
         val sender = RecordingSender()
-        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L)
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
         port.onMessage(response(), now = 1_000)
         val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.SHADOW)
 
@@ -92,7 +92,7 @@ class QueryCoordinatorTest {
     @Test
     fun activeSendsOnceThenWaitsForInterval() {
         val sender = RecordingSender()
-        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L)
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
         port.onMessage(response(), now = 1_000)
         val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
 
@@ -112,7 +112,7 @@ class QueryCoordinatorTest {
     @Test
     fun linkDownFreezesAndResumesImmediately() {
         val sender = RecordingSender()
-        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L)
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
         port.onMessage(response(), now = 1_000)
         val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
 
@@ -136,7 +136,7 @@ class QueryCoordinatorTest {
     @Test
     fun suspectLinkOnlyAllowsTopicsWithFloor() {
         val sender = RecordingSender()
-        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L)
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
         // 只有一条很久以前的回包 → 静默超时，linkState = SUSPECT
         port.onMessage(response(), now = 1_000)
         val coordinator = QueryCoordinator(
@@ -163,6 +163,58 @@ class QueryCoordinatorTest {
     }
 
     @Test
+    fun windowDomainStaysClosedUntilOpened() {
+        val sender = RecordingSender()
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
+        port.onMessage(response(), now = 1_000)
+        val windowed = topics.toMutableMap().apply {
+            put(
+                "BOLUS_OUTCOME",
+                topic(1_000, null, "P0_CONFIRM").copy(maxWindowMs = 60_000),
+            )
+        }
+        val coordinator = QueryCoordinator(
+            policyOf(windowed), port, mode = QueryCoordinator.Mode.ACTIVE,
+            activeDomains = setOf("PUMP_VITALS", "BOLUS_OUTCOME"),
+            dispatchedDomains = setOf("BOLUS_OUTCOME"),
+        )
+
+        // 窗口没开：一条都不发，原因必须可读
+        val closed = coordinator.tick(now = 2_000)
+        assertEquals(QueryCoordinator.SkipReason.WINDOW_CLOSED, closed.skipped["BOLUS_OUTCOME"])
+        assertEquals(0, closed.sent)
+
+        coordinator.openWindow("BOLUS_OUTCOME", durationMs = 60_000, now = 2_000)
+        val opened = coordinator.tick(now = 3_000)
+        assertTrue("BOLUS_OUTCOME" in opened.domains)
+        assertEquals(1, opened.sent)
+        // 已接管但未下发的域留在计划里（可见），但不产生任何报文
+        assertEquals(1, sender.sent.size)
+
+        // 到期即停，不需要调用方显式关闭
+        assertTrue(!coordinator.isWindowOpen("BOLUS_OUTCOME", now = 62_001))
+        val expired = coordinator.tick(now = 62_001)
+        assertEquals(QueryCoordinator.SkipReason.WINDOW_CLOSED, expired.skipped["BOLUS_OUTCOME"])
+    }
+
+    @Test
+    fun dispatchedSubsetDoesNotSendOtherActiveDomains() {
+        val sender = RecordingSender()
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
+        port.onMessage(response(), now = 1_000)
+        val coordinator = QueryCoordinator(
+            policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE,
+            activeDomains = setOf("PUMP_VITALS", "IOB"),
+            dispatchedDomains = setOf("IOB"),
+        )
+
+        val plan = coordinator.tick(now = 61_000)
+
+        assertEquals(1, plan.sent)
+        assertEquals(1, sender.sent.size) // 只有 IOB 真发；PUMP_VITALS 只推进计时
+    }
+
+    @Test
     fun nextDueReportsRemainingTime() {
         val port = healthyPort()
         val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
@@ -174,3 +226,4 @@ class QueryCoordinatorTest {
         assertEquals(30_000L, due["IOB"])
     }
 }
+

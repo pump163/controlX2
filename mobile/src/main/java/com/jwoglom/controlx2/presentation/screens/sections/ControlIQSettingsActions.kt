@@ -40,6 +40,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -67,13 +68,14 @@ import com.jwoglom.controlx2.presentation.screens.LandingSection
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
-import com.jwoglom.controlx2.shared.presentation.intervalOf
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.pumppan.controlx2.ui.NavigationRow
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
 
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.builders.ControlIQInfoRequestBuilder
 import com.jwoglom.pumpx2.pump.messages.models.MultiDay
@@ -171,17 +173,20 @@ fun ControlIQSettingsActions(
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
+    // 可见性订阅：周期由查询器按该域统一节拍，页面只保留首帧/下拉/连接补拉。
+    DisposableEffect(Unit) {
+        onDispose { QueryCoordinatorHolder.setVisible(QueryDomainRequests.CONTROL_IQ_SETTINGS, false) }
+    }
+
     LifecycleStateObserver(lifecycleOwner = LocalLifecycleOwner.current, onStop = {
+        QueryCoordinatorHolder.setVisible(QueryDomainRequests.CONTROL_IQ_SETTINGS, false)
         refreshScope.cancel()
     }) {
         Timber.i("reloading ControlIQSettingsActions from onStart lifecyclestate")
+        QueryCoordinatorHolder.setVisible(QueryDomainRequests.CONTROL_IQ_SETTINGS, true)
         fetchDataStoreFields(SendType.STANDARD)
     }
 
-    LaunchedEffect(intervalOf(60)) {
-        Timber.i("reloading ControlIQSettingsActions from interval")
-        fetchDataStoreFields(SendType.STANDARD)
-    }
 
     LaunchedEffect(refreshing) {
         waitForLoaded()
@@ -598,6 +603,16 @@ val controlIQSettingsCommands = listOf(
     ControlIQInfoRequestBuilder.create(apiVersion()),
     ControlIQSleepScheduleRequest(),
 )
+
+/**
+ * 周期域：与页面同一份清单，但每次调用都重新求值 `apiVersion()`，
+ * 避免类加载时泵版本还没读到、把请求冻结在错误 API 上。
+ */
+val controlIQSettingsCycleCommands: List<Message>
+    get() = listOf(
+        ControlIQInfoRequestBuilder.create(apiVersion()),
+        ControlIQSleepScheduleRequest(),
+    )
 
 val controlIQSettingsFields = listOf(
     dataStore.controlIQEnabled,

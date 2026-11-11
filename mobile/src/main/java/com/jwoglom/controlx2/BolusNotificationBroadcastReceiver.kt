@@ -196,7 +196,13 @@ class BolusNotificationBroadcastReceiver : BroadcastReceiver() {
                             ?.apply()
                         
                         // Start periodic status updates
-                        startBolusStatusUpdates(context, messageBus, initiateResponse.bolusId, initiateRequest)
+                        //
+                        // S4：V2 模式下这条路彻底不走。它的 1s×60 是无条件轮询（首条还提前 500ms），
+                        // 与查询器窗口叠在一起就是同一秒两条 44，正是「断连/抖动期多次重发」的形态。
+                        // V2 的确认期证据由 QueryCoordinator 的 BOLUS_OUTCOME 窗口（1s、≤60s）负责。
+                        if (BolusRouter.controllerMode(context) != BolusControllerMode.V2) {
+                            startBolusStatusUpdates(context, messageBus, initiateResponse.bolusId, initiateRequest)
+                        }
                     }
                 }
             }

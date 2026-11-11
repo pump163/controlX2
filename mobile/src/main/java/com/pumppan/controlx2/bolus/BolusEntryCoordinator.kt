@@ -29,6 +29,8 @@ import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 import com.pumppan.controlx2.query.PumpCommandPort
 import com.pumppan.controlx2.query.PumpRequestSender
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -114,6 +116,11 @@ class BolusEntryCoordinator(
         immediatePollIntervalMs = capabilities().immediatePollIntervalMs,
         extendedPollIntervalMs = capabilities().extendedPollIntervalMs,
         requestTimeoutMs = limits.requestTimeoutMillis,
+        // 44 在确认窗内由查询器按 1s 发；调度器这时不再补一条，避免同一秒两发。
+        // 46（延展）不交给窗口：它是条件查询，仍归这里按会话形状判断。
+        currentPollDelegated = {
+            QueryCoordinatorHolder.current()?.isWindowOpen(QueryDomainRequests.BOLUS_OUTCOME) == true
+        },
     )
 
     private val reconciler = BolusReconciler(
@@ -152,6 +159,9 @@ class BolusEntryCoordinator(
     /** 主 ticker：确认阶梯、延展兜底、查询调度都由它推进；无活跃会话时自动退出。 */
     private var tickerJob: Job? = null
 
+    /** 上一次观察到的会话态，用来识别「非活跃 → 活跃 / 活跃 → 取消中」的跃迁。 */
+    private var lastObservedState: BolusDeliveryState? = null
+
     init {
         // 先恢复，再挂回调：恢复本身不应触发一次「重复落盘」。
         restorePersistedSession()
@@ -164,6 +174,47 @@ class BolusEntryCoordinator(
                 }
                 store?.onSessionChanged(delivery, meta)
             }
+            // 会话落定（结束 / 清空）就关掉 1s 窗口，别让「确认完了还每秒问一遍」占链路。
+            if (delivery == null || delivery.isFinished) {
+                QueryCoordinatorHolder.current()?.closeWindow(QueryDomainRequests.BOLUS_OUTCOME)
+            }
+            // 状态进来了、驱动循环必须跟着起来。外部发起（泵上直接打）与对账把会话推进到
+            // ACTIVE/CONFIRMING 时，都不经过 onBolusInitiated，只有这里能保证 ticker 不死：
+            // 2026-11-11 实测 22:36:21 落 UNKNOWN 后 ticker 退出，22:47:37 对账已 ACTIVE，
+            // 到 22:49:03 取消为止 90s 内没有任何 44 轮询。
+            if (mode() == BolusControllerMode.V2 && delivery != null && !delivery.isFinished &&
+                needsTicker(delivery)
+            ) {
+                ensureTicker()
+            }
+            // 窗口也在这里开：只在「跃迁」上开一次，普通证据刷新不续窗，
+            // 否则 2 小时的延展会被续成 1s 拍到底，正好违背「不拼命查」。
+            if (mode() == BolusControllerMode.V2 && delivery != null) {
+                val previous = lastObservedState
+                val nowActive = delivery.state == BolusDeliveryState.ACTIVE ||
+                    delivery.state == BolusDeliveryState.CANCELLING
+                val wasActive = previous == BolusDeliveryState.ACTIVE ||
+                    previous == BolusDeliveryState.CANCELLING
+                if (nowActive && !wasActive) {
+                    val coordinator = QueryCoordinatorHolder.current()
+                    // App 发起时已经开了 60s 确认窗，这里不缩短它；外部发起 / 恢复 / 对账
+                    // 走到 ACTIVE 时才补一个短窗，把「这一笔真的在跑」问实。
+                    if (coordinator != null &&
+                        !coordinator.isWindowOpen(QueryDomainRequests.BOLUS_OUTCOME)
+                    ) {
+                        val duration = if (delivery.state == BolusDeliveryState.CANCELLING) {
+                            CANCEL_CONFIRM_WINDOW_MS
+                        } else {
+                            ACTIVE_CONFIRM_WINDOW_MS
+                        }
+                        coordinator.openWindow(
+                            QueryDomainRequests.BOLUS_OUTCOME,
+                            durationMs = duration,
+                        )
+                    }
+                }
+            }
+            lastObservedState = delivery?.state
         }
     }
 
@@ -234,6 +285,12 @@ class BolusEntryCoordinator(
                 store.markRestored(delivery)
                 pushState()
                 notifications?.refresh()
+                // 恢复出来的「运行中」只有旧快照、没有新鲜证据：给查询器一个短窗口（15s、1s 一次），
+                // 尽快把「泵上到底还在不在输」问清楚；之后回调度器的 10s 常规节奏。
+                QueryCoordinatorHolder.current()?.openWindow(
+                    QueryDomainRequests.BOLUS_OUTCOME,
+                    durationMs = RESTORE_WINDOW_MS,
+                )
                 ensureTicker()
             }
         }
@@ -262,6 +319,8 @@ class BolusEntryCoordinator(
             sendMetaBolusId = bolusId
             controller.markInitiateSent(bolusId, hasImmediateLeg, expectedEndAtMillis, now)
             scheduler.reset(now)
+            // S4：确认期的 44 交给查询器（1s、≤60s 的窗口），调度器不再自己 10s 发一条。
+            QueryCoordinatorHolder.current()?.openWindow(QueryDomainRequests.BOLUS_OUTCOME, now = now)
             pushState()
             notifications?.refresh()
             ensureTicker()
@@ -483,6 +542,21 @@ class BolusEntryCoordinator(
 
         /** 细条展开核对的节流窗口：同一笔 5s 内重复展开不再发请求。 */
         const val STRIP_STATUS_REFRESH_MIN_INTERVAL_MS = 5_000L
+
+        /**
+         * 恢复落盘会话后的短取证窗口：15s × 1s，用来把「还在输 / 已结束」问清楚。
+         * 比 60s 的确认窗轻，够拿到 44 的当前状态。
+         */
+        const val RESTORE_WINDOW_MS = 15_000L
+
+        /**
+         * 外部发起（泵上直接打）被发现后的取证窗：30s × 1s。
+         * 只在「非活跃 → ACTIVE」这一次跃迁上开，之后回调度器 10s，不覆盖整段输注。
+         */
+        const val ACTIVE_CONFIRM_WINDOW_MS = 30_000L
+
+        /** 取消落定前的确认窗：15s × 1s，够看清 44/46 是否真的归零。 */
+        const val CANCEL_CONFIRM_WINDOW_MS = 15_000L
     }
 }
 
