@@ -348,6 +348,9 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 method == Method.GET && uri == "/api/diag/incident/latest" -> handleDiagIncident(session, uri)
                 method == Method.GET && uri.startsWith("/api/diag/incident/") -> handleDiagIncident(session, uri)
                 method == Method.GET && uri == "/api/diag/live" -> handleDiagLive(session)
+                // 人工打点：把「把泵带到隔壁 / 手机留在桌上」这类动作写进 live 日志，
+                // 用于把断连时刻与距离变化对齐（RF 路径假设的可证伪实验靠它）。
+                method == Method.GET && uri == "/api/diag/mark" -> handleDiagMark(session)
                 // DIAG-TEMP END
                 else -> newFixedLengthResponse(
                     Response.Status.NOT_FOUND,
@@ -1346,6 +1349,22 @@ class HttpDebugApiService(private val context: Context, private val port: Int = 
                 "application/json",
                 DiagMonitor.snapshotJson()
             )
+        }
+
+        /**
+         * 人工打点：`GET /api/diag/mark?note=把泵带到隔壁`
+         *
+         * 用于 RF 路径假设的可证伪实验：把「人/泵移动」这一动作写进 live 日志，
+         * 断连时刻就能直接对上距离变化，不必再凭记忆回填时间线。
+         */
+        private fun handleDiagMark(session: IHTTPSession): Response {
+            val note = (session.parms["note"] ?: session.parms["n"] ?: "").take(120)
+            DiagMonitor.onMark(note)
+            val json = JSONObject()
+            json.put("ok", true)
+            json.put("note", note)
+            json.put("wall", System.currentTimeMillis())
+            return newFixedLengthResponse(Response.Status.OK, "application/json", json.toString())
         }
 
         private fun handleQueryStats(): Response {

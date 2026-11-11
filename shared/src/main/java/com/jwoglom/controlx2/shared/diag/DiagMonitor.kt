@@ -107,6 +107,13 @@ object DiagMonitor {
     private var connParamsElapsed = -1L
     private var connParamsChanges = 0
 
+    // RSSI：判断「断连是路径损耗还是对端静默」的关键证据。
+    // 只保留最近一次读数、本次连接区间的极值，以及单调变化的去抖记录。
+    private var rssi: Int? = null
+    private var rssiElapsed = -1L
+    private var rssiMin: Int? = null
+    private var rssiMax: Int? = null
+
     /** 生效中的蓝牙链路策略（由 pumpcomm 在 Pump.init 里写入，只读展示）。 */
     private val linkPolicy = LinkedHashMap<String, Any?>()
 
@@ -172,6 +179,12 @@ object DiagMonitor {
         val connTimeoutSec: Long?,
         val connParamsAgoMs: Long?,
         val connParamsChanges: Int,
+        /** 最近一次 RSSI（dBm）；未取到为 null。 */
+        val rssi: Int?,
+        val rssiAgoMs: Long?,
+        /** 本次连接期间的 RSSI 极值，断开后保留到下次连通。 */
+        val rssiMin: Int?,
+        val rssiMax: Int?,
         val linkPolicy: Map<String, Any?>,
         val incidentCount: Int,
         val liveBytes: Long,
@@ -218,6 +231,10 @@ object DiagMonitor {
                 put("changes", connParamsChanges)
                 put("isHighProfile", isHighProfile(connIntervalMs, connLatency, connTimeoutSec))
             })
+            rssi?.let { j.put("rssi", it) }
+            rssiAgoMs?.let { j.put("rssiAgoMs", it) }
+            rssiMin?.let { j.put("rssiMin", it) }
+            rssiMax?.let { j.put("rssiMax", it) }
             j.put("blePolicy", JSONObject(linkPolicy))
             j.put("incidentCount", incidentCount)
             j.put("liveBytes", liveBytes)
@@ -353,12 +370,41 @@ object DiagMonitor {
         record(DiagEvent(nowWall(), nowElapsed(), "CONNECT_START", "pump", trigger))
     }
 
+    /**
+     * 记录一次 RSSI（由 `PumpCommHandler` 周期性 `readRemoteRssi()` 的回调喂入）。
+     *
+     * 目的：区分「断连是路径损耗（距离/遮挡）还是对端静默」。
+     * 只有变化 ≥5 dBm 才写一条 RSSI 事件，避免 30s 轮询把环形日志灌满；
+     * 快照始终保留最新值、以及本次连接区间的极值。
+     */
+    fun noteRssi(value: Int, source: String? = null) {
+        if (!enabled) return
+        if (value == 0 || value >= 127 || value <= -127) return // 无效读数
+        val el = nowElapsed()
+        var prev: Int? = null
+        synchronized(LOCK) {
+            prev = rssi
+            rssi = value
+            rssiElapsed = el
+            rssiMin = rssiMin?.let { minOf(it, value) } ?: value
+            rssiMax = rssiMax?.let { maxOf(it, value) } ?: value
+        }
+        val prevValue = prev
+        if (prevValue == null || kotlin.math.abs(value - prevValue) >= 5) {
+            record(DiagEvent(nowWall(), el, "RSSI", source ?: "poll",
+                "rssi=$value dBm", mapOf("rssi" to value)))
+        }
+    }
+
     fun onConnected(detail: String? = null) {
         if (!enabled) return
         synchronized(LOCK) {
             connected = true
             connectedAtElapsed = nowElapsed()
             if (lastRxElapsed < 0) lastRxElapsed = connectedAtElapsed
+            // 极值按「本次连接区间」统计，避免把上一段连接的远近混在一起
+            rssiMin = null
+            rssiMax = null
         }
         record(DiagEvent(nowWall(), nowElapsed(), "CONNECTED", "pump", detail))
     }
@@ -384,6 +430,11 @@ object DiagMonitor {
             connLatency?.let { extra["connLatency"] = it }
             connTimeoutMs?.let { extra["connTimeoutSec"] = it }
             if (connParamsElapsed >= 0) extra["connParamsAgoMs"] = el - connParamsElapsed
+            // 断开瞬间的 RSSI：路径损耗 vs 对端静默，直接看这一栏
+            rssi?.let { extra["rssi"] = it }
+            if (rssiElapsed >= 0) extra["rssiAgeMs"] = el - rssiElapsed
+            rssiMin?.let { extra["rssiMin"] = it }
+            rssiMax?.let { extra["rssiMax"] = it }
         }
         record(DiagEvent(wall, el, "DISCONNECTED", source, detail ?: status, extra))
         freezeInternal("DISCONNECTED(${status ?: "null"})/$source", force = true)
@@ -422,6 +473,17 @@ object DiagMonitor {
         if (!enabled) return
         record(DiagEvent(nowWall(), nowElapsed(), "PAUSED", "policy", reason))
         freezeInternal("PAUSED($reason)", force = true)
+    }
+
+    /**
+     * 人工打点（`GET /api/diag/mark?note=...`）。
+     *
+     * 用来把「人走开 / 把泵带到隔壁 / 手机留在桌上」写进 live 日志，
+     * 断连时刻就能对上距离与位置变化，而不是事后凭记忆补时间线。
+     */
+    fun onMark(note: String?) {
+        if (!enabled) return
+        record(DiagEvent(nowWall(), nowElapsed(), "MARK", "manual", note?.take(120) ?: "mark"))
     }
 
     fun onAwaitUser(detail: String?) {
@@ -638,6 +700,10 @@ object DiagMonitor {
                 connTimeoutSec = connTimeoutMs,
                 connParamsAgoMs = if (connParamsElapsed >= 0) el - connParamsElapsed else null,
                 connParamsChanges = connParamsChanges,
+                rssi = rssi,
+                rssiAgoMs = if (rssiElapsed >= 0) el - rssiElapsed else null,
+                rssiMin = rssiMin,
+                rssiMax = rssiMax,
                 linkPolicy = linkPolicy.toMap(),
                 incidentCount = incidentFiles().size,
                 liveBytes = liveFile()?.length() ?: 0,
@@ -660,7 +726,8 @@ object DiagMonitor {
         rxLastMinute = 0, txLastMinute = 0, bolusPollLast10s = 0,
         txBySourceLastMinute = emptyMap(), writeFailures = emptyMap(),
         connIntervalMs = null, connLatency = null, connTimeoutSec = null,
-        connParamsAgoMs = null, connParamsChanges = 0, linkPolicy = emptyMap(), incidentCount = 0,
+        connParamsAgoMs = null, connParamsChanges = 0,
+        rssi = null, rssiAgoMs = null, rssiMin = null, rssiMax = null, linkPolicy = emptyMap(), incidentCount = 0,
         liveBytes = 0, dirPath = "", heartbeatAgoMs = null,
     )
 
