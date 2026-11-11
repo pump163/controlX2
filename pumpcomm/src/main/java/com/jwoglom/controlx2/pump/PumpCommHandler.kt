@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.os.SystemClock
 import android.widget.Toast
 import com.jwoglom.controlx2.pumpcomm.R
 import com.jwoglom.controlx2.shared.CommServiceCodes
@@ -58,6 +59,7 @@ import com.jwoglom.pumpx2.pump.messages.response.historyLog.HistoryLogStreamResp
 import com.jwoglom.pumpx2.pump.messages.response.qualifyingEvent.QualifyingEvent
 import com.jwoglom.pumpx2.shared.Hex
 import com.welie.blessed.BluetoothPeripheral
+import com.welie.blessed.ConnectionPriority
 import com.welie.blessed.HciStatus
 import com.welie.blessed.WriteType
 import kotlinx.coroutines.CoroutineScope
@@ -86,6 +88,23 @@ const val CacheSeconds = 30
 private const val QUERY_IN_FLIGHT_TIMEOUT_MS = 8_000L
 
 /**
+ * 蓝牙链路策略（诊断包 2026-11-11 实测后调整，见 docs/bug/断连诊断包分析-20261111.md）。
+ *
+ * 阈值不再写死在这里，改由 `assets/ble-link-policy.json`（可被
+ * `files/ble-link-policy.json` 覆盖）提供，见 [BleLinkPolicy]。理由：这些值是按
+ * 机型/固件行为定的，Mobi 真机数据还没到手，写死等于每改一次都要重编。
+ *
+ * - reassert：开启连接参数复位。泵在连上约 15s 后会把链路降到省电档
+ *   （supervision timeout 2s），这是 15–17s 掉线簇的最可能来源。
+ *   driver=library 走库实现（10s 周期 + 参数被改坏时事件驱动复检 + 泵忙豁免）；
+ *   driver=app 走 App 自建定时器（周期可配，代价是拿不到库的忙判据）。
+ * - writeFailure.windowMs / cutThreshold：非授权特征写失败不再一刀剪线，
+ *   同一 uuid 在窗口内累计到阈值才判定为链路故障并剪线。
+ * - writeFailure.readCooldownMs：一次写失败后暂停**只读查询**的发送窗口；
+ *   控制 / 签名 / 取消类不冷却，保证胰岛素相关操作不被拖延。
+ */
+
+/**
  * Handler for pump communication. Manages the TandemPump connection lifecycle,
  * message routing, response caching, and bolus command handling.
  *
@@ -112,6 +131,14 @@ class PumpCommHandler(
                 messages.firstOrNull()?.let { dispatchDirect(it) } ?: false
             },
         )
+    }
+
+    /**
+     * 链路策略：首次使用时从 `files/` 覆盖文件或 assets 加载，进程内缓存。
+     * 加载失败一律回退内建默认值（与改动前的常量完全一致），不会阻断启动。
+     */
+    private val linkPolicy: BleLinkPolicy.Values by lazy {
+        BleLinkPolicy.current(callbacks.getApplicationContext())
     }
 
     /**
@@ -305,12 +332,38 @@ class PumpCommHandler(
         var lastPeripheral: BluetoothPeripheral? = null
         var isConnected = false
         var pumpSid: Int? = null
+        /** 写失败分级：按 uuid 记录最近失败时刻（handler 线程独占访问，无需加锁）。 */
+        private val writeFailureTimes = ArrayDeque<Pair<String, Long>>()
+        /** 只读查询的写冷却截止时刻（elapsedRealtime）；控制类命令不受影响。 */
+        @Volatile private var readQueryCooldownUntil = 0L
         // Set by [shutdownAndAwaitDisconnect] so that the next disconnect
         // callback can wake the waiter on the calling thread (typically the
         // main thread during triggerAppReload's shutdown hook).
         @Volatile var shutdownLatch: CountDownLatch? = null
 
         init {
+            // 连接参数复位：泵连上约 15s 后降到省电档（timeout 2s），不复位就会出现
+            // 「连上 15–17s 必掉」的 code 8 簇。驱动与周期由 ble-link-policy.json 决定。
+            val policy = linkPolicy
+            DiagMonitor.setLinkPolicy(BleLinkPolicy.snapshot(policy)) // DIAG-TEMP
+            when {
+                !policy.reassertEnabled ->
+                    Timber.i("Connection priority re-assert disabled by ble-link-policy")
+
+                policy.driver == BleLinkPolicy.Driver.APP -> Timber.i(
+                    "Connection priority re-assert: app driver %dms (skipWhenBusy=%b); " +
+                        "library timer NOT enabled, so no event-driven recheck",
+                    policy.intervalMs, policy.skipWhenBusy,
+                )
+
+                else -> {
+                    enablePeriodicConnectionPriorityReassert()
+                    Timber.i(
+                        "Connection priority re-assert: library driver (10s period, " +
+                            "event-driven recheck + busy skip included)"
+                    )
+                }
+            }
             if (FeatureFlags.ConnectionSharing && callbacks.prefConnectionSharingEnabled()) {
                 enableTconnectAppConnectionSharing()
                 enableSendSharedConnectionResponseMessages()
@@ -327,6 +380,72 @@ class PumpCommHandler(
                 Timber.i("Actions affecting insulin delivery are disabled")
             }
             Timber.i("Pump init")
+        }
+
+        /**
+         * 记录一次非授权特征写失败，返回该 uuid 在 [windowMs] 窗口内的累计次数（含本次）。
+         * 仅在 handler 线程调用（WRITE_CHARACTERISTIC_FAILED_CALLBACK 分支），无需加锁。
+         */
+        fun noteWriteFailure(uuid: String, nowElapsed: Long, windowMs: Long): Int {
+            while (writeFailureTimes.isNotEmpty() &&
+                nowElapsed - writeFailureTimes.first().second > windowMs
+            ) {
+                writeFailureTimes.removeFirst()
+            }
+            writeFailureTimes.addLast(Pair(uuid, nowElapsed))
+            return writeFailureTimes.count { it.first == uuid }
+        }
+
+        /** 写失败后的只读查询冷却窗口；控制 / 签名 / 取消类命令不经过这里。 */
+        fun startReadQueryCooldown(durationMs: Long) {
+            readQueryCooldownUntil = SystemClock.elapsedRealtime() + durationMs
+        }
+
+        fun isReadQueryCooling(): Boolean = SystemClock.elapsedRealtime() < readQueryCooldownUntil
+
+        // ------------------------------------------------------------------
+        // 连接参数复位 · App 驱动（仅 driver=app 时启动；默认走库实现）
+        // ------------------------------------------------------------------
+
+        private val appReassertHandler = Handler(Looper.getMainLooper())
+        private var appReassertTask: Runnable? = null
+
+        /**
+         * 自建周期复位：周期由 `ble-link-policy.json` 的 `reassert.intervalMs` 决定。
+         *
+         * 与库实现的差别（写在这里，免得以后当成 bug 排查）：
+         * - 拿不到库的「历史下载 / 装药流程」忙判据，只按大剂量标志判断；
+         * - 不启用库定时器，因此也失去 `onConnectionUpdated` 里那次事件驱动复检
+         *   （参数被改坏后最多等一个周期才拉回）。
+         * 因此这里只作为调参/取证用的可选项，默认仍是 `driver=library`。
+         */
+        private fun startAppReassertIfNeeded() {
+            val policy = linkPolicy
+            if (!policy.reassertEnabled || policy.driver != BleLinkPolicy.Driver.APP) return
+            stopAppReassert()
+            val task = object : Runnable {
+                override fun run() {
+                    val peripheral = lastPeripheral
+                    if (!isConnected || peripheral == null) return
+                    val busy = policy.skipWhenBusy && runCatching {
+                        PumpStateSupplier.inProgressBolusId?.get() != null
+                    }.getOrDefault(false)
+                    if (busy) {
+                        Timber.d("AppReassert: skipping, bolus in progress")
+                    } else {
+                        runCatching { peripheral.requestConnectionPriority(ConnectionPriority.HIGH) }
+                            .onFailure { Timber.w(it, "AppReassert: requestConnectionPriority failed") }
+                    }
+                    appReassertHandler.postDelayed(this, policy.intervalMs)
+                }
+            }
+            appReassertTask = task
+            appReassertHandler.postDelayed(task, policy.intervalMs)
+        }
+
+        private fun stopAppReassert() {
+            appReassertTask?.let { appReassertHandler.removeCallbacks(it) }
+            appReassertTask = null
         }
 
         override fun onReceiveMessage(
@@ -565,10 +684,14 @@ class PumpCommHandler(
 
         override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
             DiagMonitor.onConnected("onPumpConnected") // DIAG-TEMP
+            // 新链路：清空上一轮的写失败计数与冷却，避免旧账影响本次判定。
+            writeFailureTimes.clear()
+            readQueryCooldownUntil = 0L
             initializeConnection(peripheral!!)
             initializeHistoryAndSync()
             waitForResponseStabilization()
             sendBaseCommandsIfNeeded(peripheral)
+            startAppReassertIfNeeded()
             callbacks.updateNotification(callbacks.getApplicationContext()
             .getString(R.string.comm_connected_to_pump))
         }
@@ -594,6 +717,7 @@ class PumpCommHandler(
         ): Boolean {
             DiagMonitor.onDisconnected(status?.name, "callback", "peripheral=${peripheral?.name}") // DIAG-TEMP
             Timber.i("service onPumpDisconnected: isConnected=false status=$status") // DIAG-TEMP
+            stopAppReassert()
             currentSession?.close()
             currentSession = null
             lastPeripheral = null
@@ -621,7 +745,20 @@ class PumpCommHandler(
         override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
             super.onPumpCriticalError(peripheral, reason)
             Timber.w("onPumpCriticalError $reason")
-            DiagMonitor.onCriticalError(reason?.name ?: "null") // DIAG-TEMP
+            // 诊断补强：把 uuid / opCode / 状态原文一起落盘，下一轮不必再从 writeFailures 反推。
+            val initiating = reason?.initiatingMessage
+            val uuidName = initiating?.let {
+                runCatching { CharacteristicUUID.determine(it).toString() }.getOrNull()
+            }
+            val opCode = initiating?.let {
+                runCatching { it.opCode().toInt() }.getOrNull()
+            }
+            DiagMonitor.onCriticalError(
+                reason = reason?.name ?: "null",
+                uuid = uuidName,
+                opCode = opCode,
+                detail = reason?.extra,
+            ) // DIAG-TEMP
             val source = reason?.initiatingMessage?.let {
                 if (callbacks.pumpCommState.consumeDebugPromptResponse(it.characteristic, it.responseOpCode)) {
                     com.jwoglom.controlx2.shared.util.SendType.DEBUG_PROMPT
@@ -674,6 +811,11 @@ class PumpCommHandler(
             // 只读查询：收进唯一出口（同 opCode 单飞去重）。
             // 控制 / 签名 / 取消类仍直发，豁免清单见 PumpReadOnlyQueries。
             if (!bypassDedup && PumpReadOnlyQueries.isReadOnly(message.javaClass.simpleName)) {
+                // 写失败后的冷却：只挡只读查询，避免把写队列继续填满；控制类走下面直发。
+                if (isReadQueryCooling()) {
+                    Timber.d("query suppressed: write cooldown active")
+                    return
+                }
                 val result = queryPort.request(
                     message = message,
                     minIntervalMs = 0L,   // 页面查询不节流，避免挡住用户主动刷新；节流只给大剂量调度器
@@ -958,10 +1100,21 @@ class PumpCommHandler(
                         Timber.w("writeCharacteristicFailedCallback: calling onPumpConnected pump=$pump from authorization error")
                         pump.onPumpConnected(pump.lastPeripheral)
                     } else {
-                        DiagMonitor.onWriteCut(uuidStr, null) // DIAG-TEMP
-                        Timber.w("writeCharacteristicFailedCallback: triggering disconnection from non-authorization error")
-                        pump.lastPeripheral?.cancelConnection();
-                        pump.lastPeripheral?.let { pump.onPumpDisconnected(it, null) }
+                        // 写失败分级：单次失败多半是泵忙 / 队列拥塞（泵回了 ERROR_RESPONSE），
+                        // 此时剪线只会换来一轮 250ms 重连 + 配对码握手，反而更久不可用。
+                        // 只有同一 uuid 在窗口内连续达到阈值，才判定为链路故障并剪线。
+                        val policy = linkPolicy
+                        val count = pump.noteWriteFailure(uuidStr, SystemClock.elapsedRealtime(), policy.windowMs)
+                        DiagMonitor.onWriteFailed(uuidStr, "窗口内第 ${count} 次") // DIAG-TEMP
+                        if (count >= policy.cutThreshold) {
+                            DiagMonitor.onWriteCut(uuidStr, "连续 ${count} 次") // DIAG-TEMP
+                            Timber.w("writeCharacteristicFailedCallback: $uuidStr failed ${count}x in ${policy.windowMs}ms, cutting link")
+                            pump.lastPeripheral?.cancelConnection();
+                            pump.lastPeripheral?.let { pump.onPumpDisconnected(it, null) }
+                        } else {
+                            pump.startReadQueryCooldown(policy.readCooldownMs)
+                            Timber.w("writeCharacteristicFailedCallback: $uuidStr transient failure ${count}/${policy.cutThreshold}, keeping link")
+                        }
                     }
                 }
             }

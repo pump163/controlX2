@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "note": "蓝牙链路策略（2026-11-11 诊断包实测后外置，见 docs/bug/断连诊断包分析-20261111.md §7）。改这里不用改代码。来源优先级：/sdcard/Android/data/com.jwoglom.controlx2/files/ble-link-policy.json（adb push 即可，免重编）> 应用私有 files/ 同名文件 > assets 本文件 > 代码内建默认值。改完 force-stop 重启应用才生效；生效值与来源会写进 /api/diag/state 的 blePolicy 字段。reassert.intervalMs 只在 driver=app 时生效；driver=library 时周期由 pumpx2 内部固定 10s，并带有 onConnectionUpdated 事件驱动复检与泵忙豁免，这三项不可配。",
+  "reassert": {
+    "enabled": true,
+    "driver": "library",
+    "intervalMs": 10000,
+    "skipWhenBusy": true
+  },
+  "writeFailure": {
+    "windowMs": 10000,
+    "cutThreshold": 3,
+    "readCooldownMs": 500
+  }
+}

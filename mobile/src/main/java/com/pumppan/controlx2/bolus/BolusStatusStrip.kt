@@ -108,6 +108,9 @@ fun BolusStatusStrip(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = mainCancelStatus != CancelStatus.SENDING) {
+                    // 展开（要露出「取消」）时补一次只读核对：细条可能停在两个轮询周期之间，
+                    // 泵上已结束/已取消却仍显示「正在输注」。收起不查，避免来回点击刷请求。
+                    if (!expanded) coordinator.requestStripStatusRefresh()
                     expanded = !expanded
                 }
                 .padding(horizontal = 14.dp, vertical = 6.dp),

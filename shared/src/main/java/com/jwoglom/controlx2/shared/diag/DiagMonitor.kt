@@ -99,6 +99,17 @@ object DiagMonitor {
     private var lastLogMessage: String? = null
     private var lastLogElapsed = -1L
 
+    // ---- 链路参数时间线（从 pumpx2 日志旁采，见 noteConnectionParams）----
+    /** 最近一次观察到的连接参数；断开时一并写进 DISCONNECTED 的 extra。 */
+    private var connIntervalMs: Long? = null
+    private var connLatency: Int? = null
+    private var connTimeoutMs: Long? = null
+    private var connParamsElapsed = -1L
+    private var connParamsChanges = 0
+
+    /** 生效中的蓝牙链路策略（由 pumpcomm 在 Pump.init 里写入，只读展示）。 */
+    private val linkPolicy = LinkedHashMap<String, Any?>()
+
     private class Counters {
         var rx = 0
         var tx = 0
@@ -156,6 +167,12 @@ object DiagMonitor {
         val bolusPollLast10s: Int,
         val txBySourceLastMinute: Map<String, Int>,
         val writeFailures: Map<String, Int>,
+        val connIntervalMs: Long?,
+        val connLatency: Int?,
+        val connTimeoutSec: Long?,
+        val connParamsAgoMs: Long?,
+        val connParamsChanges: Int,
+        val linkPolicy: Map<String, Any?>,
         val incidentCount: Int,
         val liveBytes: Long,
         val dirPath: String,
@@ -193,6 +210,15 @@ object DiagMonitor {
             j.put("bolusPollLast10s", bolusPollLast10s)
             j.put("txBySourceLastMinute", JSONObject(txBySourceLastMinute))
             j.put("writeFailures", JSONObject(writeFailures))
+            j.put("connParams", JSONObject().apply {
+                connIntervalMs?.let { put("intervalMs", it) }
+                connLatency?.let { put("latency", it) }
+                connTimeoutSec?.let { put("timeoutSec", it) }
+                connParamsAgoMs?.let { put("ageMs", it) }
+                put("changes", connParamsChanges)
+                put("isHighProfile", isHighProfile(connIntervalMs, connLatency, connTimeoutSec))
+            })
+            j.put("blePolicy", JSONObject(linkPolicy))
             j.put("incidentCount", incidentCount)
             j.put("liveBytes", liveBytes)
             j.put("dir", dirPath)
@@ -350,8 +376,14 @@ object DiagMonitor {
         }
         val extra = HashMap<String, Any?>()
         extra["statusCode"] = hciCode(status)
-        extra["connectedForMs"] = synchronized(LOCK) {
-            if (connectedAtElapsed >= 0) el - connectedAtElapsed else -1L
+        synchronized(LOCK) {
+            extra["connectedForMs"] = if (connectedAtElapsed >= 0) el - connectedAtElapsed else -1L
+            // 断开瞬间的链路参数：判断「是不是又在低功耗档 + 静默」直接看这几个字段，
+            // 不必再去 logcat 里捞当时那行 connection parameters。
+            connIntervalMs?.let { extra["connIntervalMs"] = it }
+            connLatency?.let { extra["connLatency"] = it }
+            connTimeoutMs?.let { extra["connTimeoutSec"] = it }
+            if (connParamsElapsed >= 0) extra["connParamsAgoMs"] = el - connParamsElapsed
         }
         record(DiagEvent(wall, el, "DISCONNECTED", source, detail ?: status, extra))
         freezeInternal("DISCONNECTED(${status ?: "null"})/$source", force = true)
@@ -364,13 +396,25 @@ object DiagMonitor {
         freezeInternal("CONNECT_FAILED(${status ?: "null"})", force = true)
     }
 
-    fun onWriteCut(uuid: String, messageClass: String?) {
+    /**
+     * 非授权特征写失败（尚未剪线）。
+     *
+     * 诊断补强：以前只有 [onWriteCut] 会记录，单次瞬时失败在包内不可见，
+     * 于是「写失败 → 剪线」这条链只能靠 snapshot 的 writeFailures 反推。
+     */
+    fun onWriteFailed(uuid: String, detail: String? = null) {
+        if (!enabled) return
+        record(DiagEvent(nowWall(), nowElapsed(), "WRITE_FAILED", "write-failed",
+            detail ?: "非授权特征写失败（未剪线）", mapOf("uuid" to uuid)))
+    }
+
+    fun onWriteCut(uuid: String, detail: String? = null) {
         if (!enabled) return
         synchronized(LOCK) {
             writeFailures[uuid] = (writeFailures[uuid] ?: 0) + 1
         }
         record(DiagEvent(nowWall(), nowElapsed(), "WRITE_CUT", "write-failed",
-            "非授权特征写失败 → 主动剪线", mapOf("uuid" to uuid, "messageClass" to messageClass)))
+            detail ?: "非授权特征写失败 → 主动剪线", mapOf("uuid" to uuid)))
         freezeInternal("WRITE_CUT", force = true)
     }
 
@@ -386,9 +430,13 @@ object DiagMonitor {
         freezeInternal("AWAIT_USER", force = false)
     }
 
-    fun onCriticalError(reason: String) {
+    fun onCriticalError(reason: String, uuid: String? = null, opCode: Int? = null, detail: String? = null) {
         if (!enabled) return
-        record(DiagEvent(nowWall(), nowElapsed(), "CRITICAL_ERROR", "pump", reason))
+        val extra = HashMap<String, Any?>()
+        if (uuid != null) extra["uuid"] = uuid
+        if (opCode != null) extra["opCode"] = opCode
+        if (!detail.isNullOrBlank()) extra["detail"] = detail
+        record(DiagEvent(nowWall(), nowElapsed(), "CRITICAL_ERROR", "pump", reason, extra))
         val lower = reason.lowercase()
         if (lower.contains("pause") || lower.contains("manual")) {
             onPaused(reason)
@@ -419,9 +467,69 @@ object DiagMonitor {
         }
     }
 
+    /**
+     * 记录当前生效的蓝牙链路策略（pumpcomm 侧从 `ble-link-policy.json` 解析出的值）。
+     *
+     * 只做展示：诊断包必须能回答「这一轮到底跑的是哪套阈值」，否则改配置之后
+     * 拿到的数据和改之前无法区分。
+     */
+    fun setLinkPolicy(values: Map<String, Any?>) {
+        if (!enabled) return
+        synchronized(LOCK) {
+            linkPolicy.clear()
+            linkPolicy.putAll(values)
+        }
+    }
+
+    /**
+     * 从 pumpx2 日志里旁采连接参数，形成一条参数时间线。
+     *
+     * 为什么要做：`onConnectionUpdated` 只写着 `status`，真实参数（interval / latency /
+     * timeout）只出现在 `BluetoothPeripheral: connection parameters: ...` 这行日志里。
+     * 没有它就无法回答「泵到底有没有在 15s 后降档」——而这正是 28 次 15–17.5s 掉线簇
+     * 的核心假设。
+     *
+     * 去重口径：只有参数值**发生变化**才落一条 `CONN_PARAMS`，否则每 10s 一次的
+     * reassert 会把 live 刷满。时间戳仍每次更新，断开时据此算「当时参数有多旧」。
+     */
+    private fun noteConnectionParams(message: String) {
+        val lower = message.lowercase()
+        if ("onconnectionupdated" in lower && "fail" in lower) {
+            record(DiagEvent(nowWall(), nowElapsed(), "CONN_UPDATE_FAILED", "ble", message.take(200)))
+        }
+        val m = CONN_PARAM_RE.find(message) ?: return
+        val intervalMs = (m.groupValues[1].toDoubleOrNull() ?: return).toLong()
+        val latency = m.groupValues[2].toIntOrNull() ?: return
+        val timeoutSec = m.groupValues[3].toLongOrNull() ?: return
+        val el = nowElapsed()
+        synchronized(LOCK) {
+            val changed = intervalMs != connIntervalMs || latency != connLatency || timeoutSec != connTimeoutMs
+            connIntervalMs = intervalMs
+            connLatency = latency
+            connTimeoutMs = timeoutSec
+            connParamsElapsed = el
+            if (!changed) return
+            connParamsChanges++
+        }
+        record(
+            DiagEvent(
+                wallMs = nowWall(), elapsedMs = el, kind = "CONN_PARAMS", source = "ble",
+                detail = "interval=${intervalMs}ms latency=$latency timeout=${timeoutSec}s",
+                extra = mapOf(
+                    "intervalMs" to intervalMs,
+                    "latency" to latency,
+                    "timeoutSec" to timeoutSec,
+                    "isHighProfile" to isHighProfile(intervalMs, latency, timeoutSec),
+                ),
+            )
+        )
+    }
+
     /** DebugTree 旁采：pumpx2 的重连/退避/停手只存在于日志文本里。 */
     fun onLogLine(tag: String?, message: String) {
         if (!enabled) return
+        // 参数行不受 LOG_KEYWORDS 过滤：它不匹配任何重连关键字，但价值最高。
+        noteConnectionParams(message)
         val lower = message.lowercase()
         if (!LOG_KEYWORDS.any { lower.contains(it) }) return
         val el = nowElapsed()
@@ -525,6 +633,12 @@ object DiagMonitor {
                 bolusPollLast10s = bolus10s,
                 txBySourceLastMinute = bucket?.txBySource?.toMap() ?: emptyMap(),
                 writeFailures = writeFailures.toMap(),
+                connIntervalMs = connIntervalMs,
+                connLatency = connLatency,
+                connTimeoutSec = connTimeoutMs,
+                connParamsAgoMs = if (connParamsElapsed >= 0) el - connParamsElapsed else null,
+                connParamsChanges = connParamsChanges,
+                linkPolicy = linkPolicy.toMap(),
                 incidentCount = incidentFiles().size,
                 liveBytes = liveFile()?.length() ?: 0,
                 dirPath = diagDir().absolutePath,
@@ -544,7 +658,9 @@ object DiagMonitor {
         lastTxAgoMs = null, linkState = "OFF", fgsRunning = false, screenOn = false,
         deviceIdle = false, powerSave = false, batteryWhitelisted = false, batteryPct = null,
         rxLastMinute = 0, txLastMinute = 0, bolusPollLast10s = 0,
-        txBySourceLastMinute = emptyMap(), writeFailures = emptyMap(), incidentCount = 0,
+        txBySourceLastMinute = emptyMap(), writeFailures = emptyMap(),
+        connIntervalMs = null, connLatency = null, connTimeoutSec = null,
+        connParamsAgoMs = null, connParamsChanges = 0, linkPolicy = emptyMap(), incidentCount = 0,
         liveBytes = 0, dirPath = "", heartbeatAgoMs = null,
     )
 
@@ -710,6 +826,22 @@ object DiagMonitor {
         "connection_timeout", "connection_failed", "resetinstance", "getinstance",
     )
 
+    /**
+     * 例：`TandemBluetoothHandler: connection parameters: interval=15.0ms latency=0 timeout=5s`
+     * 低功耗档应为 `interval=30.0ms latency=29 timeout=2s`（见库内 onConnectionUpdated 注释）。
+     */
+    private val CONN_PARAM_RE =
+        Regex("connection parameters: interval=(\\d+(?:\\.\\d+)?)ms latency=(\\d+) timeout=(\\d+)s")
+
+    /**
+     * pumpx2 `onConnectionUpdated` 的 HIGH 判据：interval<=12、latency=0、timeout>=500。
+     * 单位不是 ms/s —— BLE 的 interval 单位是 1.25ms（12 → 15ms），timeout 单位是 10ms
+     * （500 → 5s）。blessed 打印的那行按 ms/s 输出，所以这里换算后比较，否则永远判 false。
+     */
+    private fun isHighProfile(intervalMs: Long?, latency: Int?, timeoutSec: Long?): Boolean =
+        intervalMs != null && latency != null && timeoutSec != null &&
+            intervalMs <= 15 && latency == 0 && timeoutSec >= 5
+
     private fun nowWall(): Long = System.currentTimeMillis()
 
     private fun nowElapsed(): Long = SystemClock.elapsedRealtime()
@@ -755,7 +887,7 @@ object DiagMonitor {
     }
 
     private val CRITICAL_KINDS = setOf(
-        "DISCONNECTED", "WRITE_CUT", "CONNECT_FAILED", "PAUSED", "AWAIT_USER",
+        "DISCONNECTED", "WRITE_CUT", "WRITE_FAILED", "CONNECT_FAILED", "PAUSED", "AWAIT_USER",
         "APP_EXIT", "ON_TASK_REMOVED", "SERVICE_DESTROY", "UNCLEAN_EXIT", "SESSION_OPEN",
     )
 

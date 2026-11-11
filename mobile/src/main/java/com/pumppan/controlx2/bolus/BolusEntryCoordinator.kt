@@ -336,6 +336,41 @@ class BolusEntryCoordinator(
         }
     }
 
+    /** 细条展开时的一次性核对节流窗口；连点只算一次。 */
+    private var lastStripStatusRefreshAt = 0L
+
+    /**
+     * 底栏细条「展开取消按钮」时，补一条只读状态查询核对这笔还在不在。
+     *
+     * 为什么需要：细条显示的是 App 侧会话快照（来自本机事件 + 周期轮询）。当页面不可见、
+     * 屏灭静默、或泵上已经结束/取消而恰好在两个轮询周期之间时，快照可能是旧的：细条还写
+     * 「正在输注」并给出「取消」。对着一笔已经结束的输注按取消，轻则泵回错误、重则把
+     * 提示当成失败原因展示（现场见过 `Bolus Not Stopped` 假警）。
+     *
+     * 口径（刻意保守）：
+     * - **只读**，走 [queryPort]，与周期轮询共用同一个单飞/超时状态，不新造第二套在飞表；
+     * - **不阻塞取消**：按钮仍然立即可点；查回来若已结束，会话快照自己推进，细条随之改文案或消失；
+     * - 5s 内重复展开只发一次；未连接直接跳过（断连时发出去也只会被丢弃）。
+     * - 有第二笔扩展时一并查 `46`：`44` 只描述立即段，单靠它无法证伪纯方波。
+     */
+    fun requestStripStatusRefresh() {
+        try {
+            if (mode() != BolusControllerMode.V2) return
+            if (!isPumpConnected()) return
+            val now = System.currentTimeMillis()
+            if (now - lastStripStatusRefreshAt < STRIP_STATUS_REFRESH_MIN_INTERVAL_MS) return
+            lastStripStatusRefreshAt = now
+            queryPort.request(CurrentBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
+            if (controller.holder.extendedSession?.takeIf { !it.isFinished } != null) {
+                queryPort.request(ExtendedBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
+            }
+            Timber.d("bolus: 细条展开，已下发一次状态核对（44%s）", if (controller.holder.extendedSession != null) "+46" else "")
+        } catch (e: Exception) {
+            // 核对失败不影响取消：细条继续用旧快照渲染。
+            Timber.e(e, "bolus: 细条状态核对失败，已忽略")
+        }
+    }
+
     /** 用户关闭终结态通知，避免同一 bolusId 再次弹出。 */
     fun dismissNotification() {
         try {
@@ -445,6 +480,9 @@ class BolusEntryCoordinator(
 
     private companion object {
         const val RECONCILE_TICK_MILLIS = 1000L
+
+        /** 细条展开核对的节流窗口：同一笔 5s 内重复展开不再发请求。 */
+        const val STRIP_STATUS_REFRESH_MIN_INTERVAL_MS = 5_000L
     }
 }
 
