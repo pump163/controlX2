@@ -58,8 +58,10 @@ import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.BolusPanelMode
 import com.pumppan.controlx2.bolus.state.BolusSource
 import com.pumppan.controlx2.bolus.state.BolusStatusPresentation
+import com.pumppan.controlx2.PumppanPrefs
 import com.pumppan.controlx2.bolus.state.BolusTab
 import com.pumppan.controlx2.bolus.state.BolusTabSession
+import com.pumppan.controlx2.presentation.screens.sections.ScheduledBolusTab
 import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 import com.pumppan.controlx2.bolus.state.presentBolusStatus
@@ -129,6 +131,7 @@ fun BolusV2Section(
                 QueryCoordinatorHolder.requestNow(QueryDomainRequests.BOLUS_LAST)
             }
             BolusTab.PRESETS -> Unit
+            BolusTab.SCHEDULED -> Unit
         }
     }
 
@@ -187,8 +190,17 @@ fun BolusV2Section(
                     onTap = { requestMode(panelMode.toggled()) },
                     onDragEnd = { dragY -> requestMode(panelMode.afterDrag(dragY, dragThresholdPx)) },
                 )
-                PrimaryTabRow(selectedTabIndex = session.tab.ordinal) {
-                    BolusTab.values().forEach { tab ->
+                // 「定时」是高手的低频/高频混合功能：控制页开关关着时严格隐藏，
+                // 不做「未启用」占位（用户 2026-11-12 定）。隐藏后角落标也要跟着掉。
+                val scheduledVisible = PumppanPrefs.scheduledVisible(context)
+                val visibleTabs = remember(scheduledVisible) {
+                    BolusTab.values().filter { it != BolusTab.SCHEDULED || scheduledVisible }
+                }
+                LaunchedEffect(visibleTabs) {
+                    if (session.tab !in visibleTabs) session = session.select(BolusTab.BOLUS)
+                }
+                PrimaryTabRow(selectedTabIndex = visibleTabs.indexOf(session.tab).coerceAtLeast(0)) {
+                    visibleTabs.forEach { tab ->
                         Tab(
                             selected = session.tab == tab,
                             onClick = { session = session.select(tab) },
@@ -230,6 +242,14 @@ fun BolusV2Section(
                         BolusPresetsTab(
                             limits = limits,
                             onApply = { preset -> session = session.applyPreset(preset.appliedState(limits)) },
+                        )
+                    }
+
+                    BolusTab.SCHEDULED -> tabStateHolder.SaveableStateProvider(BolusTab.SCHEDULED.name) {
+                        ScheduledBolusTab(
+                            limits = limits,
+                            sendMessage = sendMessage,
+                            sendPumpCommands = sendPumpCommands,
                         )
                     }
                 }
@@ -389,6 +409,7 @@ private fun BolusPanelHandle(
 private fun tabTitle(tab: BolusTab): Int = when (tab) {
     BolusTab.BOLUS -> R.string.dashboard_bolus
     BolusTab.WIZARD -> R.string.bolus_v2_tab_wizard
+    BolusTab.SCHEDULED -> R.string.scheduled_tab_title
     BolusTab.PRESETS -> R.string.bolus_v2_entry_preset
 }
 

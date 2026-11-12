@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.presentation.components.HeaderLine
 import com.jwoglom.controlx2.shared.diag.DiagMonitor
+import com.pumppan.controlx2.PumppanPrefs
 import com.pumppan.controlx2.PumppanPumpModelRow
 import com.pumppan.controlx2.ui.ActionRow
 
@@ -54,6 +56,7 @@ fun DangerousCommands(
     innerPadding: PaddingValues = PaddingValues(),
     navigateBack: () -> Unit,
     navigateToDiag: () -> Unit = {},
+    navigateToScheduledBolus: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var unsafeRawCommands by remember {
@@ -132,6 +135,51 @@ fun DangerousCommands(
                     ) {
                         Text(context.getString(R.string.settings_diag_open))
                     }
+                }
+                Divider()
+            }
+
+            // 定时大剂量「不确认即输注」（2026-11-12 用户口径）：只在本组暴露，持久化；
+            // 打开时弹一次二次确认，之后不做定期复验（高手高频使用，新手不会碰）。
+            item {
+                var autoSend by remember { mutableStateOf(PumppanPrefs.scheduledAutoSend(context)) }
+                var confirmEnable by remember { mutableStateOf(false) }
+                ActionRow(
+                    title = context.getString(R.string.settings_scheduled_autosend),
+                    subtitle = context.getString(R.string.settings_scheduled_autosend_sub),
+                    leadingIcon = {
+                        Icon(
+                            if (autoSend) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        if (autoSend) {
+                            autoSend = false
+                            PumppanPrefs.setScheduledAutoSend(context, false)
+                        } else {
+                            confirmEnable = true
+                        }
+                    },
+                )
+                if (confirmEnable) {
+                    AlertDialog(
+                        onDismissRequest = { confirmEnable = false },
+                        title = { Text(context.getString(R.string.settings_scheduled_autosend)) },
+                        text = { Text(context.getString(R.string.settings_scheduled_autosend_warn)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                confirmEnable = false
+                                autoSend = true
+                                PumppanPrefs.setScheduledAutoSend(context, true)
+                            }) { Text(context.getString(R.string.scheduled_continue)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { confirmEnable = false }) {
+                                Text(context.getString(R.string.scheduled_abort))
+                            }
+                        },
+                    )
                 }
                 Divider()
             }

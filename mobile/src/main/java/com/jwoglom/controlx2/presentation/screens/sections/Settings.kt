@@ -578,6 +578,27 @@ fun Settings(
                         )
                     },
                 )
+                // 通知页大剂量流水开关：默认关闭、仅 X2 生效；副标题写明「重启后清空」。
+                var ledgerCard by remember { mutableStateOf(PumppanPrefs.ledgerCard(context)) }
+                ActionRow(
+                    title = context.getString(R.string.settings_pumppan_ledger),
+                    subtitle = context.getString(R.string.settings_pumppan_ledger_sub),
+                    leadingIcon = {
+                        Icon(
+                            if (ledgerCard) Icons.Filled.Check else Icons.Filled.Close,
+                            contentDescription = null,
+                        )
+                    },
+                    onClick = {
+                        ledgerCard = !ledgerCard
+                        PumppanPrefs.setLedgerCard(context, ledgerCard)
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (ledgerCard) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
+                )
                 SettingsDivider()
             }
 

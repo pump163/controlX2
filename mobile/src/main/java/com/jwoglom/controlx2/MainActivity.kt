@@ -66,9 +66,12 @@ import com.jwoglom.controlx2.shared.util.shortTimeAgo
 import com.jwoglom.controlx2.shared.util.twoDecimalPlaces1000Unit
 import com.jwoglom.controlx2.shared.util.extractPumpSid
 import com.jwoglom.controlx2.pump.pairing.PairingCodeEntry
+import com.pumppan.controlx2.PumppanPrefs
 import com.pumppan.controlx2.bolus.BolusEntryCoordinator
 import com.pumppan.controlx2.bolus.BolusRouter
 import com.pumppan.controlx2.bolus.BolusRuntime
+import com.pumppan.controlx2.ledger.BolusLedger
+import com.pumppan.controlx2.scheduled.ScheduledBolusRuntime
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.bluetooth.PumpReadyState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -117,6 +120,7 @@ import com.jwoglom.pumpx2.pump.messages.response.currentStatus.HomeScreenMirrorR
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.InsulinStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBGResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusAbstractResponse
+import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LastBolusStatusV2Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.LoadStatusResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.PumpGlobalsResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.TempRateResponse
@@ -187,6 +191,20 @@ class MainActivity : ComponentActivity() {
             mode = { BolusRouter.controllerMode(this) },
             notificationContext = this,
         ).also { BolusRuntime.coordinator = it }
+        // 通知页大剂量流水：配置只在进程内注入一次（阈值可配，默认 60 s / 20 笔）。
+        BolusLedger.configure(
+            terminalGraceMs = PumppanPrefs.ledgerTerminalGraceMs(this),
+            maxEpisodes = PumppanPrefs.ledgerMaxEpisodes(this),
+            adoptTerminalWithinMs = PumppanPrefs.ledgerAdoptTerminalMs(this),
+            retentionMs = PumppanPrefs.ledgerRetentionMs(this),
+            purgeIntervalMs = PumppanPrefs.ledgerPurgeIntervalMs(this),
+        )
+        // 定时大剂量：流水里的「新笔开始」是链唯一的倒计时锚点（R2/R22）。
+        BolusLedger.addStartObserver { observation ->
+            ScheduledBolusRuntime.onStartObservation(this, observation)
+        }
+        // 进程重启后把未完成的预约接回来：过期只补一次提醒，不补发（R10）。
+        ScheduledBolusRuntime.restore(this)
         setupTimber(
             "MUA",
             context = this,
@@ -847,6 +865,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun onPumpMessageReceived(message: Message, cached: Boolean) {
+        // 定时大剂量的「链路是否新鲜」判据：任何一条真实回包都刷新这个时间戳。
+        dataStore.pumpLastMessageTimestamp.value = Instant.now()
         bolusEntry.onPumpMessage(message)
         if (dataStore.debugPromptAwaitingResponses.value?.contains(message.javaClass.name) == true) {
             synchronized (dataStore.debugPromptAwaitingResponses) {
@@ -958,6 +978,23 @@ class MainActivity : ComponentActivity() {
                 else
                     null
                 dataStore.lastBolusStatusResponse.value = message
+                // 大剂量流水：终态 V1/V2 都接；V2 才有 requestedVolume（设计 §19.2 规则 2）。
+                BolusLedger.onLastBolusStatus(
+                    bolusId = message.bolusId,
+                    bolusStatusId = message.bolusStatusId,
+                    deliveredMilliUnits = message.deliveredVolume,
+                    requestedMilliUnits = (message as? LastBolusStatusV2Response)?.requestedVolume,
+                    extendedDurationSec = message.extendedBolusDuration,
+                    now = System.currentTimeMillis(),
+                    // 泵侧完成时刻：既用于展示，也用于「旧终态回放」的补录窗口判定。
+                    reportedAtMillis = if (message.timestamp > 0) {
+                        pumpTimeToLocalTz(message.timestampInstant).toEpochMilli()
+                    } else {
+                        null
+                    },
+                )
+                // 定时大剂量：只有本链登记的 bolusId 才会被链认领，其他终态一律忽略。
+                ScheduledBolusRuntime.onTerminal(this, message.bolusId, message.bolusStatusId)
                 // 泵历史里的「最近一笔大剂量」：记录时刻落在向导否决窗口内时，IOB 视为不可靠。
                 if (message.timestamp > 0) {
                     dataStore.lastInfusionAtMillis.value =
@@ -1106,6 +1143,13 @@ class MainActivity : ComponentActivity() {
                     (message.status == CurrentBolusStatus.REQUESTING ||
                         message.status == CurrentBolusStatus.DELIVERING)
                 dataStore.bolusStatusUpdatedAtMillis.value = System.currentTimeMillis()
+                // 大剂量流水：开笔 / 续笔；空态只记录「没有活动大剂量」，不判中止（设计 §19.2 规则 3）。
+                BolusLedger.onCurrentBolusStatus(
+                    statusId = message.statusId,
+                    bolusId = message.bolusId,
+                    requestedMilliUnits = message.requestedVolume,
+                    now = System.currentTimeMillis(),
+                )
             }
             is ExtendedBolusStatusResponse -> {
                 dataStore.extendedBolusActive.value = message.bolusStatus != 0 &&

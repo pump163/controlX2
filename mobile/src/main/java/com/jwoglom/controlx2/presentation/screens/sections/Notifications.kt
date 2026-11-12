@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Observer
 import androidx.navigation.NavHostController
+import com.pumppan.controlx2.PumppanPrefs
+import com.pumppan.controlx2.ledger.PumppanBolusLedgerCard
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.dataStore
@@ -174,6 +176,8 @@ fun Notifications(
             }
         })
 
+        val deviceModel = determinePumpModel(deviceName.value ?: "")
+
         LazyColumn(
             contentPadding = innerPadding,
             verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -185,11 +189,16 @@ fun Notifications(
                     HeaderLine(stringResource(R.string.notifications_notifications))
                     Divider()
 
-                    val model = determinePumpModel(deviceName.value ?: "")
-                    if (model == KnownDeviceModel.TSLIM_X2) {
-                        Line(stringResource(R.string.notifications_cannot_dismiss_on_model, pumpModelDisplayName(model)))
+                    if (deviceModel == KnownDeviceModel.TSLIM_X2) {
+                        Line(stringResource(R.string.notifications_cannot_dismiss_on_model, pumpModelDisplayName(deviceModel)))
                         Line("")
                     }
+                }
+
+                // 大剂量流水卡：报警区之后、通知列表之前；仅 X2 + 开关开启时出现（设计 §6 / §19.3）。
+                // 数据只来自进程内 BolusLedger，无历史库依赖，也不发任何泵请求。
+                if (deviceModel == KnownDeviceModel.TSLIM_X2 && PumppanPrefs.ledgerCard(context)) {
+                    item { PumppanBolusLedgerCard() }
                 }
 
                 Timber.i("Notifications fetched: ${notifications}")

@@ -85,6 +85,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.FeatureFlags
 import com.jwoglom.controlx2.presentation.screens.sections.Dashboard
 import com.jwoglom.controlx2.presentation.screens.sections.Debug
 import com.jwoglom.controlx2.presentation.screens.sections.DangerousCommands
+import com.pumppan.controlx2.presentation.screens.sections.ScheduledBolusEditor
 import com.jwoglom.controlx2.presentation.screens.sections.Notifications
 import com.jwoglom.controlx2.presentation.screens.sections.ProfileActions
 import com.jwoglom.controlx2.presentation.screens.sections.QuickBolusSettingsActions
@@ -506,6 +507,15 @@ fun Landing(
                                 innerPadding = innerPadding,
                                 navigateBack = { selectedItem = LandingSection.DEBUG },
                                 navigateToDiag = { selectedItem = LandingSection.DIAG },
+                                navigateToScheduledBolus = {
+                                    selectedItem = LandingSection.SCHEDULED_BOLUS
+                                },
+                            )
+                        }
+                        LandingSection.SCHEDULED_BOLUS -> {
+                            ScheduledBolusEditor(
+                                innerPadding = innerPadding,
+                                navigateBack = { selectedItem = LandingSection.DANGEROUS_COMMANDS },
                             )
                         }
                         LandingSection.FEATURE_FLAGS -> {
@@ -687,6 +697,7 @@ enum class LandingSection(@StringRes val labelRes: Int, val icon: ImageVector, v
     SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, true),
     DEBUG(R.string.dashboard_settings, Icons.Filled.Settings, false),
     DANGEROUS_COMMANDS(R.string.dashboard_settings, Icons.Filled.Settings, false),
+    SCHEDULED_BOLUS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     NIGHTSCOUT_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     XDRIP_SETTINGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
     FEATURE_FLAGS(R.string.dashboard_settings, Icons.Filled.Settings, false),
@@ -712,6 +723,7 @@ fun LandingSection.parentSection(): LandingSection? = when (this) {
     LandingSection.NIGHTSCOUT_SETTINGS,
     LandingSection.XDRIP_SETTINGS -> LandingSection.SETTINGS
     LandingSection.DANGEROUS_COMMANDS -> LandingSection.DEBUG
+    LandingSection.SCHEDULED_BOLUS -> LandingSection.DANGEROUS_COMMANDS
     LandingSection.FEATURE_FLAGS -> LandingSection.DEBUG
     LandingSection.DIAG -> LandingSection.DEBUG // DIAG-TEMP
 }

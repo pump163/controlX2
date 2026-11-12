@@ -20,7 +20,19 @@
       "minExtendedSeconds": 900,
       "maxBolusMilliunits": 25000,
       "maxExtendedSecondsCiq": 7200,
-      "maxExtendedSecondsNonCiq": 28800
+      "maxExtendedSecondsNonCiq": 28800,
+      "scheduledMaxChainCount": 3,
+      "scheduledMaxPresetCount": 6,
+      "scheduledLinkLossAbortMs": 120000,
+      "scheduledAdvanceNoticeMs": 120000,
+      "scheduledAdvanceNoticeMaxMs": 300000,
+      "scheduledMaxBgAgeMs": 600000,
+      "scheduledConfirmTimeoutMs": 300000,
+      "scheduledReconnectGraceMs": 0,
+      "scheduledMinChainLinks": 2,
+      "scheduledPreflightLinkFreshMs": 15000,
+      "scheduledMinLinkIntervalMs": 300000,
+      "scheduledMaxLinkIntervalMs": 86400000
     },
     "ui": {
       "unsupportedHint": null,

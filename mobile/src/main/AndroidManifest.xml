@@ -111,6 +111,10 @@
             </intent-filter-->
         </receiver>
 
+        <receiver
+            android:name="com.pumppan.controlx2.scheduled.ScheduledBolusReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.jwoglom.controlx2"

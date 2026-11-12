@@ -3,8 +3,8 @@ package com.pumppan.controlx2.bolus.state
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 
-/** 三标签，枚举顺序即界面从左到右的顺序（大剂量 / 向导 / 预设）。 */
-enum class BolusTab { BOLUS, WIZARD, PRESETS }
+/** 四标签，枚举顺序即界面从左到右的顺序（大剂量 / 向导 / 定时 / 预约）。 */
+enum class BolusTab { BOLUS, WIZARD, SCHEDULED, PRESETS }
 
 /**
  * 返回落点：来源标签未知（首次进入、进程重建恢复失败）时固定回「大剂量」。

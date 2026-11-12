@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.ui.res.stringResource
 import com.jwoglom.controlx2.R
+import com.pumppan.controlx2.ui.NotificationText
 
 val requiredProgress = 0.5f
 
@@ -138,10 +139,10 @@ fun NotificationItem(
                 headlineContent = {
                     Text(
                         when (notification) {
-                            is AlertStatusResponse.AlertResponseType -> context.getString(R.string.notifications_alert, notification.name)
-                            is ReminderStatusResponse.ReminderType -> context.getString(R.string.notifications_reminder, notification.name)
-                            is AlarmStatusResponse.AlarmResponseType -> context.getString(R.string.notifications_alarm, notification.name)
-                            is CGMAlertStatusResponse.CGMAlert -> context.getString(R.string.notifications_cgm_alert_name, notification.name)
+                            is AlertStatusResponse.AlertResponseType -> context.getString(R.string.notifications_alert, NotificationText.alertName(context, notification))
+                            is ReminderStatusResponse.ReminderType -> context.getString(R.string.notifications_reminder, NotificationText.reminderName(context, notification))
+                            is AlarmStatusResponse.AlarmResponseType -> context.getString(R.string.notifications_alarm, NotificationText.alarmName(context, notification))
+                            is CGMAlertStatusResponse.CGMAlert -> context.getString(R.string.notifications_cgm_alert_name, NotificationText.cgmAlertName(context, notification))
                             is HighestAamResponse -> context.getString(R.string.notifications_malfunction, notification.errorString)
                             else -> "$notification"
                         }
@@ -150,11 +151,11 @@ fun NotificationItem(
                 supportingContent = {
                     when (notification) {
                         is AlertStatusResponse.AlertResponseType -> Text(
-                            notification.description ?: ""
+                            NotificationText.alertDescription(context, notification)
                         )
 
                         is AlarmStatusResponse.AlarmResponseType -> Text(
-                            notification.description ?: ""
+                            NotificationText.alarmDescription(context, notification)
                         )
 
                         is HighestAamResponse -> Text(context.getString(R.string.notifications_unclearable_no_support_diy))
