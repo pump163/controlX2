@@ -225,5 +225,69 @@ class QueryCoordinatorTest {
         assertEquals(30_000L, due["PUMP_VITALS"])
         assertEquals(30_000L, due["IOB"])
     }
+
+    @Test
+    fun entryKickSendsEvenWhenIntervalNotDue() {
+        val sender = RecordingSender()
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
+        port.onMessage(response(), now = 1_000)
+        val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
+
+        // 没有任何一拍周期到账，kick 也必须自己发出去
+        val sent = coordinator.requestNow("IOB", now = 2_000)
+
+        assertEquals(1, sent)
+        assertEquals(1, sender.sent.size)
+    }
+
+    @Test
+    fun entryKickCoalescesRepeatedCalls() {
+        val sender = RecordingSender()
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
+        port.onMessage(response(), now = 1_000)
+        val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
+
+        assertEquals(1, coordinator.requestNow("IOB", now = 2_000))
+        // 2s 合并窗内的第二脚不再发（连点标签、进页 + 首次组合叠加都压成一拍）
+        assertEquals(0, coordinator.requestNow("IOB", now = 2_100))
+        assertEquals(1, sender.sent.size)
+    }
+
+    @Test
+    fun entryKickWhileLinkDownIsFlushedByNextTick() {
+        val sender = RecordingSender()
+        val port = PumpCommandPort(sender, linkSilentAfterMs = 30_000L, maxInFlight = 10)
+        port.onMessage(response(), now = 1_000)
+        val coordinator = QueryCoordinator(policyOf(topics), port, mode = QueryCoordinator.Mode.ACTIVE)
+
+        coordinator.tick(now = 1_000)
+        // 基线那一拍留下的在飞登记先清掉，本测只关心 kick 的补发路径
+        clearInFlightOf(port, "PUMP_VITALS")
+        clearInFlightOf(port, "IOB")
+
+        port.markLinkDown()
+        // 链路没就绪：不空发，只登记一次补发意图
+        assertEquals(0, coordinator.requestNow("IOB", now = 5_000))
+        assertEquals(4, sender.sent.size)
+
+        port.markLinkUp()
+        port.onMessage(response(), now = 20_000)
+        // IOB 周期上还没到期（1000 + 60000），这里能发只可能来自补发意图；
+        // 时间避开发送侧的 15s 节流窗（上一发在 1000）。
+        val plan = coordinator.tick(now = 20_000)
+
+        assertEquals(listOf("IOB"), plan.domains)
+        assertEquals(1, plan.sent)
+        assertEquals(5, sender.sent.size)
+    }
+
+    private fun clearInFlightOf(port: PumpCommandPort, domain: String) {
+        QueryDomainRequests.forDomain(domain).forEach { message ->
+            // getRequestProps 对少数只有响应侧元数据的类型会抛 IllegalArgumentException，跳过即可
+            runCatching { message.getRequestProps() }.getOrNull()?.let {
+                port.clearInFlight(it.opCode.toInt() and 0xFF)
+            }
+        }
+    }
 }
 

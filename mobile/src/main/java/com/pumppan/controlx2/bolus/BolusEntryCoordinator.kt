@@ -40,9 +40,9 @@ import kotlinx.coroutines.launch
  * S1/S2 的收敛点：把「消费泵侧大剂量报文 + 冷启动/重连对账 + 查询调度」从 `MainActivity`
  * 收进一个类，使 Activity 只保留一个字段与两处调用（消息转发、连上/重连），且不含任何开关判断。
  *
- * - 消息：44 / 46 / -74 / 48 / -94 / -97 / -96 全部交给 [BolusSessionController]；
- *   首条消息顺带触发一次对账。
- * - 对账：四步顺序、单步 2s、整体 5s；只发只读状态请求，不发任何写命令。
+ * - 消息：44 / 46 / -74 / 48 / -94 / -97 / -96 全部交给 [BolusSessionController]。
+ * - 对账：连上/重连后**等静置期**（[RECONCILE_SETTLE_MILLIS]）再发起，避免在链路还没
+ *   就绪时发出去只拿到超时；四步顺序、单步 2s、整体 5s；只发只读状态请求，不发任何写命令。
  * - 查询调度：[BolusPollScheduler] 负责「同一 opCode 一个在飞、10 秒内不重复发」，
  *   立即段 10 秒一次、延展段 5 分钟兜底（间隔来自 `pump-capabilities.json`）。
  * - 开关：由 [mode] lambda 决定（默认 [BolusControllerMode.LEGACY]，LEGACY 下零请求、零 timer）。
@@ -53,6 +53,8 @@ class BolusEntryCoordinator(
     private val scope: CoroutineScope,
     private val mode: () -> BolusControllerMode = { BolusControllerMode.LEGACY },
     private val tickMillis: Long = RECONCILE_TICK_MILLIS,
+    /** 连接后等多久再发第一轮对账；单测可传 0 立刻发起。 */
+    private val reconcileSettleMillis: Long = RECONCILE_SETTLE_MILLIS,
     /** 非空时启用大剂量 v2 常驻进度通知（预览/单测传 null 即可关闭）。 */
     private val notificationContext: Context? = null,
     /** 查询间隔来源；默认读 `assets/pump-capabilities.json` 的 default 档案。 */
@@ -146,6 +148,19 @@ class BolusEntryCoordinator(
     )
 
     private var coldStartReconciled = false
+
+    /**
+     * 连接对账的「静置期」放行时刻（毫秒时间戳，0 表示没有待发起的对账）。
+     *
+     * `pump-connected` 广播只说明 ACL 建立了，泵侧的会话初始化还要约 10s（实测：广播后
+     * 三条对账查询全部 2s 超时，第一条真实回包在 10–12s 才出现）。这期间发对账等于白跑，
+     * 而且历史上这个空转还会落一个 UNCONFIRMED 占位，把入口页卡成「正在向泵申请」。
+     *
+     * 所以连上后不立刻发，等静置期满（[RECONCILE_SETTLE_MILLIS]）再发一次；如果那次仍然
+     * 一条都没回应，由 [BolusReconciler] 自己排有上限的重试。
+     */
+    @Volatile
+    private var reconcileDueAtMillis = 0L
 
     /**
      * 「大剂量」页是否在前台（含大剂量 / 向导 / 预设标签与流程页）。
@@ -362,17 +377,17 @@ class BolusEntryCoordinator(
         }
     }
 
-    /** 连上/重连时做一次只读对账；对账与后续查询由同一个 ticker 推进。 */
+    /** 连上/重连时排一次只读对账；真正下发要等静置期满（见 [reconcileDueAtMillis]）。 */
     fun onPumpConnected() {
         try {
             notifications?.refresh()
             if (mode() != BolusControllerMode.V2) return
+            if (!isPumpConnected()) return
             if (reconciler.running) {
                 ensureTicker()
                 return
             }
-            if (!isPumpConnected()) return
-            reconciler.start()
+            reconcileDueAtMillis = System.currentTimeMillis() + reconcileSettleMillis
             ensureTicker()
         } catch (e: Exception) {
             Timber.e(e, "bolus: 连接对账启动失败，已忽略")
@@ -415,18 +430,14 @@ class BolusEntryCoordinator(
     fun requestEntryStatusRefresh() {
         try {
             if (mode() != BolusControllerMode.V2) return
+            // 44 委托协调器做一次性 kick：链路判定 / 去重 / 在飞 / 统计都走同一条路。
+            // 这里刻意不看本机会话快照——「快照说没有」正是最需要向泵问一句的场景。
+            QueryCoordinatorHolder.requestNow(QueryDomainRequests.BOLUS_OUTCOME)
+            // 46 是条件查询（协调器域里刻意不含它，避免 1s 窗口变 2 条/秒），仍按需补一条。
             if (!isPumpConnected()) return
-            val session = controller.session ?: return
-            if (session.isFinished) return
-            Timber.d(
-                "bolus: 进入大剂量页，补一条只读核对（44 会话=%s id=%s）",
-                session.state,
-                session.bolusId,
-            )
-            queryPort.request(CurrentBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
-            if (controller.holder.extendedSession?.takeIf { !it.isFinished } != null) {
-                queryPort.request(ExtendedBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
-            }
+            if (controller.holder.extendedSession?.takeIf { !it.isFinished } == null) return
+            Timber.d("bolus: 进入大剂量页，补一条只读延展核对（46）")
+            queryPort.request(ExtendedBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
         } catch (e: Exception) {
             Timber.e(e, "bolus: 入口核对失败，已忽略")
         }
@@ -516,6 +527,14 @@ class BolusEntryCoordinator(
 
                     controller.onTick(now)
                     if (wasReconciling) reconciler.onTick()
+                    // 静置期满后发起连接对账；空转则由 reconciler 自己排有上限的重试。
+                    val dueAt = reconcileDueAtMillis
+                    if (!reconciler.running && dueAt > 0L && now >= dueAt && isPumpConnected()) {
+                        reconcileDueAtMillis = 0L
+                        Timber.d("bolus: 链路静置期满，开始连接对账")
+                        reconciler.start(now)
+                    }
+                    if (isPumpConnected()) reconciler.retryIfDue(now)
                     scheduler.tick(
                         controller.session,
                         isPumpConnected(),
@@ -536,7 +555,9 @@ class BolusEntryCoordinator(
                     }
                     failures = 0
 
-                    if (!reconciler.running && !needsTicker(controller.session)) break
+                    if (!reconciler.running && !reconciler.hasPendingRetry() &&
+                        reconcileDueAtMillis <= 0L && !needsTicker(controller.session)
+                    ) break
                 } catch (e: Exception) {
                     // ticker 抛异常会直接带到线程默认处理器，进而杀掉进程；
                     // 单次推进失败必须就地吞掉。连续失败则退出循环，避免每秒刷异常。
@@ -573,6 +594,14 @@ class BolusEntryCoordinator(
 
     private companion object {
         const val RECONCILE_TICK_MILLIS = 1000L
+
+        /**
+         * 连接后等多久再发第一条对账查询。
+         *
+         * `pump-connected` 只代表 ACL 建链；实测泵侧会话初始化要约 10s，这期间发出的
+         * 44/46/48 全部 2s 超时。留 10s 静置期，让对账第一次就有真实回包。
+         */
+        const val RECONCILE_SETTLE_MILLIS = 10_000L
 
         /** 细条展开核对的节流窗口：同一笔 5s 内重复展开不再发请求。 */
         const val STRIP_STATUS_REFRESH_MIN_INTERVAL_MS = 5_000L

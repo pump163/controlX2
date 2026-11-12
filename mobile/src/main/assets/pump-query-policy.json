@@ -5,9 +5,8 @@
     "topics": {
       "PUMP_VITALS":     { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
       "IOB":             { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
-      "BASAL":           { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
-      "BOLUS_LAST":      { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
-      "DASHBOARD_BATCH": { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
+      "BASAL":           { "intervalMs": 120000, "floorIntervalMs": 120000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
+      "BOLUS_LAST":      { "intervalMs": 120000, "floorIntervalMs": 120000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
       "DASHBOARD_DETAIL": { "intervalMs": 120000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "DASHBOARD_CGM":   { "intervalMs": 300000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
       "CGM_STATUS":          { "intervalMs": 60000, "minIntervalMs": 15000, "priority": "P1_STATE", "onlyWhenVisible": true },
@@ -48,7 +47,7 @@
       "degradeOrder": ["P2_DECORATIVE", "P1_STATE"]
     },
     "events": {
-      "IOB_CHANGE":    { "topics": ["IOB", "DASHBOARD_BATCH"], "cooldownMs": 60000 },
+      "IOB_CHANGE":    { "topics": ["IOB"], "cooldownMs": 60000 },
       "BOLUS_CHANGE":  { "topics": ["BOLUS_OUTCOME", "ACTIONS"], "cooldownMs": 5000 },
       "CGM_CHANGE":    { "topics": ["CGM"], "cooldownMs": 5000 },
       "ALERT_CHANGE":  { "topics": ["NOTIFICATIONS"], "cooldownMs": 5000 }

@@ -14,13 +14,13 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.CurrentEGVGuiDataR
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.ExtendedBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.GlobalMaxBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
-import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier1Commands
 import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier2Commands
 import com.jwoglom.controlx2.presentation.screens.sections.dashboardTier3Commands
 import com.jwoglom.controlx2.presentation.screens.sections.cgmStatusCycleCommands
@@ -42,8 +42,9 @@ object QueryDomainRequests {
     const val BOLUS_OUTCOME = "BOLUS_OUTCOME"
 
     /** 页面域：只在对应页面可见时由协调器下发（策略里 `onlyWhenVisible=true`）。 */
-    const val DASHBOARD_BATCH = "DASHBOARD_BATCH"
-    /** 首页第二档：上次大剂量 / 基础率 / 底栏状态 / 最大大剂量（120s）。 */
+    // 2026-11-12：原第一档（电量/储药/IOB）已整体并入 `PUMP_VITALS` / `IOB` 保底域，
+    // 两者频率同为 60s，再留一个独立域只会让同一条 opCode 每拍发两遍。
+    /** 首页第二档：底栏状态 / 最大大剂量（120s；基础率与上次大剂量已升为保底域）。 */
     const val DASHBOARD_DETAIL = "DASHBOARD_DETAIL"
     /** 首页第三档：血糖 + 闭环状态（300s，二者强相关一起问）。 */
     const val DASHBOARD_CGM = "DASHBOARD_CGM"
@@ -58,6 +59,16 @@ object QueryDomainRequests {
     const val CONTROL_IQ_SETTINGS = "CONTROL_IQ_SETTINGS"
     /** 基础率档案（IDP 多轮）：页面等待循环推进后续轮次，域只负责每 60s 重发第一轮。 */
     const val PROFILE = "PROFILE"
+
+    /**
+     * 历史日志状态查询（原 `HistoryLogSyncWorker` 的 5 min 定时 + 旧 `CommService` 批里的那一条）。
+     * 只问状态，真正的补拉仍由 `HistoryLogFetcher` 在收到回包后触发。
+     */
+    const val HISTORY = "HISTORY"
+
+    /** 保底域：基础率 / 上次大剂量（120s，原首页第二档与旧 5min 批的对应项）。 */
+    const val BASAL = "BASAL"
+    const val BOLUS_LAST = "BOLUS_LAST"
 
     /** 未登记的域返回空列表；协调器会跳过空域，不会「发了个空包」。 */
     fun forDomain(domain: String): List<Message> = when (domain) {
@@ -77,23 +88,24 @@ object QueryDomainRequests {
         // 上一次大剂量：首页常驻卡片，保底
         "BOLUS_LAST" -> listOf(LastBolusStatusRequest())
 
-        // 血糖：CGM 会话/传感器状态 + EGV 图形值
+        // 血糖：会话/传感器状态一条。EGV 图形值留在首页第三档（可见时才要画图），
+        // 这样即使 CGM 未启用，这里的 300s 探活也不会顺带追问一条没有读数的 EGV。
         "CGM" -> listOf(
             CGMStatusRequest(),
-            CurrentEGVGuiDataRequest(),
         )
 
         // CIQ 状态：闭环开关与当前工作态；频率可低，但不能不查
         "CONTROL_IQ" -> listOf(ControlIQInfoV2Request())
 
-        // 首页三档：都在页面同一份 getter 里切分，避免两处导出一份清单后各自漂移。
-        // 第一档只补 IOB（电量/储药由 PUMP_VITALS 保底域负责）。
-        DASHBOARD_BATCH -> dashboardTier1Commands
+        // 历史日志状态：300s 一条，替代旧 5min 批里的 HistoryLogStatus 与 Worker 定时
+        HISTORY -> listOf(HistoryLogStatusRequest())
 
+        // 首页三档：都在页面同一份 getter 里切分，避免两处导出一份清单后各自漂移。
+        // 第一档（电量/储药/IOB）已并入保底域，这里从第二档开始。
         // 第二档：变动慢的几项，120s。
         DASHBOARD_DETAIL -> dashboardTier2Commands
 
-        // 第三档：血糖 + 闭环，300s；CGM 会话 STOPPED 时两条糖查询被门控剔除。
+        // 第三档：血糖图形值（300s，仅首页可见）；CGM 会话状态已由 `CGM` 保底域覆盖。
         DASHBOARD_CGM -> dashboardTier3Commands
 
         // CGM 子页：只要会话状态一条
@@ -167,8 +179,8 @@ object QueryDomainRequests {
      * 否则只观测两个域就失去对照意义。
      */
     fun registeredDomains(): Set<String> = setOf(
-        "PUMP_VITALS", "IOB", "BASAL", "BOLUS_LAST", "CGM", "CONTROL_IQ",
-        DASHBOARD_BATCH, DASHBOARD_DETAIL, DASHBOARD_CGM,
+        "PUMP_VITALS", "IOB", "BASAL", "BOLUS_LAST", "CGM", "CONTROL_IQ", HISTORY,
+        DASHBOARD_DETAIL, DASHBOARD_CGM,
         CGM_STATUS, CONTROL_IQ_SETTINGS, PROFILE,
         PUMP_STATE, NOTIFICATIONS, CARTRIDGE, SAFETY_LIMITS, PUMP_GLOBALS,
         BOLUS_PRECHECK, BOLUS_OUTCOME,

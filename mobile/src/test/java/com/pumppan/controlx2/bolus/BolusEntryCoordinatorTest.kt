@@ -22,11 +22,15 @@ class BolusEntryCoordinatorTest {
         mode: BolusControllerMode,
         connected: Boolean,
         scope: CoroutineScope,
+        tickMillis: Long = 1_000L,
+        settleMillis: Long = 10_000L,
     ) = BolusEntryCoordinator(
         sendPumpCommands = { _, msgs -> sent += msgs },
         isPumpConnected = { connected },
         scope = scope,
         mode = { mode },
+        tickMillis = tickMillis,
+        reconcileSettleMillis = settleMillis,
     )
 
     @Test
@@ -44,11 +48,31 @@ class BolusEntryCoordinatorTest {
     }
 
     @Test
-    fun v2Mode_onPumpConnected_sendsOnlyFirstReadOnlyRequest() {
+    fun v2Mode_onPumpConnected_waitsForSettleBeforeFirstRequest() {
         val scope = CoroutineScope(Job())
         try {
-            val c = coordinator(BolusControllerMode.V2, connected = true, scope = scope)
+            // 连上不立刻发：`pump-connected` 只代表 ACL 建链，这时发只会 2s 超时（真机实测）。
+            val c = coordinator(BolusControllerMode.V2, connected = true, scope = scope, settleMillis = 5000)
             c.onPumpConnected()
+            assertTrue("静置期内不应发任何查询", sent.isEmpty())
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun v2Mode_afterSettle_sendsCurrentBolusQueryOnce() {
+        val scope = CoroutineScope(Job())
+        try {
+            val c = coordinator(
+                BolusControllerMode.V2,
+                connected = true,
+                scope = scope,
+                tickMillis = 50,
+                settleMillis = 0,
+            )
+            c.onPumpConnected()
+            awaitUntil { sent.isNotEmpty() }
             assertEquals(1, sent.size)
             assertTrue(sent.single() is CurrentBolusStatusRequest)
         } finally {
@@ -82,21 +106,25 @@ class BolusEntryCoordinatorTest {
     }
 
     @Test
-    fun v2Mode_firstMessage_startsColdStartReconcile_onlyOnce() {
+    fun v2Mode_firstMessage_doesNotStartReconcileImmediately() {
         val scope = CoroutineScope(Job())
         try {
-            val c = coordinator(BolusControllerMode.V2, connected = true, scope = scope)
+            // 首包也会顺带排一次对账，但同样要等静置期；静置期内不应对这根刚建立的链路发查询。
+            val c = coordinator(BolusControllerMode.V2, connected = true, scope = scope, settleMillis = 5000)
             c.onPumpMessage(deliveringBolus(77))
-            // 冷启动 → CURRENT；该条 44 被对账器视为 CURRENT 已响应，立刻推进到 EXTENDED
-            assertEquals(2, sent.size)
-            assertTrue(sent.first() is CurrentBolusStatusRequest)
-            assertTrue(sent.last() is ExtendedBolusStatusRequest)
-            // 对账已在跑：再次显式触发不应发出任何新请求（不重复冷启动）
-            c.onPumpConnected()
-            assertEquals(2, sent.size)
+            assertTrue(sent.isEmpty())
         } finally {
             scope.cancel()
         }
+    }
+
+    private fun awaitUntil(timeoutMillis: Long = 2_000, cond: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMillis
+        while (System.currentTimeMillis() < deadline) {
+            if (cond()) return
+            Thread.sleep(10)
+        }
+        throw AssertionError("等待超时：条件未满足")
     }
 
     private fun deliveringBolus(bolusId: Int) =

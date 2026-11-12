@@ -187,47 +187,10 @@ class CommService : Service(), CommServiceCallbacks {
     // BleChangeReceiver and BondState extracted to pump/BleChangeReceiver.kt
     private var bleChangeReceiver = BleChangeReceiver()
 
-    private val periodicUpdateIntervalMs: Long = 1000 * 60 * 5 // 5 minutes
-    private var periodicUpdateTask: Runnable = Runnable {}
-    init {
-        periodicUpdateTask = Runnable {
-            pumpCommHandler?.postDelayed(periodicUpdateTask, periodicUpdateIntervalMs)
-
-            fun apiVersion(): ApiVersion {
-                var apiVersion = PumpState.getPumpAPIVersion()
-                if (apiVersion == null) {
-                    apiVersion = KnownApiVersion.API_V2_5.get()
-                }
-                return apiVersion
-            }
-
-            Timber.i("running periodicUpdateTask")
-            // 查询层收敛 · 第 0 步：只读计数；连接态由 PumpCommHandler.command 另行记录
-            PumpQueryService.noteLegacyRequest(
-                topic = PumpTopic.STATUS_BATCH,
-                source = "CommService.periodicUpdateTask",
-                connected = null,
-            )
-            sendPumpCommMessages(PumpMessageSerializer.toBulkBytes(listOf(
-                CurrentBatteryRequestBuilder.create(apiVersion()),
-                ControlIQIOBRequest(),
-                InsulinStatusRequest(),
-                HistoryLogStatusRequest()
-            )))
-
-            // CGM 明确未启用时，各页面已停止每条 tick 追问（见 CgmQueryGate）。
-            // 这里每 5 分钟补一条探活，让「用户在泵上启动 G6/G7」最多 5 分钟内被发现；
-            // 复用本任务，不新增定时器；单独记 CGM，不混入 STATUS_BATCH。
-            if (!cgmQueryAllowed()) {
-                PumpQueryService.noteLegacyRequest(
-                    topic = PumpTopic.CGM,
-                    source = "CommService.cgmProbe",
-                    connected = null,
-                )
-                sendPumpCommMessages(PumpMessageSerializer.toBulkBytes(listOf(CGMStatusRequest())))
-            }
-        }
-    }
+    // 2026-11-12：旧 5min 周期任务已整体并入 QueryCoordinator（见 startQueryObservation）：
+    // 电池 → `PUMP_VITALS`、IOB → `IOB`、胰岛素状态 → `PUMP_VITALS`、
+    // HistoryLogStatus → `HISTORY`、CGM 探活 → `CGM` 保底域的 300s 一拍。
+    // 这里不再保留第二条下发路径，避免「协调器已接管但旧任务还在发」的静默双发。
 
     fun isPumpReadyForHistoryFetch(): Boolean {
         return pumpCommHandler?.isPumpReadyForHistoryFetch() == true
@@ -320,7 +283,6 @@ class CommService : Service(), CommServiceCallbacks {
         } else {
             pumpCommHandler = newPumpCommHandler()
 
-            pumpCommHandler?.postDelayed(periodicUpdateTask, periodicUpdateIntervalMs)
             pumpCommHandler?.postDelayed(checkForUpdatesTask, checkForUpdatesDelayMs)
         }
 
@@ -377,11 +339,22 @@ class CommService : Service(), CommServiceCallbacks {
         val coordinator = QueryCoordinator(
             policy = policy,
             port = handler.queryPortForOrchestration(),
-            // S4：全局切 ACTIVE，但只让 BOLUS_OUTCOME 真下发；
-            // 其余已接管域通过 dispatchedDomains 排除，仍按 SHADOW 只算不发，避免与页面旧路径双发。
+            // S4 已全局 ACTIVE：下面的域都真下发；未列出的已登记域只能靠 SHADOW 只算不发。
             mode = QueryCoordinator.Mode.ACTIVE,
             activeDomains = QueryDomainRequests.pollingDomains() + QueryDomainRequests.BOLUS_OUTCOME,
             dispatchedDomains = setOf(
+                // 保底域：旧 5min 周期任务并进来之后由它们常驻驱动，页面不再自己发。
+                // PUMP_VITALS 60s（电量 V2 / 胰岛素 / 复位时长）、IOB 60s，
+                // BASAL / BOLUS_LAST 120s（对应首页第二档的频率），
+                // CGM 300s（会话状态，兼作「用户在泵上启用 G6/G7」的探活），
+                // CONTROL_IQ 300s（闭环开关）、HISTORY 300s（HistoryLogStatus）。
+                "PUMP_VITALS",
+                "IOB",
+                QueryDomainRequests.BASAL,
+                QueryDomainRequests.BOLUS_LAST,
+                "CGM",
+                "CONTROL_IQ",
+                QueryDomainRequests.HISTORY,
                 QueryDomainRequests.BOLUS_OUTCOME,
                 // S4 第一批：这四域只在对应页面可见时才查（策略里 onlyWhenVisible），
                 // 页面改由订阅驱动、删掉自己的 60s 定时器，因此不会与旧路径双发。
@@ -391,9 +364,8 @@ class CommService : Service(), CommServiceCallbacks {
                 QueryDomainRequests.PUMP_GLOBALS,
                 // 控制页（暂停 / 运动 / 睡眠 / 临时基础率）：批次与页面原表完全一致。
                 QueryDomainRequests.PUMP_STATE,
-                // 首页三档：常显 60s / 次常显 120s / 糖+闭环 300s。
-                // 清单仍出自页面 `dashboardTier*Commands`，页面只保留首帧/下拉/连接补拉。
-                QueryDomainRequests.DASHBOARD_BATCH,
+                // 首页：第二档 120s（底栏状态 / 最大大剂量）、第三档 300s（EGV 图形）；
+                // 其余常显项已由保底域接管，页面只保留首帧 / 下拉 / 连接补拉。
                 QueryDomainRequests.DASHBOARD_DETAIL,
                 QueryDomainRequests.DASHBOARD_CGM,
                 QueryDomainRequests.CGM_STATUS,
@@ -402,7 +374,6 @@ class CommService : Service(), CommServiceCallbacks {
             ),
         )
         queryCoordinator = coordinator
-        QueryCoordinatorHolder.attach(coordinator)
 
         val looper = serviceLooper ?: return
         val ticker = object : Runnable {
@@ -423,6 +394,11 @@ class CommService : Service(), CommServiceCallbacks {
         }
         queryTickRunnable = ticker
         queryTickHandler = Handler(looper).also { it.postDelayed(ticker, QUERY_TICK_MS) }
+        // 页面「进页/切标签立刻查一眼」的请求来自 UI 线程，必须回到这个节拍线程执行，
+        // 否则它会与 tick 抢同一批计时表（lastPlannedAt / pendingFrom）。
+        // 先登记线程再 attach：attach 会补发先前攒下的 kick 意图，那一刻必须已经在正确线程上。
+        QueryCoordinatorHolder.setTicker(queryTickHandler)
+        QueryCoordinatorHolder.attach(coordinator)
     }
 
     private fun stopQueryObservation() {
@@ -479,7 +455,6 @@ class CommService : Service(), CommServiceCallbacks {
                     Prefs(applicationContext).setUnbondOnNextCommInitMac(filterToMac)
                     Timber.i("stop-pump-finder-next: filterToMac=$filterToMac pairingCodeType=$pairingCodeType")
 
-                    pumpCommHandler?.postDelayed(periodicUpdateTask, periodicUpdateIntervalMs)
                     pumpCommHandler?.postDelayed(checkForUpdatesTask, checkForUpdatesDelayMs)
                     sendInitPumpComm(pairingCodeTypeEnum, filterToMac)
                     sendWearCommMessage(MessagePaths.TO_SERVER_COMM_STARTED, "".toByteArray())

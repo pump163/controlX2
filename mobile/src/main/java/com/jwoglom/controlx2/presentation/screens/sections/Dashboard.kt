@@ -166,9 +166,9 @@ fun Dashboard(
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
 
-    // 首页三档一起订阅 / 一起退订：界面没变，变的是三档的到期周期（60s / 120s / 300s）。
+    // 首页两档一起订阅 / 一起退订：界面没变，变的是两档的到期周期（120s / 300s）。
+    // 60s 那一档（电量/储药/IOB）已由保底域常驻驱动，页面不再单独订阅。
     val dashboardDomains = listOf(
-        QueryDomainRequests.DASHBOARD_BATCH,
         QueryDomainRequests.DASHBOARD_DETAIL,
         QueryDomainRequests.DASHBOARD_CGM,
     )
@@ -347,40 +347,32 @@ val dashboardNotificationCommands: List<Message>
             (cgmQueryAllowed() || !msg.isCgmQuery())
     }
 
-// ── 首页按「常显 / 次常显 / 慢变」分三档，交给协调器各自的周期 ────────────────
+// ── 首页按「常显 / 次常显 / 慢变」的频率交给协调器各自的周期 ────────────────────
 // 界面排版不动（仍是原来那张卡片布局），只是查询不再一次性整批打出去。
+//
+// 2026-11-12：电量/储药/IOB 已由 `PUMP_VITALS` / `IOB` 保底域按 60s 接管，
+// 基础率与上次大剂量已由 `BASAL` / `BOLUS_LAST` 保底域按 120s 接管，
+// CGM 会话/CIQ 状态/HistoryLogStatus 分别由 `CGM` / `CONTROL_IQ` / `HISTORY` 按 300s 接管。
+// 首页这里只留保底域没覆盖的两条，避免同一 opCode 每拍发两遍。
 
 /**
- * 第一档（60s）：电量 / 储药 / IOB。
- * 电量与储药已经在常驻保底域 `PUMP_VITALS` 里按 60s 走，这里只补 IOB——
- * 否则同一 opCode 每拍发两遍，只能靠节流挡掉一遍，等于白占一拍的在飞名额。
- */
-val dashboardTier1Commands: List<Message>
-    get() = listOf(ControlIQIOBRequest())
-
-/**
- * 第二档（120s）：上次大剂量 / 基础率 / 底栏状态 / 最大大剂量。
+ * 第二档（120s）：底栏状态 / 最大大剂量。
  * 都是「一条事件才变一次」的量，降到 2 分钟一次不会影响可读性。
  */
 val dashboardTier2Commands: List<Message>
     get() = listOf(
-        LastBolusStatusRequestBuilder.create(apiVersion()),
-        CurrentBasalStatusRequest(),
         HomeScreenMirrorRequest(),
         GlobalMaxBolusSettingsRequest(),
     ).filter { msg -> !msg.props().minApi.get().greaterThan(apiVersion()) }
 
 /**
- * 第三档（300s）：血糖 + 闭环状态。
- * 两者强相关（没血糖就开不了 CIQ，未连接态还会变），所以必须一起问；
- * 但 CGM 本身 5 分钟才出一个新值，60s 追问只是重复读旧数，压到 5 分钟。
+ * 第三档（300s）：血糖图形值。
+ * EGV 只在要画图时才需要，所以留在「页面可见」的域里；
+ * 会话状态、闭环状态、历史日志状态都已由 300s 保底域覆盖。
  */
 val dashboardTier3Commands: List<Message>
     get() = listOf(
-        CGMStatusRequest(),
         CurrentEGVGuiDataRequest(),
-        ControlIQInfoRequestBuilder.create(apiVersion()),
-        HistoryLogStatusRequest(),
     ).filter { msg ->
         !msg.props().minApi.get().greaterThan(apiVersion()) &&
             (cgmQueryAllowed() || !msg.isCgmQuery())

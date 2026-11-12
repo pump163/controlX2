@@ -508,8 +508,7 @@ object QueryPolicyLoader {
     ) = TopicPolicy(interval, min, priority, visible, window, floor, floorPriority)
 
     val DEFAULT_TOPICS: Map<String, TopicPolicy> = linkedMapOf(
-        "DASHBOARD_BATCH" to topic(60_000, 15_000, "P1_STATE", true),
-        "NOTIFICATIONS" to topic(60_000, 15_000, "P1_STATE", true),
+       "NOTIFICATIONS" to topic(60_000, 15_000, "P1_STATE", true),
         "ACTIONS" to topic(60_000, 15_000, "P1_STATE", true),
         "CARTRIDGE" to topic(60_000, 15_000, "P1_STATE", true),
         "PROFILE" to topic(60_000, 15_000, "P1_STATE", true),
@@ -524,8 +523,8 @@ object QueryPolicyLoader {
         // schema v2 起改按数据域：首页常驻字段全部带保底，页面批逐步迁走。
         "PUMP_VITALS" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
         "IOB" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
-        "BASAL" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
-        "BOLUS_LAST" to topic(60_000, 15_000, "P0_FLOOR", false, null, 60_000, "P0_FLOOR"),
+        "BASAL" to topic(120_000, 15_000, "P0_FLOOR", false, null, 120_000, "P0_FLOOR"),
+        "BOLUS_LAST" to topic(120_000, 15_000, "P0_FLOOR", false, null, 120_000, "P0_FLOOR"),
     )
 
     val DEFAULT_FRESHNESS = FreshnessPolicy(30_000, 180_000, 900_000)
@@ -549,8 +548,8 @@ object QueryPolicyLoader {
     )
 
     val DEFAULT_EVENTS: Map<String, EventPolicy> = linkedMapOf(
-        "IOB_CHANGE" to EventPolicy(listOf("DASHBOARD_BATCH"), 60_000),
-        "BOLUS_CHANGE" to EventPolicy(listOf("DASHBOARD_BATCH", "ACTIONS"), 5_000),
+        "IOB_CHANGE" to EventPolicy(listOf("IOB"), 60_000),
+        "BOLUS_CHANGE" to EventPolicy(listOf("BOLUS_OUTCOME", "ACTIONS"), 5_000),
         "CGM_CHANGE" to EventPolicy(listOf("CGM"), 5_000),
         "ALERT_CHANGE" to EventPolicy(listOf("NOTIFICATIONS"), 5_000),
     )
@@ -568,22 +567,20 @@ object QueryPolicyLoader {
     /**
      * 静态清单：截至第 0 步仍硬编码在代码里的策略值（对应 §4.5.1 E1 / §10.1 D3）。
      * 不是运行时扫描——B/C 步迁完一项就删一行，为空才算"策略真的外置了"。
+     *
+     * 2026-11-12（S4）：十个 mobile 页面的「60 s 刷新」已全部迁到查询器（订阅式 + 分档策略），
+     * 相应条目从本清单移除；`BolusNotificationBroadcastReceiver` 的 1 s×60 也已随大剂量
+     * 窗口化改造删除。剩下的是尚未迁移的真实硬编码，清单只描述现状，不作为验收依据。
      */
     private val STATIC_HARDCODED_POLICY = listOf(
-        "Dashboard.kt:146-149 页面刷新 60 s",
-        "Notifications.kt:140-142 页面刷新 60 s",
-        "Actions.kt:214 页面刷新 60 s",
-        "CartridgeActions.kt:177 页面刷新 60 s",
-        "ProfileActions.kt:197 页面刷新 60 s",
-        "ControlIQSettingsActions.kt:181 页面刷新 60 s",
-        "SafetyLimitsActions.kt:145 页面刷新 60 s",
-        "SoundSettingsActions.kt:150 页面刷新 60 s",
-        "QuickBolusSettingsActions.kt:137 页面刷新 60 s",
-        "CGMActions.kt:158-161 页面刷新 60 s",
-        "CommService.kt:165-186 周期任务 5 min",
-        "HistoryLogSyncWorker.kt:64 回补 5 min",
+        // wear 的 60 s 是「页面打开时的额外驱动」，不是唯一驱动：两侧各有 5 min 保底
+        // （mobile `CommService.periodicUpdateTask` / wear `WearPumpCommService`）。且 wear 只依赖
+        // :shared，读不到 :mobile 的 QueryPolicy——要按配置发查询得先有 wear 侧调度器。
+        "wear/LandingScreen.kt:143 intervalOf(60) 页面打开时 60 s（保底 5 min 由两端的 periodicUpdateTask 发；待 wear 侧调度器 + 平台×型号配置）",
+        "wear/BasalDetailScreen.kt:80 intervalOf(60) 同上",
+        "wear/ProfileSwitchScreen.kt:70 intervalOf(60) 同上",
+        "wear/WearPumpCommService.kt:115 周期任务 5 min（手表 PUMP_HOST 角色下的保底）",
         "PumpCommHandler.kt:72 CacheSeconds=30",
-        "BolusNotificationBroadcastReceiver.kt:564-590 1 s x 60",
     )
 
     private fun fallbackPolicy(loadedAtMillis: Long): QueryPolicy = QueryPolicy(

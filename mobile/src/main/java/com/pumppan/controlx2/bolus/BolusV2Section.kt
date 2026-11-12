@@ -64,6 +64,8 @@ import com.pumppan.controlx2.bolus.state.PumpCapabilities
 import com.pumppan.controlx2.bolus.state.PumpCapabilityProfile
 import com.pumppan.controlx2.bolus.state.presentBolusStatus
 import com.pumppan.controlx2.bolus.wizard.BolusWizardRuntime
+import com.pumppan.controlx2.query.QueryCoordinatorHolder
+import com.pumppan.controlx2.query.QueryDomainRequests
 import kotlinx.coroutines.delay
 
 /**
@@ -111,6 +113,22 @@ fun BolusV2Section(
         if (page != BolusEntryPage.DRAFT && session.draft != null) {
             if (session.draft?.source == BolusSource.CALC) BolusWizardRuntime.clear()
             session = session.clearDraft()
+        }
+    }
+
+    // 进页 / 在大剂量与向导之间切换时，向泵主动问一次（委托协调器，2s 合并窗）。
+    // 只等周期最坏要一整个 60s，中间没有任何回包，用户会以为程序卡死；切标签本来就会触发，
+    // 说明「新鲜证据」是刚需，不该靠用户去点第二个标签换出来。
+    // 预设标签不查：它只写草稿，可用性由流程第二步的检查统一把关。
+    LaunchedEffect(session.tab) {
+        when (session.tab) {
+            BolusTab.BOLUS, BolusTab.WIZARD -> {
+                // 44：这笔还在不在（含延展段的 46 由入口核对按需补发）
+                QueryCoordinatorHolder.requestNow(QueryDomainRequests.BOLUS_OUTCOME)
+                // 顶部「最后一次 …U 于 …」那一行
+                QueryCoordinatorHolder.requestNow(QueryDomainRequests.BOLUS_LAST)
+            }
+            BolusTab.PRESETS -> Unit
         }
     }
 

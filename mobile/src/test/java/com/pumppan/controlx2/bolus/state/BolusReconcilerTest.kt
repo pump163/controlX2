@@ -117,17 +117,46 @@ class BolusReconcilerTest {
     }
 
     @Test
-    fun overallTimeout_fallsUnknownNotIdle() {
+    fun overallTimeout_withNoResponse_staysIdleAndSchedulesRetry() {
         reconciler.start(now)
         now += 5_000
         reconciler.onTick(now)
 
+        // 三条一条都没回来 = 「没问到」，不是「不知道」：不造 UNCONFIRMED 占位（真机 12:25 现场），
+        // 保持 Idle 并排一次静置后的重试。
         assertFalse(reconciler.running)
-        assertEquals(BolusActivity.UNKNOWN, reconciler.result)
-        // 「状态闩锁修复」后，无完整结论时落 UNCONFIRMED（等待补证），不是终态 UNKNOWN。
-        assertEquals(BolusDeliveryState.UNCONFIRMED, holder.session?.state)
-        assertEquals(BolusActivity.UNKNOWN, holder.isAnyBolusActive(connected = true))
-        assertEquals(CancelRowState.HIDDEN, holder.cancelRowState(connected = true))
+        assertEquals(BolusActivity.IDLE, reconciler.result)
+        assertNull(holder.session)
+        assertFalse(holder.reconciling)
+        assertTrue(reconciler.hasPendingRetry())
+
+        // 重试到期 → 重新发起第一轮。
+        val retryAt = now + BolusReconciler.RETRY_DELAY_MILLIS
+        now = retryAt
+        assertTrue(reconciler.retryIfDue(now))
+        assertTrue(reconciler.running)
+        assertEquals(ReconcileStep.CURRENT, reconciler.currentStep)
+        assertEquals(2, sender.sent.size)
+    }
+
+    @Test
+    fun retryAttemptsAreCapped() {
+        val attempts = BolusReconciler.MAX_EMPTY_ATTEMPTS
+        reconciler.start(now)
+        repeat(attempts) {
+            now += 5_000
+            reconciler.onTick(now)
+            if (reconciler.hasPendingRetry()) {
+                now += BolusReconciler.RETRY_DELAY_MILLIS
+                reconciler.retryIfDue(now)
+            }
+        }
+        now += 5_000
+        reconciler.onTick(now)
+        // 连续空转到上限后不再排重试，避免对着死链路反复发查询。
+        assertFalse(reconciler.hasPendingRetry())
+        assertFalse(reconciler.running)
+        assertEquals(BolusActivity.IDLE, reconciler.result)
     }
 
     @Test

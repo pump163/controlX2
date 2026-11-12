@@ -44,11 +44,16 @@ class QueryPolicyLoaderTest {
             assertTrue("$domain must not depend on visibility", !topic.onlyWhenVisible)
         }
 
-        // 高频三域 60 秒；血糖与 CIQ 允许低频，但保底仍是「最长空窗」
+        // 常显且每分钟会变的：电池/储药、IOB → 60 秒；
+        // 「一条事件才变一次」的基础率 / 上次大剂量 → 120 秒（首页第二批的拍）；
+        // 血糖与 CIQ 允许低频，但保底仍是「最长空窗」
         assertEquals(60_000L, policy.topics.getValue("PUMP_VITALS").effectiveIntervalMs())
-        assertEquals(60_000L, policy.topics.getValue("BASAL").effectiveIntervalMs())
+        assertEquals(60_000L, policy.topics.getValue("IOB").effectiveIntervalMs())
+        assertEquals(120_000L, policy.topics.getValue("BASAL").effectiveIntervalMs())
+        assertEquals(120_000L, policy.topics.getValue("BOLUS_LAST").effectiveIntervalMs())
         assertEquals(300_000L, policy.topics.getValue("CGM").effectiveIntervalMs())
         assertEquals(300_000L, policy.topics.getValue("CONTROL_IQ").effectiveIntervalMs())
+        assertEquals(300_000L, policy.topics.getValue("HISTORY").effectiveIntervalMs())
     }
 
     @Test

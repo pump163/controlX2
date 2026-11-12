@@ -77,6 +77,17 @@ class QueryCoordinator(
     /** 域 → 上次「计划发出」的时刻。断连时不推进，所以恢复后立即到期。 */
     private val lastPlannedAt = ConcurrentHashMap<String, Long>()
 
+    /** 域 → 上次入口 kick 的时刻（只用于合并窗，不参与周期计算）。 */
+    private val lastKickAt = ConcurrentHashMap<String, Long>()
+
+    /**
+     * 入口 kick 意图：进入页面时链路还没就绪，先记下域与失效时刻，链路一恢复由 [tick] 补发一次。
+     *
+     * 只记一次、30s 内有效：冷启动「pump-connected 广播 ≠ 命令通道可用」那段空窗里
+     * 页面先组合是常态，不记这个意图，进页那一眼就会静默丢掉，只能等 60s 周期。
+     */
+    private val pendingKick = ConcurrentHashMap<String, Long>()
+
     /**
      * 窗口域的截止时刻（domain → until）。
      *
@@ -186,6 +197,77 @@ class QueryCoordinator(
 
     fun isVisible(domain: String): Boolean = domain in visibleDomains
 
+    /**
+     * 一次性「立刻查一遍」：页面进入时用，不等周期。
+     *
+     * 与 [tick] 的区别只有两点：不看 `nextDueIn`、不看窗口是否开着（入口要的就是「先看一眼」）。
+     * 其余一律共用——同一端口（去重 / 在飞 / 节流）、同一超时、同一统计口径，所以既
+     * 不会绕过去重，也不会在 `/api/query/stats` 里隐身。
+     *
+     * 抑制重复：同一域 [coalesceMs] 内只发一次（用户连点标签、进页与切标签叠加都只算一拍）。
+     * 链路未就绪：只登记一次补发意图（[pendingKick]，30s 内有效），由下一拍 [tick] 补。
+     *
+     * @return 实际发出的条数；0 表示被合并窗 / 链路 / 在飞挡住（不影响页面继续渲染）。
+     */
+    fun requestNow(domain: String, coalesceMs: Long = KICK_COALESCE_MS, now: Long = clock()): Int {
+        if (mode != Mode.ACTIVE) return 0
+        if (domain !in activeDomains || domain !in dispatchedDomains) return 0
+        if (!QueryDomainRequests.isSupported(domain)) return 0
+        val topic = policy.topics[domain] ?: return 0
+
+        val lastKick = lastKickAt[domain]
+        if (lastKick != null && now - lastKick < coalesceMs) return 0
+        lastKickAt[domain] = now
+
+        if (port.linkState(now) == LinkState.DOWN) {
+            pendingKick[domain] = now + KICK_PENDING_TTL_MS
+            Timber.d("query kick deferred: domain=%s (link down)", domain)
+            return 0
+        }
+
+        val messages = QueryDomainRequests.forDomain(domain)
+        var index = pendingFrom[domain] ?: 0
+        var sent = 0
+        var rejected = 0
+        var busy = false
+        while (index < messages.size) {
+            val result = port.request(
+                message = messages[index],
+                minIntervalMs = topic.minIntervalMs,
+                timeoutMs = REQUEST_TIMEOUT_MS,
+                now = now,
+            )
+            if (result.sent) {
+                sent++
+                index++
+            } else if (result.reject == PumpCommandPort.Reject.BUSY) {
+                busy = true
+                break
+            } else {
+                rejected++
+                index++
+            }
+        }
+        if (index < messages.size) pendingFrom[domain] = index else pendingFrom.remove(domain)
+        // 只有真发出去才推进周期计时：否则入口这一脚会把下一拍推后一整个周期，制造空窗。
+        if (sent > 0) lastPlannedAt[domain] = now
+        remember(
+            Plan(
+                atMillis = now,
+                domains = if (sent > 0) listOf(domain) else emptyList(),
+                requestCount = messages.size,
+                sent = sent,
+                rejected = rejected,
+                skipped = emptyMap(),
+                mode = mode,
+            )
+        )
+        if (sent > 0) {
+            Timber.d("query kick domain=%s requests=%d sent=%d rejected=%d busy=%s", domain, messages.size, sent, rejected, busy)
+        }
+        return sent
+    }
+
     /** 可见域快照，供 `/api/query/stats` 核对「页面订阅是否真的接上」。 */
     fun visibleInfo(): List<String> = visibleDomains.toList()
 
@@ -247,7 +329,22 @@ class QueryCoordinator(
             due += domain
         }
 
-        val ordered = due.sortedBy { rankOf(policy.topics.getValue(it)) }
+        // 入口 kick 的补发：页面比链路就绪得早时，链路一好先补这一拍。
+        // 不受周期 / 窗口 / 可见性约束——入口那一眼本来就是一次性任务，不是订阅。
+        if (mode == Mode.ACTIVE && link == LinkState.OK) {
+            val it = pendingKick.entries.iterator()
+            while (it.hasNext()) {
+                val entry = it.next()
+                if (now > entry.value) {
+                    it.remove()
+                } else if (entry.key in dispatchedDomains) {
+                    due += entry.key
+                    it.remove()
+                }
+            }
+        }
+
+        val ordered = due.distinct().sortedBy { rankOf(policy.topics.getValue(it)) }
         var sent = 0
         var rejected = 0
         val sentDomains = LinkedHashSet<String>()
@@ -347,6 +444,8 @@ class QueryCoordinator(
     fun reset() {
         lastPlannedAt.clear()
         pendingFrom.clear()
+        lastKickAt.clear()
+        pendingKick.clear()
         recent.clear()
     }
 
@@ -370,6 +469,12 @@ class QueryCoordinator(
 
         /** 窗口域兜底时长：策略里没配 `maxWindowMs` 时的单次等待上限。 */
         const val DEFAULT_WINDOW_MS = 60_000L
+
+        /** 入口 kick 的合并窗：同一域在这个窗口内只发一次。 */
+        const val KICK_COALESCE_MS = 2_000L
+
+        /** 入口 kick 在链路未就绪时的补发有效期。 */
+        const val KICK_PENDING_TTL_MS = 30_000L
 
         /**
          * 默认接管清单：只含配置里已带保底、且旧路径可从页面摘掉的两个域。

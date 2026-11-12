@@ -66,12 +66,20 @@ class BolusReconciler(
     private var overallDeadline = 0L
     private var sawActiveEvidence = false
 
-    fun start(now: Long = clock()) {
+    /** 一次没人回应的对账排下的重试时刻；0 表示没有待重试。 */
+    private var retryAtMillis = 0L
+
+    /** 连续「一条都没回应」的重试次数，用来给重试封顶（不做无限查询）。 */
+    private var emptyAttempts = 0
+
+    fun start(now: Long = clock(), isRetry: Boolean = false) {
         if (running) return
         if (mode() != BolusControllerMode.V2) return
         running = true
         result = null
         currentStep = null
+        retryAtMillis = 0L
+        if (!isRetry) emptyAttempts = 0
         responded.clear()
         stepIndex = 0
         stepStartedAt = now
@@ -79,6 +87,25 @@ class BolusReconciler(
         sawActiveEvidence = false
         holder.markReconciling(true)
         advance(now)
+    }
+
+    /** 是否还欠一次「空转重试」。ticker 用它决定要不要继续活下去。 */
+    fun hasPendingRetry(): Boolean = !running && retryAtMillis > 0L
+
+    /**
+     * 由 ticker 每拍调用：到了重试时刻就重新发起。
+     *
+     * 为什么需要：`pump-connected` 广播只代表 ACL 建链，泵侧会话初始化要几秒；
+     * 这期间发出去的三条查询全部超时，等于白跑一次对账（2026-11-12 真机三次复现）。
+     * 空转不是结论，所以隔一会儿再问，最多 [MAX_EMPTY_ATTEMPTS] 次。
+     */
+    fun retryIfDue(now: Long = clock()): Boolean {
+        if (running || retryAtMillis <= 0L) return false
+        if (now < retryAtMillis) return false
+        retryAtMillis = 0L
+        Timber.i("bolus: 对账重试（上一次没有任何回应，第 %d 次）", emptyAttempts + 1)
+        start(now, isRetry = true)
+        return true
     }
 
     /** 收到一条泵侧报文：记录对应步骤已完成，并立刻推进到下一步。 */
@@ -133,6 +160,21 @@ class BolusReconciler(
                 BolusActivity.IDLE
             }
 
+            // 三条查询一条都没回来（典型：链路刚建、泵侧会话还没初始化）：这不是
+            // 「不知道泵上有没有」，而是「根本没问到」。以前这里会造一个 UNCONFIRMED 占位，
+            // 页面随即显示「正在向泵申请」，而零结果的 44 又清不掉占位，只能等 60s 阶梯落
+            // UNKNOWN 才松手（2026-11-12 12:25 真机复现）。
+            // 现在保持现状并排一次重试：空转不是结论，等链路真就绪后再问（最多几次）。
+            responded.isEmpty() && holder.session == null -> {
+                emptyAttempts++
+                if (emptyAttempts < MAX_EMPTY_ATTEMPTS) {
+                    retryAtMillis = now + RETRY_DELAY_MILLIS
+                } else {
+                    Timber.w("bolus: 对账连续 %d 次没有任何回应，放弃本次连接对账", emptyAttempts)
+                }
+                BolusActivity.IDLE
+            }
+
             else -> {
                 // 状态闩锁修复：对账整体超时未带齐结论时，不把交付态硬锁成不可自愈的 UNKNOWN，
                 // 转入 UNCONFIRMED（等待证据），由轮询层继续补证，后续证据到位即自愈。
@@ -182,7 +224,7 @@ class BolusReconciler(
         else -> null
     }
 
-    private companion object {
+    internal companion object {
         val STEPS = listOf(
             ReconcileStep.CURRENT,
             ReconcileStep.EXTENDED,
@@ -191,5 +233,11 @@ class BolusReconciler(
         )
         const val STEP_TIMEOUT_MILLIS = 2_000L
         const val OVERALL_TIMEOUT_MILLIS = 5_000L
+
+        /** 一条都没回应时的重试间隔：比泵侧会话初始化（实测 ~10s）宽一点。 */
+        const val RETRY_DELAY_MILLIS = 10_000L
+
+        /** 连续空转的重试上限，避免对着一根死链路反复发查询。 */
+        const val MAX_EMPTY_ATTEMPTS = 3
     }
 }

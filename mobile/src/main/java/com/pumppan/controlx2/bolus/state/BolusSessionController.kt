@@ -306,8 +306,19 @@ class BolusSessionController(
                 }
 
             // CONFIRMING / UNCONFIRMED：零结果不足以证明「没开始」，继续等。
+            // 但「对账占位」例外：它从没发出过 `-98`，也没有 bolusId，不是一笔真实会话，
+            // 没有任何「可能已经在输」的东西可等。44 明确说泵上没有在跑的立即段，占位就该
+            // 当场落定 Idle——否则页面会一直停在「正在向泵申请」，直到 60s 阶梯落 UNKNOWN。
             BolusDeliveryState.CONFIRMING,
-            BolusDeliveryState.UNCONFIRMED -> Unit
+            BolusDeliveryState.UNCONFIRMED -> {
+                if (current.bolusId == null && current.startedAtMillis == null) {
+                    Timber.i("bolus: 44 空结果清掉对账占位（%s），回 Idle", current.state)
+                    // 静默移除而不是 finish(IDLE)：占位从来没代表过一笔真实输注，
+                    // 落成「已完成」会凭空弹一次完成页。
+                    outcome = BolusOutcome.Pending
+                    holder.clear()
+                }
+            }
 
             // 状态闩锁修复：UNKNOWN（对账超时等路径）下收到「无大剂量在跑」的空证据后，自愈为 IDLE。
             BolusDeliveryState.UNKNOWN -> finish(BolusDeliveryState.IDLE, BolusOutcome.Success, now)
