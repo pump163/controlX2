@@ -41,7 +41,7 @@ import androidx.compose.material.icons.filled.DeveloperMode
 // import androidx.compose.material.icons.filled.Help // 已搬去 Debug 页
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Sync
-// import androidx.compose.material.icons.filled.Timer // 已移至控制页底部
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -67,6 +67,8 @@ import com.jwoglom.controlx2.util.AppVersionInfo
 import com.jwoglom.controlx2.util.rescueResetThisDevice
 import com.jwoglom.controlx2.util.switchDeviceRole
 import com.pumppan.controlx2.PumppanPrefs
+import com.pumppan.controlx2.scheduled.ScheduledBolusChain
+import com.pumppan.controlx2.scheduled.ScheduledBolusRuntime
 import com.pumppan.controlx2.ui.*
 import com.jwoglom.pumpx2.pump.PumpState
 import com.jwoglom.pumpx2.pump.messages.Message
@@ -578,7 +580,34 @@ fun Settings(
                         )
                     },
                 )
-                // 通知页大剂量流水开关：默认关闭、仅 X2 生效；副标题写明「重启后清空」。
+                // 定时大剂量总开关：控制「大剂量 V2」里 [定时] 标签的可见性。
+                // 关掉即立刻作废正在跑的链（用户口径：标签隐藏 = 链关闭）。
+                var scheduled by remember { mutableStateOf(PumppanPrefs.scheduledVisible(context)) }
+                ActionRow(
+                    title = context.getString(R.string.settings_scheduled_visible),
+                    subtitle = context.getString(R.string.settings_scheduled_visible_sub),
+                    leadingIcon = {
+                        Icon(
+                            if (scheduled) Icons.Filled.Timer else Icons.Filled.Close,
+                            contentDescription = context.getString(R.string.settings_scheduled_visible),
+                        )
+                    },
+                    onClick = {
+                        scheduled = !scheduled
+                        PumppanPrefs.setScheduledVisible(context, scheduled)
+                        if (!scheduled) {
+                            ScheduledBolusRuntime.cancel(
+                                context,
+                                ScheduledBolusChain.AbortReason.FEATURE_DISABLED,
+                            )
+                        }
+                    },
+                    modifier = Modifier.semantics {
+                        stateDescription = context.getString(
+                            if (scheduled) R.string.pumppan_toggle_on else R.string.pumppan_toggle_off
+                        )
+                    },
+                )                // 通知页大剂量流水开关：默认关闭、仅 X2 生效；副标题写明「重启后清空」。
                 var ledgerCard by remember { mutableStateOf(PumppanPrefs.ledgerCard(context)) }
                 ActionRow(
                     title = context.getString(R.string.settings_pumppan_ledger),

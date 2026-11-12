@@ -271,29 +271,7 @@ fun Actions(
                 item { GroupBoundary() }
                 // 定时大剂量总开关：控制「大剂量 V2」里 [定时] 标签的可见性。
                 // 关掉即立刻作废正在跑的链（用户口径：标签隐藏 = 链关闭）。
-                item {
-                    var scheduled by remember { mutableStateOf(PumppanPrefs.scheduledVisible(context)) }
-                    ActionRow(
-                        title = context.getString(R.string.settings_scheduled_visible),
-                        subtitle = context.getString(R.string.settings_scheduled_visible_sub),
-                        leadingIcon = {
-                            Icon(
-                                if (scheduled) Icons.Filled.Timer else Icons.Filled.Close,
-                                contentDescription = context.getString(R.string.settings_scheduled_visible),
-                            )
-                        },
-                        onClick = {
-                            scheduled = !scheduled
-                            PumppanPrefs.setScheduledVisible(context, scheduled)
-                            if (!scheduled) {
-                                ScheduledBolusRuntime.cancel(
-                                    context,
-                                    ScheduledBolusChain.AbortReason.FEATURE_DISABLED,
-                                )
-                            }
-                        },
-                    )
-                }
+
                 item {
                     val basalStatus = ds.basalStatus.observeAsState()
                     val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), SuspendPumpingRequest::class.java)
