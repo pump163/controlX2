@@ -1,0 +1,6 @@
+{
+  "platform": "wear",
+  "model": "mobi",
+  "note": "wear 占位 · 本轮不接入。Mobi 手表续航最紧，上游把周期拉长的动机就在这一档：将来在这里把 PUMP_VITALS / IOB 等保底域拉到比 base 更长的空窗（例如 300 s），只写差异即可，不必复制整份。当前仍走 wear 侧硬编码路径，mobile 侧不受影响。",
+  "default": {}
+}

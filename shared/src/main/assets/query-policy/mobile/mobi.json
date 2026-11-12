@@ -1,0 +1,6 @@
+{
+  "platform": "mobile",
+  "model": "mobi",
+  "note": "mobile · Mobi 覆盖层。合并规则同 mobile/slimx2.json：只写差异，未写的沿用 base。手机侧目前两档没有查询节奏差异（差异主要在 wear 的续航维度），所以这里先留空；将来 Mobi 专属差异（如无屏型号的延展状态查询）写这里。",
+  "default": {}
+}

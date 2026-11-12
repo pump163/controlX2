@@ -11,8 +11,15 @@ import java.util.*
 import kotlin.math.abs
 import kotlin.time.DurationUnit
 
+/**
+ * 泵时间戳是「墙上时间」（按 UTC 装的伪 instant），这里按设备时区还原成真实瞬间。
+ *
+ * 偏移取**该时间点**的时区偏移，而不是「现在」的偏移：历史记录跨过夏令时切换时，
+ * 用当前偏移会把图表上的点整整错开一小时（2026-11 由 VicoCgmChartTest 暴露，
+ * 详见 `docs/bug/bug-基线单测DST失败.md`）。
+ */
 fun pumpTimeToLocalTz(time: Instant): Instant {
-    val offsetSeconds = TimeZone.getDefault().getOffset(Date().time) / 1000
+    val offsetSeconds = TimeZone.getDefault().getOffset(time.toEpochMilli()) / 1000
     return time.minusSeconds(offsetSeconds.toLong())
 }
 

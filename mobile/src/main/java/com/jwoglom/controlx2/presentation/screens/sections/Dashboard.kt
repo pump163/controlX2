@@ -78,7 +78,6 @@ import com.jwoglom.controlx2.presentation.util.isCgmQuery
 import com.jwoglom.controlx2.shared.FeatureFlag
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.models.NotificationBundle
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -86,6 +85,12 @@ import timber.log.Timber
 
 // 首页补发通知包的最小间隔：连接抖动/生命周期反复触发时的下限。
 private const val NOTIFICATION_FETCH_MIN_INTERVAL_MS = 30_000L
+
+// 首页「等字段填满」的兜底补拉节奏与上限：只影响 UI 首屏的缓存重读，不参与泵侧
+// 查询节奏，因此不进策略配置。4 次 × 2.5s ≈ 10s 足够覆盖正常回包；仍为 null 的
+// 字段（多为泵侧没有该能力，如未接 CGM）交回协调器周期域，页面用占位文案顶住。
+private const val WAIT_FOR_LOADED_RETRY_INTERVAL_MS = 2_500L
+private const val WAIT_FOR_LOADED_MAX_RETRIES = 4
 
 @Composable
 fun Dashboard(
@@ -101,6 +106,10 @@ fun Dashboard(
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
+    // 「等字段填满」的触发计数：只在 进页首帧 / 连接建立 / 下拉刷新 / 回到前台 时 +1。
+    // 不能用 refreshing 当 key——waitForLoaded 结束会把 refreshing 置回 false，
+    // 那样 effect 会因为 false 再次重启，形成每 10s 一轮的自我重触发。
+    var loadTrigger by remember { mutableStateOf(0) }
     // 通知包节流：连接状态抖动会让 LaunchedEffect(pumpConnected) 反复触发，
     // 若每次都带 7 条通知查询就退化回"高频整包"。30s 内只补一次。
     var lastNotificationFetchAt by remember { mutableStateOf(0L) }
@@ -135,17 +144,26 @@ fun Dashboard(
     fun waitForLoaded() = refreshScope.launch {
         if (!Prefs(context).serviceEnabled()) return@launch
         var sinceLastFetchTime = 0
+        var retries = 0
         while (true) {
             val nullFields = dashboardFields.filter { field -> field.value == null }.toSet()
             if (nullFields.isEmpty()) {
                 break
             }
-
-            //Timber.i("Dashboard loading: remaining ${nullFields.size}: ${dashboardFields.map { it.value }}")
-            if (sinceLastFetchTime >= 2500) {
+            // 兜底补拉只服务「首屏尽快填满」：CACHED 批走缓存、不打泵，但字段可能因为
+            // 泵没有该能力（例如未接 CGM 的 cgmReading / cgmDeltaArrow）永远为 null，
+            // 原实现会每 2.5s 重发整批直到页面销毁。这里给重试次数设上限，超限即交回
+            // 协调器的周期域（PUMP_VITALS / IOB / DASHBOARD_DETAIL 等）继续填，
+            // 页面按既有占位文案渲染，不再空转。
+            if (retries >= WAIT_FOR_LOADED_MAX_RETRIES) {
+                Timber.w("Dashboard.waitForLoaded gave up after $retries retries, still null: ${nullFields.size}/${dashboardFields.size}")
+                break
+            }
+            if (sinceLastFetchTime >= WAIT_FOR_LOADED_RETRY_INTERVAL_MS) {
                 //Timber.i("Dashboard loading re-fetching with cache")
                 fetchDataStoreFields(SendType.CACHED, "Dashboard.waitForLoaded")
                 sinceLastFetchTime = 0
+                retries++
             }
 
             delay(250)
@@ -162,6 +180,7 @@ fun Dashboard(
 
         dashboardFields.forEach { field -> field.value = null }
         fetchDataStoreFields(SendType.BUST_CACHE, "Dashboard.pullRefresh", includeNotifications = true)
+        loadTrigger++
     }
 
     val state = rememberPullRefreshState(refreshing, ::refresh)
@@ -187,13 +206,16 @@ fun Dashboard(
         Timber.i("reloading Dashboard from onStart lifecyclestate")
         subscribeDashboard(true)
         fetchDataStoreFields(SendType.STANDARD, "Dashboard.onStart", includeNotifications = true)
+        loadTrigger++
     }
 
     // 周期刷新已交给 QueryCoordinator（三档各自的周期）；页面只保留首帧、下拉刷新
     // 与连接建立三类补拉——首帧仍发一次全量，保证进页面第一眼就是齐的。
 
-    LaunchedEffect(refreshing) {
-        waitForLoaded()
+    LaunchedEffect(loadTrigger) {
+        // 链路没起来时补拉没有意义（CACHED 也读不到），等连接建立那一次触发；
+        // 这里只消费计数，不读 refreshing，避免 waitForLoaded 收尾时自我重触发。
+        if (pumpConnected.value == true) waitForLoaded()
     }
 
     LaunchedEffect(pumpConnected.value) {
@@ -202,6 +224,7 @@ fun Dashboard(
         } else {
             // 连接建立后补一次（含通知包）：onStart 可能在未连接状态下被跳过。
             fetchDataStoreFields(SendType.STANDARD, "Dashboard.connectionChange", includeNotifications = true)
+            loadTrigger++
         }
     }
 
@@ -329,9 +352,10 @@ val dashboardCommands: List<Message>
     CurrentBasalStatusRequest(),
     CGMStatusRequest(),
     CurrentEGVGuiDataRequest(),
-    GlobalMaxBolusSettingsRequest(),
-    // trigger HistoryLogFetcher
-    HistoryLogStatusRequest()
+    GlobalMaxBolusSettingsRequest()
+    // 2026-11-12：历史日志状态已由协调器 `HISTORY` 域（300s）独占下发。
+    // 这里再带一条会在每次进页 / 连接建立 / 下拉刷新时抢先发一遍，把协调器那一拍
+    // 挤成 THROTTLED，表现为「每 5s 计划一次、每 5s 被拒一次」的空转（真机复现见 §7.14）。
     ).filter { msg ->
         !msg.props().minApi.get().greaterThan(apiVersion()) &&
             // G6/G7 明确「未启动」时不再追问 CGM 两条；null（未知）与在用状态照常发。

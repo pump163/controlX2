@@ -15,7 +15,7 @@ import com.pumppan.controlx2.query.QueryPolicyLoader
  * 这些请求是纯无效流量——一小时窗口内 CGM 类请求 82 条，其中 10 条没有应答。
  *
  * 真值来源（§4.6.6）：**开关在配置，语义在代码**。
- *  - 开关：`states.skipCgmTopicWhenSessionStopped`（`pump-query-policy.json`）。
+ *  - 开关：`states.skipCgmTopicWhenSessionStopped`（`query-policy/base.json` 或所在覆盖层）。
  *    为 false 时一律放行，等于回到旧的全量发送；
  *  - 语义：三态判定不外置——配置只能决定「STOPPED 时要不要省」，不能重新定义
  *    「什么叫没启用」。

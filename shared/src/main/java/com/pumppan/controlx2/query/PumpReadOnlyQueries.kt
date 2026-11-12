@@ -11,6 +11,8 @@ package com.pumppan.controlx2.query
  *
  * 名单来源 = `PumpTopic.fromRequestSimpleName` 覆盖的全部请求（该映射本来就是
  * 按「只读数据域」划的），再人工核对一遍排除 Set/Initiate/Cancel/Dismiss。
+ * 另补了三处页面独占、未进 PumpTopic 映射表的读查询（BolusCalcDataSnapshot /
+ * LastBG / GetSavedG7PairingCode）——它们只是在统计里落 UNKNOWN，仍然是只读。
  *
  * 明确不进名单的（必须直发）：
  * - `InitiateBolusRequest`：X2 可以发立即大剂量（真机验证）
@@ -61,6 +63,12 @@ object PumpReadOnlyQueries {
         "ExtendedBolusStatusRequest",
         "ExtendedBolusStatusV2Request",
 
+        // 大剂量计算输入（向导第二步 / 旧 BolusWindow 的只读快照）
+        "BolusCalcDataSnapshotRequest",
+        "LastBGRequest",
+        // 大剂量许可变更原因（Debug 页手动读一次；currentStatus 包，只读）
+        "BolusPermissionChangeReasonRequest",
+
         // 报警 / 故障（读）
         "AlertStatusRequest",
         "AlarmStatusRequest",
@@ -78,6 +86,9 @@ object PumpReadOnlyQueries {
         "ProfileStatusRequest",
         "IDPSettingsRequest",
         "IDPSegmentRequest",
+
+        // CGM 配对码（读：CGMActions 的「获取配对码」，不是 Set 类）
+        "GetSavedG7PairingCodeRequest",
     )
 
     /** 按请求类 simpleName 判定；null / 未知类一律视为非只读（直发）。 */

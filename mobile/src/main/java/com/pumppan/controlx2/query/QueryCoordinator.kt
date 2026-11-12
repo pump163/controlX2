@@ -350,6 +350,9 @@ class QueryCoordinator(
         val sentDomains = LinkedHashSet<String>()
         // 本轮只推进计时、不发包的已接管域（尚未切到协调器下发）。
         val plannedOnly = LinkedHashSet<String>()
+        // 本轮一条都没发出去，但每条都被「已覆盖」类理由挡住（等价请求已发/在飞）。
+        // 与 sentDomains 一样推进计时，否则会在节流窗内每拍重撞一次。
+        val coveredDomains = LinkedHashSet<String>()
 
         if (mode == Mode.ACTIVE) {
             for (domain in ordered) {
@@ -362,6 +365,12 @@ class QueryCoordinator(
                 val messages = QueryDomainRequests.forDomain(domain)
                 var index = pendingFrom[domain] ?: 0
                 var domainSent = 0
+                var domainRejected = 0
+                // 全部拒绝是否都属于「等价请求刚刚已经发过 / 仍在飞」：
+                // THROTTLED（同一 opCode 在 minInterval 内送过）、DUPLICATE（去重窗内）、
+                // IN_FLIGHT（同一条还没回包）——这三种都说明数据已经有人去要了，
+                // 本域在语义上「这一拍已完成」，不该每 5s 再撞一次。
+                var coveredOnly = true
                 var hitBusy = false
                 while (index < messages.size) {
                     val result = port.request(
@@ -383,6 +392,13 @@ class QueryCoordinator(
                         // IN_FLIGHT / THROTTLED / DUPLICATE 说明这条要么已在飞、要么刚发过，
                         // 对本轮而言等同于已覆盖，跳过它继续发后面的。
                         rejected++
+                        domainRejected++
+                        if (result.reject != PumpCommandPort.Reject.THROTTLED &&
+                            result.reject != PumpCommandPort.Reject.DUPLICATE &&
+                            result.reject != PumpCommandPort.Reject.IN_FLIGHT
+                        ) {
+                            coveredOnly = false
+                        }
                         index++
                     }
                 }
@@ -390,6 +406,12 @@ class QueryCoordinator(
                 // 只有真发出去才算「这个域本轮已跑」。全被 QUIET / BUSY / IN_FLIGHT 挡住时
                 // 不能推进计时，否则重连静默窗会把下一次到期推到一整个周期之后，制造空窗。
                 if (domainSent > 0) sentDomains += domain
+                // 全被「已覆盖」类理由挡住时按已跑处理：数据这一拍确实有人去要了，
+                // 不推进计时会让本域在节流窗内每拍重算一次（真机表现为 HISTORY 每 5s
+                // 计划一次、每 5s 被拒一次，nextDueIn 长期是负值）。
+                if (domainSent == 0 && !hitBusy && domainRejected > 0 && coveredOnly) {
+                    coveredDomains += domain
+                }
                 if (hitBusy) break
             }
         }
@@ -397,7 +419,8 @@ class QueryCoordinator(
         // SHADOW 只算不发：按计划推进，模拟真实节奏；
         // ACTIVE 按「实际发出去的域」推进，被拒的域下一拍立即重试；
         // 已接管但未下发的域也按计划推进，避免 1s 节拍把它们每拍都重算一遍。
-        val advanced = if (mode == Mode.ACTIVE) sentDomains + plannedOnly else ordered.toSet()
+        // 「全被等价请求覆盖」的域同样按已跑处理——它的数据这一拍确实有人去要了。
+        val advanced = if (mode == Mode.ACTIVE) sentDomains + plannedOnly + coveredDomains else ordered.toSet()
         advanced.forEach { lastPlannedAt[it] = now }
 
         val plan = Plan(

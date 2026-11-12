@@ -1,6 +1,9 @@
 package com.pumppan.controlx2.query
 
 import android.content.Context
+import com.pumppan.controlx2.PumppanPrefs
+import com.pumppan.controlx2.PumppanPumpModel
+import java.io.FileNotFoundException
 import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONObject
@@ -10,14 +13,28 @@ import timber.log.Timber
  * 查询层收敛 · §4.5.4 / §4.5.5 的读取链路（第 0 步版）。
  *
  * 第 0 步范围（严格按设计文档迁移第 0 步）：
- * - 只读 `assets/pump-query-policy.json`；
+ * - 只读 `assets/query-policy/` 下的策略文件；
  * - **不读** filesDir override、**不做**热更新、**不接**任何消费者（不改调度）；
  * - 启动一次加载，失败用内建 FALLBACK，永不阻断启动；
  * - 校验口径：单字段错 → 缺省 + 标记；结构性错 → 整份拒绝回退。
+ *
+ * 2026-11-12：目录改为 `base + 覆盖`。
+ * - `query-policy/base.json` 放全平台共用的这套值；
+ * - `query-policy/<platform>/<model>.json` 只放差异，按字段深合并到 base 之上；
+ * - 本轮 mobile 端固定 `platform=mobile`，型号读 [PumppanPrefs.pumpModel]
+ *   （AUTO 先按 slimx2，诊断里用 `deviceClassSource` 标出来）；
+ * - `query-policy/wear/` 下的两份只是占位，wear 侧代码本轮不动，也不会读到这里。
  */
 object QueryPolicyLoader {
 
-    const val ASSET_NAME = "pump-query-policy.json"
+    /** `base + 覆盖` 结构里的公共层。 */
+    const val BASE_ASSET = "query-policy/base.json"
+
+    /** 旧单文件路径：仅当新目录缺 base 时兜底读取，避免资源改名把整份策略打回硬编码。 */
+    const val LEGACY_ASSET = "pump-query-policy.json"
+
+    /** 手机进程只读 mobile 分支；wear 侧将来接入时由 wear 自己的调度器按 `wear` 读。 */
+    private const val PLATFORM = "mobile"
 
     // 注意：不能在此处直接调用 fallbackPolicy()——object 属性按声明顺序初始化，
     // 此时下面的 DEFAULT_* 还是 null。改为惰性兜底（见 current()）。
@@ -26,24 +43,112 @@ object QueryPolicyLoader {
 
     /** 在 PumppanApplication.onCreate 调用一次；任何异常都在内部消化。 */
     fun initialize(context: Context) {
+        val selected = resolveDeviceClass(context)
+        val composed = mutableListOf<String>()
         try {
-            val text = context.assets.open(ASSET_NAME).use { it.readBytes().decodeToString() }
-            val loaded = parse(text, loadedAtMillis = System.currentTimeMillis())
-            current = loaded
+            val baseAsset = when {
+                assetExists(context, BASE_ASSET) -> BASE_ASSET
+                assetExists(context, LEGACY_ASSET) -> LEGACY_ASSET
+                else -> throw FileNotFoundException("asset missing: $BASE_ASSET")
+            }
+            composed += baseAsset
+
+            var root = JSONObject(readAsset(context, baseAsset))
+            val overlayAsset = overlayAssetName(selected.key)
+            if (assetExists(context, overlayAsset)) {
+                root = deepMerge(root, JSONObject(readAsset(context, overlayAsset)))
+                composed += overlayAsset
+            }
+
+            val loaded = parse(root.toString(), loadedAtMillis = System.currentTimeMillis())
+            current = loaded.copy(
+                diagnostics = loaded.diagnostics.copy(
+                    composedFrom = composed,
+                    deviceClass = selected.key,
+                    deviceClassSource = selected.source,
+                ),
+            )
             Timber.i(
-                "QueryPolicyLoader loaded source=%s topics=%d fresh=%dms",
-                loaded.source.name, loaded.topics.size, loaded.freshness.freshMs,
+                "QueryPolicyLoader loaded class=%s(%s) from=%s topics=%d fresh=%dms",
+                selected.key, selected.source, composed.joinToString(","),
+                loaded.topics.size, loaded.freshness.freshMs,
             )
         } catch (t: Throwable) {
             val fallback = fallbackPolicy(loadedAtMillis = System.currentTimeMillis())
             current = fallback.copy(
                 diagnostics = fallback.diagnostics.copy(
                     rejected = fallback.diagnostics.rejected + "load:${t.javaClass.simpleName}",
+                    composedFrom = composed,
+                    deviceClass = selected.key,
+                    deviceClassSource = selected.source,
                 ),
             )
             Timber.w(t, "QueryPolicyLoader fell back to built-in policy")
         }
     }
+
+    /**
+     * 组合 base 与覆盖层，供 [initialize] 与单测共用。
+     *
+     * 合并规则：对象逐层深合并（`default` → `topics` → 单个域 → 单个字段），数组与标量整体替换，
+     * 覆盖层里的 `note` 不参与合并（保留 base 的说明）。本来只覆盖出现的键，未出现的沿用下层。
+     */
+    internal fun compose(baseText: String, overlayTexts: List<String>): String {
+        var root = JSONObject(baseText)
+        for (text in overlayTexts) root = deepMerge(root, JSONObject(text))
+        return root.toString()
+    }
+
+    /** 覆盖层路径：`query-policy/<platform>/<model>.json`。 */
+    internal fun overlayAssetName(modelKey: String): String =
+        "query-policy/$PLATFORM/$modelKey.json"
+
+    private fun deepMerge(base: JSONObject, overlay: JSONObject): JSONObject {
+        // 先整份深拷贝：合并结果不能反过来改到 asset 解析出来的对象。
+        val out = JSONObject(base.toString())
+        for (key in overlay.keys()) {
+            if (key == "note") continue
+            val incoming = overlay.opt(key)
+            val existing = out.opt(key)
+            out.put(
+                key,
+                if (incoming is JSONObject && existing is JSONObject) {
+                    deepMerge(existing, incoming)
+                } else {
+                    incoming
+                },
+            )
+        }
+        return out
+    }
+
+    private fun assetExists(context: Context, name: String): Boolean {
+        return try {
+            context.assets.open(name).use { true }
+        } catch (e: FileNotFoundException) {
+            false
+        }
+    }
+
+    private fun readAsset(context: Context, name: String): String {
+        return context.assets.open(name).use { it.readBytes().decodeToString() }
+    }
+
+    /**
+     * 型号档位：沿用设置页的 [PumppanPumpModel]（AUTO / MOBI / SLIM_X2）。
+     *
+     * AUTO 时先用 slimx2 档，并把来源标成 `auto-default`——诊断里能看出「实际吃的哪份」，
+     * 真实型号识别接入后只改这里，配置文件与其余代码都不用动。
+     */
+    private fun resolveDeviceClass(context: Context): DeviceClass {
+        return when (PumppanPrefs.pumpModel(context)) {
+            PumppanPumpModel.MOBI -> DeviceClass("mobi", "pref")
+            PumppanPumpModel.SLIM_X2 -> DeviceClass("slimx2", "pref")
+            PumppanPumpModel.AUTO -> DeviceClass("slimx2", "auto-default")
+        }
+    }
+
+    private data class DeviceClass(val key: String, val source: String)
 
     fun current(): QueryPolicy {
         return current ?: fallbackPolicy(loadedAtMillis = 0L).also { current = it }
@@ -274,12 +379,12 @@ object QueryPolicyLoader {
 
         if (rejected.isNotEmpty()) throw PolicyRejectedException(rejected)
 
-        // ---- overlays（schema v2）----
-        val overlays = parseOverlays(root.optJSONObject("overlays"), unknown)
-
-        // 顶层未知键
+        // 顶层未知键。`platform` / `model` 是目录覆盖层带来的元信息（读取时已用于选文件，
+        // 这里只做声明，不参与调度），不能算 unknown。
         for (k in root.keys()) {
-            if (k !in setOf("schemaVersion", "note", "default", "models", "overlays")) unknown += "root.$k:unknown"
+            if (k !in setOf("schemaVersion", "note", "default", "models", "platform", "model")) {
+                unknown += "root.$k:unknown"
+            }
         }
         for (k in default.keys()) {
             if (k !in setOf("topics", "freshness", "states", "budget", "events", "reconnect", "switches", "flap")) {
@@ -310,81 +415,8 @@ object QueryPolicyLoader {
                 hardcodedPolicyFound = STATIC_HARDCODED_POLICY,
             ),
             applyPendingOn = emptyList(),
-            overlays = overlays,
         )
     }
-
-    /**
-     * 解析 `overlays`：byModel / byApiVersion / byState 三层。
-     *
-     * 只做结构读取与键校验；真正的合并顺序在 [PolicyResolver]。任何结构错误只记 unknown，
-     * 不整体拒绝——叠加层坏掉时退回只用 default，比让整份策略失效安全。
-     */
-    private fun parseOverlays(o: JSONObject?, unknown: MutableList<String>): PolicyOverlays {
-        if (o == null) return PolicyOverlays.empty()
-
-        val byModel = LinkedHashMap<String, Map<String, TopicPolicyOverride>>()
-        o.optJSONObject("byModel")?.let { models ->
-            for (model in models.keys().asSequence().toList()) {
-                val layer = models.optJSONObject(model) ?: continue
-                byModel[model] = parseOverrides(layer, "overlays.byModel.$model", unknown)
-            }
-        }
-
-        val byApiVersion = mutableListOf<ApiVersionOverlay>()
-        o.optJSONArray("byApiVersion")?.let { arr ->
-            for (i in 0 until arr.length()) {
-                val entry = arr.optJSONObject(i) ?: continue
-                val minApi = (entry.opt("minApi") as? Number)?.toInt() ?: continue
-                val layer = entry.optJSONObject("topics") ?: continue
-                byApiVersion += ApiVersionOverlay(minApi, parseOverrides(layer, "overlays.byApiVersion[$i]", unknown))
-            }
-        }
-
-        val byState = LinkedHashMap<String, Map<String, TopicPolicyOverride>>()
-        o.optJSONObject("byState")?.let { states ->
-            for (state in states.keys().asSequence().toList()) {
-                val layer = states.optJSONObject(state) ?: continue
-                byState[state] = parseOverrides(layer, "overlays.byState.$state", unknown)
-            }
-        }
-
-        return PolicyOverlays(byModel = byModel, byApiVersion = byApiVersion, byState = byState)
-    }
-
-    private fun parseOverrides(
-        layer: JSONObject,
-        path: String,
-        unknown: MutableList<String>,
-    ): Map<String, TopicPolicyOverride> {
-        val out = LinkedHashMap<String, TopicPolicyOverride>()
-        for (name in layer.keys().asSequence().toList()) {
-            val o = layer.optJSONObject(name)
-            if (o == null) {
-                unknown += "$path.$name:notObject"
-                continue
-            }
-            val p = "$path.$name"
-            for (k in o.keys()) {
-                if (k !in OVERRIDE_KEYS) unknown += "$p.$k:unknown"
-            }
-            out[name] = TopicPolicyOverride(
-                intervalMs = (o.opt("intervalMs") as? Number)?.toLong(),
-                floorIntervalMs = (o.opt("floorIntervalMs") as? Number)?.toLong(),
-                minIntervalMs = (o.opt("minIntervalMs") as? Number)?.toLong(),
-                priority = o.opt("priority") as? String,
-                onlyWhenVisible = o.opt("onlyWhenVisible") as? Boolean,
-                maxWindowMs = (o.opt("maxWindowMs") as? Number)?.toLong(),
-                enabled = o.opt("enabled") as? Boolean,
-            )
-        }
-        return out
-    }
-
-    private val OVERRIDE_KEYS = setOf(
-        "intervalMs", "floorIntervalMs", "minIntervalMs", "priority",
-        "onlyWhenVisible", "maxWindowMs", "enabled",
-    )
 
     private class Reader(
         val missing: MutableList<String>,
@@ -617,6 +649,9 @@ object QueryPolicyLoader {
         json.put("schemaVersion", p.schemaVersion)
         json.put("hash", p.hash)
         json.put("loadedAtMillis", p.loadedAtMillis)
+        json.put("deviceClass", p.diagnostics.deviceClass)
+        json.put("deviceClassSource", p.diagnostics.deviceClassSource)
+        json.put("composedFrom", JSONArray(p.diagnostics.composedFrom))
         json.put("applyPendingOn", JSONArray(p.applyPendingOn))
 
         val effective = JSONObject()
@@ -639,13 +674,6 @@ object QueryPolicyLoader {
         diag.put("ignoredKeys", JSONArray(p.diagnostics.ignoredKeys))
         diag.put("rejected", JSONArray(p.diagnostics.rejected))
         diag.put("hardcodedPolicyFound", JSONArray(p.diagnostics.hardcodedPolicyFound))
-        val ov = JSONObject()
-        ov.put("byModel", JSONArray(p.overlays.byModel.keys.toList()))
-        val apiArr = JSONArray()
-        p.overlays.byApiVersion.forEach { apiArr.put(it.minApi) }
-        ov.put("byApiVersion", apiArr)
-        ov.put("byState", JSONArray(p.overlays.byState.keys.toList()))
-        json.put("overlays", ov)
         json.put("diagnostics", diag)
         return json
     }

@@ -1,0 +1,6 @@
+{
+  "platform": "wear",
+  "model": "slimx2",
+  "note": "wear 占位 · 本轮不接入。wear 只依赖 :shared，读不到 :mobile 的 QueryPolicy，也还没有 wear 侧查询调度器，所以 wear 目前仍是上游的「页面 60 s + WearPumpCommService 5 min」硬编码路径。将来推进 wear 时在此写 wear 专属周期（手表屏幕与续航约束下通常比 base 更长）并改 wear 订阅代码，mobile 侧不需要返工。",
+  "default": {}
+}

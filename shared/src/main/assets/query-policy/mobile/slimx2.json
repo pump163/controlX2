@@ -1,0 +1,6 @@
+{
+  "platform": "mobile",
+  "model": "slimx2",
+  "note": "mobile · t:slim X2 覆盖层。只写与 base 不同的键：任意层级按字段合并，default.topics 里只写要改的域、域里只写要改的字段，其余沿用 base。当前与 base 无差异（base 里就是真机在跑的这套值），此文件留空以便将来按型号分叉时只改这里。",
+  "default": {}
+}

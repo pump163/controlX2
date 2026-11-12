@@ -510,7 +510,7 @@ class PumpCommandPort(
     }
 
     companion object {
-        /** 未注入策略时的兜底静默阈值；与 `pump-query-policy.json` 旧默认同值。 */
+        /** 未注入策略时的兜底静默阈值；与 `query-policy/base.json` 的旧默认同值。 */
         const val DEFAULT_LINK_SILENT_MS = 30_000L
 
         /** 全局在飞兜底上限。 */

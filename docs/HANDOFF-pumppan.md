@@ -1,9 +1,9 @@
 # HANDOFF · pumppan 分支交接记录
 
-> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：2026-11-10（切片 0 收口 / 大剂量超时取证 / 状态闩锁修复 / 出包直装）
+> 生成日期：2026-11-02（构建产物时间 2026-11-03 00:02）　最后同步：**2026-11-12**（docs 归档 8 份 / 查询器 overlays 移除 / DST 单测修复 / 定时大剂量与通知页流水两份设计定稿 / `HISTORY` 重复触发收口 / `waitForLoaded` 有上限收敛）
 > 分支：`pumppan`　工作树：`D:\Programming\controlX2-i18n_pumppan`
-> 当前 HEAD：`ce437f54`（2026-11-10 00:07 构建，docs：大剂量超时取证 + 状态闩锁自愈 + 切片 0）。**已推送** `i18n-origin/pumppan`（`53b7f8c9..ce437f54`）。
-> 若 `git log -1` 与 `ce437f54` 不同，说明只多了本文件的收尾提交，源码无改动。
+> 当前 HEAD：以 `git log -1` 为准（本批：查询器收口 + `waitForLoaded` 收敛）。**已推送** `i18n-origin/pumppan`。
+> **提交范围（2026-11-12 晚）**：代码与 `docs/HANDOFF-pumppan.md`、`docs/upstream-pr-candidates.md`；**其余 docs 一律不入库**（归档 8 份、`README`/索引/设计文档改动只留在工作区）。个人笔记（`docs/doubao 历史.txt`、`docs/trae-cn 历史.txt`、`docs/危险指令 pass.txt`）同样未提交。
 > 本文档自包含，可脱离对话记录直接接手。
 
 ## 重启前状态（2026-11-03）
@@ -12,7 +12,7 @@
 
 | 树 | 分支 | HEAD | 主题 |
 |---|---|---|---|
-| pumppan | `pumppan` | `ce437f54` | 2026-11-10：切片 0 收口（`UNKNOWN` 65%→0%）+ 大剂量超时取证全链路 + 状态闩锁自愈修复。此前 11-09 `46a0399b` 查询层收敛定稿 + 通知页流水账草案、`c0c34b92` 断连取证迁危险指令页、`5d04c075` 查询层第 0 步、`7fb08b32` 底栏输注细条、`12d43634` 向导更名；11-08 `491d5d1d` IOB 口径（pumpx2→1.9.3）、`eb574055` 设置自检页、`e83e389d` 三段式页、`8c720c66` 输注期状态机；11-06 `8d665764` S6 发送适配层 |
+| pumppan | `pumppan` | 以 `git log -1` 为准 | 2026-11-12 提交范围：代码（查询器删 `overlays`/`PolicyResolver`、`coveredDomains`、`waitForLoaded` 收敛、DST 修复、只读白名单 + 测试）+ `HANDOFF-pumppan.md` / `upstream-pr-candidates.md`；其余 docs 仅工作区未入库。此前 `ce437f54` 切片 0 收口（`UNKNOWN` 65%→0%）+ 大剂量超时取证 + 状态闩锁自愈；`46a0399b` 查询层收敛定稿 + 通知页流水账草案、`c0c34b92` 断连取证迁危险指令页、`5d04c075` 查询层第 0 步、`7fb08b32` 底栏输注细条、`12d43634` 向导更名；11-08 `491d5d1d` IOB 口径（pumpx2→1.9.3）、`eb574055` 设置自检页、`e83e389d` 三段式页、`8c720c66` 输注期状态机；11-06 `8d665764` S6 发送适配层 |
 | i18n main | `main` | `f0543e1` | 归档已完成文档、未完成文档移交 pumppan（2026-11-05 复核，工作区干净） |
 | lab | `assets` | `e5c62321` | WORKLOG §95（2026-11-06）；2026-11-09 补记 §96–§103（未提交） |
 
@@ -34,7 +34,7 @@
 
 #### 当前第一件事（2026-11-10）
 
-1. **切片 1（通知页流水账）**：`LedgerEntry` + `LedgerStore` + 只计数空实现。三条硬前提：不新增一条泵查询、不参与既有职责（角标/滑动消除/耗材拦截）、不是医疗记录。设计见 `docs/feature/通知页-流水账-设计.md`（§1 按机型分派两页已定案，Mobi 不提供流水账开关）。
+1. **切片 1（通知页流水账）**：`LedgerEntry` + `LedgerStore` + 只计数空实现。三条硬前提：不新增一条泵查询、不参与既有职责（角标/滑动消除/耗材拦截）、不是医疗记录。**设计已定稿（2026-11-12 改判 + 设置页开关）**：`docs/feature/通知页-流水账-设计.md` §1 = **同页两卡片**（报警卡置顶原样不动 + 流水卡在下，不做整页切换/Tab）；设置页开关「通知页显示大剂量流水」默认关闭（`pumppan-ledger-card`=false），开启后通知页才变两卡片；流水纯内存不落库（§10、§15）。
 2. **状态闩锁修复已编译进包**（2026-11-10）：`BolusReconciler.finish()` else → `UNCONFIRMED`；`BolusSessionController.onCurrentBolusEmpty` 对 `UNKNOWN` 收空证据 → 自愈 `IDLE`。release 已出包并 `adb install -r`（`buildVersion=ce437f54`）。
 3. **查询层切片 0 已收口**：`PumpTopic` 映射补全，`UNKNOWN` 65% → **0%**；NOTIFICATIONS 从不可达变为最大单一消费者。
 4. **通知链路全链路实测通过**（2026-11-09）：大剂量超时触发 → 泵推 `[ALERT, HOME_SCREEN_CHANGE]` → `AlertStatusResponse[INCOMPLETE_BOLUS_ALERT]` → 通知页 `Notifications fetched` → 泵上取消 → 通知页消失。
@@ -44,10 +44,10 @@
 #### 其余待办
 
 1. **大剂量 v2 剩余代码**：① 通知改造（补 `setContentIntent`、正文开始/结束时间、`maxRequests=60` 跟随延后段时长；约 3 文件 40–50 行）；② #61 剂量校验三态（空/非法/合法，挂在字段值上，已定案待实现）；③ #64 横幅重构为泵输注状态视图（两层模型、可见性规则、待验两项）。**已完成**：第 2 页三按钮 + 自动命名预设、入口状态机 `phaseToPage`、三段式页、`BolusStatusStrip` 底栏细条。
-   **2026-11-10 新增**：第二步校验统一（`isImmediateLegLive` / `BolusForm.validate(delivery)` / `ACTIVE` 分流 /「扩展」开关禁用 / 顶部常驻提示）；P0 延展判定改用结束证据（`expectedEnd` 只作展示）+ `46` 补证按大剂量页可见性门控；细条改两级取消并补「被覆盖的延展段」提示（`priorExtended`）。**仍未做**：细条「预计结束/剩余量」（用户暂缓，蓝牙断连吞数据）、多笔两行分别取消（结构性改造，见 `docs/feature/细条-多笔并存-评估与待办.md`）。
+   **2026-11-10 新增**：第二步校验统一（`isImmediateLegLive` / `BolusForm.validate(delivery)` / `ACTIVE` 分流 /「扩展」开关禁用 / 顶部常驻提示）；P0 延展判定改用结束证据（`expectedEnd` 只作展示）+ `46` 补证按大剂量页可见性门控；细条改两级取消并补「被覆盖的延展段」提示（`priorExtended`）。**仍未做**：细条「预计结束/剩余量」（用户暂缓，蓝牙断连吞数据）。**多笔两行分别取消已于 2026-11-12 结项、不实施**（泵侧 `-91` 顶掉前一笔，持久化不扩），评估记录归档在 `docs/old/细条-多笔并存-评估与待办.md`。
 2. **大剂量批次 A 状态**：S0–S6 全部完成，`-98` 生产通道**已于 2026-11-06 真机送达**（泵回 `-97` 拒绝，非发送层丢弃，见 WORKLOG §95）；2026-11-08 第四轮真机确认 v2 发送路径可连打两笔 0.05U 并可取消。批次 B（向导）已落地 IOB 口径与结果页交接；批次 C（定时大剂量提醒）仅登记、不设计（§5.1）。
 3. **TIR 三档**：见 `docs/feature/TIR多日汇总-远期目标.md`（档 1 多窗口 + 五区间 + 覆盖率 + GRI（阈值可配）→ 档 2 AGP / 逐日曲线 / 变异度 / LBGI / 低血糖事件频次 → 档 3 可视化 + 导出）；依赖 C 方案 + 自动读取开启 + 首次追赶完成。
-4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/bug-蓝牙断连.md`（`57bc4c5`），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
+4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/old/bug-蓝牙断连.md`（`57bc4c5`；2026-11-12 阶段完成 · 待细化并归档），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
 5. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 6. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
 7. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
@@ -56,13 +56,13 @@
 
 ### 已知基线失败
 
-- `VicoCgmChartTest`：DST 时区下失败（`UnitsRenderer` 用当前时刻算偏移），**与本次改动无关**，勿误判为回归。
+- **无（2026-11-12）**：`VicoCgmChartTest` 的 DST 失败已修复——`UnitsRenderer.pumpTimeToLocalTz` 改为按事件时刻取偏移（`getOffset(time.toEpochMilli())/1000`），`VicoCgmChartTest` 10 条全绿、`:mobile:testReleaseUnitTest` **383/383**。原记录见 `docs/old/bug-基线单测DST失败.md` §7。
 
 ---
 
 ## 一句话现状
 
-pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。**2026-11-05**：设置/调试/控制页行组件统一为 `BaseRow`（`ActionRow` / `NavigationRow` / `ToggleRow` 全部改调，`fe8a887`），`:mobile:compileDebugKotlin` 通过、未出包；同日 HTTP 调试 API 真机实测（设备 `buildVersion=82710ea`）——只读命令全过，`46/-74` 有响应**证实 V2 可用**，`-94` 权限与 `-96` 取消通过，`-98` 大剂量被 `PumpCommHandler.isBolusCommand` 在 BULK 通道拦截（Timeout → HTTP 500，**未送达未输注**），`debug-write-bt-characteristic` 为 stub 不可用；取消后 `CurrentBolusStatus` / `ExtendedBolusStatusV2` 均 Idle、无残留，泵侧今日零异常（详见 `docs/feature/HTTP取证与真机点检.md` §8 与 lab WORKLOG §80–§82）；用户另将 `docs/pumppan-审查修改意见.md` 归档到 `docs/old/`（`ec92377`）。**2026-11-09 ~ 11-10**：查询层切片 0 补 `PumpTopic` 映射（`shared/.../query/PumpTopic.kt`，`fromRequestSimpleName`/`fromResponseSimpleName` 两轮补全；`UNKNOWN` 65%→**0%`，NOTIFICATIONS 可达）· 大剂量超时取证全链路闭环（`alert_trigger_20261109b.log`：`[ALERT, HOME_SCREEN_CHANGE]` → `AlertStatusResponse[INCOMPLETE_BOLUS_ALERT, cargo[1]=0x08]` → 通知页有反应 → 泵上取消 → 通知页消失）· **状态闩锁自愈修复**（`BolusReconciler.finish()` else → `UNCONFIRMED`；`BolusSessionController.onCurrentBolusEmpty` 对 `UNKNOWN` 收空证据 → 自愈 `IDLE`；根因：重连后对账整体超时 5s 落 Unknown 且不自愈，导致首页误报「正在输注/断联」）· release 出包 + `adb install -r` 直装（`ce437f54`，23,219,323 bytes）。WORKLOG 已补记 §104；`docs/feature/通知页-流水账-设计.md` §3 已修正（`dispatchExternalMessage` 数据源系**错误**，真实源为 Dashboard 批通知响应 + 泵推送事件）。
+pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗色可读性修复 + 声音设置/睡眠计划/充电图标改造 + 术语收敛」，`:mobile:compileDebugKotlin` 通过。2026-11-04 这批：术语收敛（历史记录 / 消息缓存 / 本地数据库，38 key 只改取值、key 未改、en/zh `1090/1084`，`9c392f0`）· 自动读取历史记录开关恢复并单独成组（`de763ef` `728ecb2`）· 首页三项开关在调试页已去重（`8309cee`，回退点 `FeatureFlags.kt :: settingsOnlyFlags`）· 本地数据库 **C 方案**定稿（`1791a54`）· TIR 多日汇总列为远期目标（`aa07d41`）· 工作清单出档（`ec97202`）。release 包对应提交 `438aa3f`（用 debug keystore 签名，可直接安装）；**2026-11-04 已重新出包**：`D:\Programming\apk\mobile-release_pumppan.apk`，22,641,133 字节，SHA-256 `6C76E8FCB761043F…422CE4`，11-04 01:26 编译（`assembleRelease`，签名证书与旧包一致）。11-04 后续：缓存查看器改名以区分拉取入口（`82710ea`）、工作清单归档进 `docs/old/` 并并入 lab `WORKLOG.md` §78。**2026-11-05**：设置/调试/控制页行组件统一为 `BaseRow`（`ActionRow` / `NavigationRow` / `ToggleRow` 全部改调，`fe8a887`），`:mobile:compileDebugKotlin` 通过、未出包；同日 HTTP 调试 API 真机实测（设备 `buildVersion=82710ea`）——只读命令全过，`46/-74` 有响应**证实 V2 可用**，`-94` 权限与 `-96` 取消通过，`-98` 大剂量被 `PumpCommHandler.isBolusCommand` 在 BULK 通道拦截（Timeout → HTTP 500，**未送达未输注**），`debug-write-bt-characteristic` 为 stub 不可用；取消后 `CurrentBolusStatus` / `ExtendedBolusStatusV2` 均 Idle、无残留，泵侧今日零异常（详见 `docs/old/HTTP取证与真机点检.md` §8 与 lab WORKLOG §80–§82）；用户另将 `docs/pumppan-审查修改意见.md` 归档到 `docs/old/`（`ec92377`）。**2026-11-09 ~ 11-10**：查询层切片 0 补 `PumpTopic` 映射（`shared/.../query/PumpTopic.kt`，`fromRequestSimpleName`/`fromResponseSimpleName` 两轮补全；`UNKNOWN` 65%→**0%`，NOTIFICATIONS 可达）· 大剂量超时取证全链路闭环（`alert_trigger_20261109b.log`：`[ALERT, HOME_SCREEN_CHANGE]` → `AlertStatusResponse[INCOMPLETE_BOLUS_ALERT, cargo[1]=0x08]` → 通知页有反应 → 泵上取消 → 通知页消失）· **状态闩锁自愈修复**（`BolusReconciler.finish()` else → `UNCONFIRMED`；`BolusSessionController.onCurrentBolusEmpty` 对 `UNKNOWN` 收空证据 → 自愈 `IDLE`；根因：重连后对账整体超时 5s 落 Unknown 且不自愈，导致首页误报「正在输注/断联」）· release 出包 + `adb install -r` 直装（`ce437f54`，23,219,323 bytes）。WORKLOG 已补记 §104；`docs/feature/通知页-流水账-设计.md` §3 已修正（`dispatchExternalMessage` 数据源系**错误**，真实源为 Dashboard 批通知响应 + 泵推送事件）。
 
 ---
 
@@ -125,7 +125,7 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 4. **`local.properties` 被 `.gitignore` 的 `local.properties` 规则忽略**：三棵树各自已有 `sdk.dir=D:/winapps/android-sdk`，但新 worktree **不会自动生成**；因 `ANDROID_HOME` 已在机器级，AGP 可回退环境变量，不阻塞构建。
 
-5. **测试现状**（2026-11-03）：`:shared` 15/15 通过，`:mobile` 98/99 通过；唯一失败是基线 DST 用例 `VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection`，三棵树实现与测试完全一致，见 [bug-基线单测DST失败.md](bug/bug-基线单测DST失败.md)。
+5. **测试现状**（2026-11-03 快照）：`:shared` 15/15 通过，`:mobile` 98/99 通过；唯一失败是基线 DST 用例 `VicoCgmChartTest.toCgmDataPoint_appliesPumpLocalTimezoneCorrection`。**2026-11-12 已修复**（`pumpTimeToLocalTz` 改取事件时刻偏移），全量 383/383 绿；记录归档在 [bug-基线单测DST失败.md](old/bug-基线单测DST失败.md)。
 
 6. **Robolectric jar 缺失时**：从阿里云 `https://maven.aliyun.com/repository/central/org/robolectric/android-all-instrumented/<ver>/` 取（`<ver>` 形如 `13-robolectric-9030017-i7`），jar **平铺**放入 `D:\winapps\robolectric`（文件名即 `android-all-instrumented-<ver>.jar`），Robolectric 从此目录直接读取，不再写 C 盘 `~/.m2` 或 `~/.robolectric`。
 
@@ -183,6 +183,29 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 - 签名：`mobile/build.gradle` 的 `signingConfigs.release` 块默认使用 `../debug.keystore`，`buildTypes.release.minifyEnabled false` → **已签名、可直接安装**
 - 已复制为 `D:\Programming\apk\mobile-release_pumppan.apk`（覆盖旧的 22,599,571 bytes / 2026-11-02 03:13 同名文件），MD5 `1EEF1BD86DB0C9450220066E761CF452` 与源一致
 
+### 3.6 `HISTORY` 每 5s「计划一次、被拒一次」收口（2026-11-12 17:2x，已装机复验）
+
+- **现象**：`/api/query/stats` 连续多拍 `domains:["HISTORY"], requests:1, sent:0, rejected:1`，
+  `nextDueIn.HISTORY` 为极大负值。
+- **根因（两条叠加）**：① `Dashboard.dashboardCommands` 仍带 `HistoryLogStatusRequest`，
+  进页 / 连接建立 / 下拉刷新三条页面路径会抢先经**同一个** `PumpCommandPort` 发一遍，
+  把协调器那一拍压成 `THROTTLED`；② 协调器只在 `sent > 0` 时推进 `lastPlannedAt`，
+  被 `THROTTLED`/`DUPLICATE`/`IN_FLIGHT` 挡住时仍每拍重试，退化成 5s 空转。
+- **改法**：`Dashboard.kt` 摘掉该请求（`HISTORY` 域独占）；`QueryCoordinator.tick`
+  新增 `coveredDomains`——一轮 `sent=0`、未 `hitBusy`、且全部拒绝理由属
+  `THROTTLED`/`DUPLICATE`/`IN_FLIGHT` 的域按「已跑」推进计时（`BUSY`/`QUIET`/`SEND_FAILED` 仍不推进）。
+- **验证**：`QueryCoordinatorTest` 全绿；`mobile-release.apk` 23,278,968 B 装机后
+  启动 4 分钟内 `HistoryLogStatusRequest` 的 `SENT-MESSAGE` **只有 1 条**（改前 3 条），
+  `nextDueIn.HISTORY` 由负值恢复为正并正常倒数（+267s → +152s），首页数据正常刷新、无崩溃。
+- 细节与时间线：`docs/feature/查询器改造-推进计划.md` §7.14。
+- **顺带收敛**：`Dashboard.waitForLoaded` 的「等字段填满」补拉由无限循环改为
+  `4 × 2.5s ≈ 10s` 上限（超限打 `gave up ... still null N/12` 后交回协调器周期域）；
+  同时把触发点从 `refreshing` 改为独立的 `loadTrigger`（否则收尾置 `false` 会让 effect
+  自我重触发、变成每 10s 一轮），并只在 `pumpConnected == true` 时启动。
+  `Landing` / `Dashboard` 的整批补拉（刷新按钮、下拉、`onStart`、连接建立）保留，
+  理由与分界见 `查询器改造-推进计划.md` §7.14 补记。真机 45s 复验：1 次 `loading done`、
+  4 次 CACHED 批、首页数据齐、`nextDueIn` 全正、无 FATAL。
+
 ---
 
 ## 4. 未完成 / 待办
@@ -191,6 +214,7 @@ pumppan 分支已完成「只读表达改造 + 设置页/Debug 页重排 + 暗�
 
 | 项 | 说明 |
 |----|------|
+| **定时大剂量（C 轮）** | **设计定稿 2026-11-12、零实现**：链 3 笔 / 预约池 6 条模板（R21）、外来大剂量按开始证据判 `CHAIN_ABORTED`（R22）、免确认超级开关（R23，默认关不持久化）、提前 2 min / 确认窗口 5 min、流水纯内存 + 单条链状态（§8.0）、参数全部可配（§3.1）。正本 `docs/feature/定时大剂量-设计.md`；C16/C17 已结案，仅余真机校默认值 |
 | 真机暗色复核 | `DebugPopupSurface` 只换了主题 token，浅色/暗色两套都要实机看：三查看器的 ✕/导出按钮、筛选框标签、条目计数条 |
 | 测试 | `:mobile:compileDebugKotlin` 通过，但**未跑单测 / roborazzi 截图测试** |
 | Debug 页遗留缺陷 | 同步泵时间失败走 5 秒静默降级；过滤框把输入直接当过滤值（非崩溃诱因，仅交互瑕疵）〔2026-11-04 复核：HTTP API 启停 / 资格事件 / 清除调试日志均已改用资源并带反馈（`be6a92e`）；同步进度条 50dp 空白已修，`HistoryLogSyncProgressBar.kt` 完成态提前 `return`〕 |

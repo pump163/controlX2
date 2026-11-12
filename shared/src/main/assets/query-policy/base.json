@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "note": "查询策略：频率 / 保底 / 阈值 / 状态门控 / 预算 / 事件冷却 / 重连序列。能力判定不在本文件（见 pump-capabilities.json）。v2 起主题单位是数据域，页面只订阅；首页最小显示状态里的常驻字段（电池/储药、IOB、血糖、基础率、上次大剂量、CIQ）全部带保底，其余页面批逐步迁走。overlays 留空的维度表示暂不按该维度区分。",
+  "note": "查询策略 · 公共默认层（base）。加载顺序：base → <platform>/<model> 覆盖层（mobile|wear × slimx2|mobi），只覆盖写出来的键，缺层或层内坏掉就回落这一层，最后仍有代码内兜底。本层放全平台共用的频率 / 保底 / 阈值 / 状态门控 / 预算 / 事件冷却 / 重连序列；能力判定不在本文件（见 pump-capabilities.json）。v2 起主题单位是数据域，页面只订阅；首页最小显示状态里的常驻字段（电池/储药、IOB、血糖、基础率、上次大剂量、CIQ）全部带保底，其余页面批逐步迁走。平台/型号差异只放在覆盖层，本文件不要再加运行期叠层。",
   "default": {
     "topics": {
       "PUMP_VITALS":     { "intervalMs": 60000, "floorIntervalMs": 60000, "floorPriority": "P0_FLOOR", "minIntervalMs": 15000, "priority": "P0_FLOOR", "onlyWhenVisible": false },
@@ -73,13 +73,6 @@
       "stableAfterMs": 180000,
       "quietAfterReconnectMs": 15000,
       "probeIntervalMs": 60000
-    }
-  },
-  "overlays": {
-    "byModel": {},
-    "byApiVersion": [],
-    "byState": {
-      "delivering": { "BOLUS_OUTCOME": { "intervalMs": 1000, "minIntervalMs": 1000 } }
     }
   }
 }
