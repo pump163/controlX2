@@ -1,0 +1,9 @@
+# docs 目录的入库口径（pumppan 分支）：
+# 只保留「上游已有文件」+ HANDOFF-pumppan.md + upstream-pr-candidates.md。
+# 其余本地工作文档、归档、索引与个人笔记一律不入库（文件仍留在磁盘上）。
+*.txt
+文件位置表.md
+组件目录规范.md
+bug/
+feature/
+old/
