@@ -99,6 +99,9 @@ fun BolusV2Section(
     val coordinator = BolusRuntime.coordinator
     DisposableEffect(coordinator) {
         coordinator?.bolusPageVisible = true
+        // 进页即补一条只读 44：恢复出来的旧会话（可能是泵上早已结束的上一笔）在没有新鲜证据前
+        // 会被映射成「正在输注」，页面先看到「无法发起新的大剂量」；不等 10s 调度。
+        coordinator?.requestEntryStatusRefresh()
         onDispose { coordinator?.bolusPageVisible = false }
     }
 

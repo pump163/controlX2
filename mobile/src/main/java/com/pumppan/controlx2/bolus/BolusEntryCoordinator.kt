@@ -287,7 +287,9 @@ class BolusEntryCoordinator(
                 notifications?.refresh()
                 // 恢复出来的「运行中」只有旧快照、没有新鲜证据：给查询器一个短窗口（15s、1s 一次），
                 // 尽快把「泵上到底还在不在输」问清楚；之后回调度器的 10s 常规节奏。
-                QueryCoordinatorHolder.current()?.openWindow(
+                // 走 holder 入口而不是 current()：恢复发生在服务初始化阶段，协调器常常还没 attach，
+                // 直接调 current() 会让窗口静默丢失，退化成只能等 10s 调度。
+                QueryCoordinatorHolder.openWindow(
                     QueryDomainRequests.BOLUS_OUTCOME,
                     durationMs = RESTORE_WINDOW_MS,
                 )
@@ -397,6 +399,38 @@ class BolusEntryCoordinator(
 
     /** 细条展开时的一次性核对节流窗口；连点只算一次。 */
     private var lastStripStatusRefreshAt = 0L
+
+    /**
+     * 进入「大剂量」页时的一次性核对。
+     *
+     * 现场：进程启动会把上一笔落盘会话恢复成 ACTIVE，若泵上其实早已结束，入口页会先渲染成
+     * 「正在输注 / 无法发起新的大剂量」，直到 10s 调度或 15s 恢复窗拿到 `44` 才翻篇。
+     * 真机上表现为「切到向导标签拿一次状态、再切回来就正常」，等同于让用户手动补一次查询。
+     * 这里在页面出现时补一条只读 `44`，把这段空窗压到一个 RTT；若泵上真在输，回包会照旧
+     * 落在 ACTIVE，页面不受影响。
+     *
+     * 口径：只读、不发送、不取消；无会话 / 已结束 / 未连接都不发；与周期轮询共用端口的
+     * 在飞与超时，不新造第二套在飞表。
+     */
+    fun requestEntryStatusRefresh() {
+        try {
+            if (mode() != BolusControllerMode.V2) return
+            if (!isPumpConnected()) return
+            val session = controller.session ?: return
+            if (session.isFinished) return
+            Timber.d(
+                "bolus: 进入大剂量页，补一条只读核对（44 会话=%s id=%s）",
+                session.state,
+                session.bolusId,
+            )
+            queryPort.request(CurrentBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
+            if (controller.holder.extendedSession?.takeIf { !it.isFinished } != null) {
+                queryPort.request(ExtendedBolusStatusRequest(), timeoutMs = limits.requestTimeoutMillis)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "bolus: 入口核对失败，已忽略")
+        }
+    }
 
     /**
      * 底栏细条「展开取消按钮」时，补一条只读状态查询核对这笔还在不在。
