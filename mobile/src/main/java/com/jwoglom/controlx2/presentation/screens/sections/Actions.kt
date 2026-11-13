@@ -155,6 +155,7 @@ fun Actions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    val pumpModel = determinePumpModel(deviceName.value ?: "")
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -166,6 +167,9 @@ fun Actions(
     }
 
     fun requestResumeLoadStatusCheck() {
+        // 0x14 是 Mobi 专有：X2 会回 ErrorResponse 并被泵主动断链（2026-11-13 logcat 取证）。
+        // 该行在 X2 上本已 readOnly，这里再挡一层，防止误触或以后放开。
+        if (!canControlPump(pumpModel, ResumePumpingRequest::class.java)) return
         checkingResumeLoadStatus = true
         ds.loadStatusResponse.value = null
         sendPumpCommands(SendType.BUST_CACHE, listOf(LoadStatusRequest()))

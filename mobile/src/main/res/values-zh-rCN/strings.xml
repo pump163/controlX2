@@ -832,6 +832,10 @@
     <string name="setup_waiting_for_library_init">正在等待库初始化...</string>
     <string name="setup_disc_from_reconn">已断开与\'%1$s\'的连接，正在重新连接...</string>
     <string name="setup_connecting_to">正在连接 %1$s</string>
+    <string name="setup_reconnect_2m">已 %1$d 分钟无法连接泵，正在自动重连（该方式最长约 %2$d 分钟）。</string>
+    <string name="setup_reconnect_15m">泵已 %1$d 分钟无法连接，请开关一次手机蓝牙，之后会继续自动重连；也可检查泵是否离手机过远。</string>
+    <string name="setup_reconnect_give_up">泵已 %1$d 分钟无法连接，自动重试已停止。请重启手机或拉近泵与手机的距离，然后按「继续」。</string>
+    <string name="setup_reconnect_continue">继续</string>
     <string name="setup_connecting_to_device_model">正在连接 %1$s（%2$s）</string>
     <string name="setup_initial_conn_made_to">已与 %1$s 建立初始连接</string>
     <string name="setup_connected_to">已连接到 %1$s！</string>

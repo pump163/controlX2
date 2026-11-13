@@ -28,4 +28,7 @@ enum class CommServiceCodes {
     // inside PumpSession/Pump.command(). Gate this at the HTTP layer with the
     // `unsafe-raw-commands` preference.
     SEND_PUMP_COMMAND_RAW_UNSAFE,
+
+    // 用户在「30 分钟无法连接」提示后点『继续』：重新挂起发现链并重新计时。
+    RESTART_PUMP_RECONNECT,
 }

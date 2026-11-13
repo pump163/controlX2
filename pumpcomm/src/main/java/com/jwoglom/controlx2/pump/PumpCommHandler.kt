@@ -443,6 +443,9 @@ class PumpCommHandler(
         var lastPeripheral: BluetoothPeripheral? = null
         var isConnected = false
         var pumpSid: Int? = null
+        /** 重连看门狗：库侧 autoConnect 可能空等数分钟，App 侧按策略补直连。 */
+        private val watchdogHandler = Handler(Looper.getMainLooper())
+        private var reconnectWatchdog: Runnable? = null
         /** 写失败分级：按 uuid 记录最近失败时刻（handler 线程独占访问，无需加锁）。 */
         private val writeFailureTimes = ArrayDeque<Pair<String, Long>>()
         /** 只读查询的写冷却截止时刻（elapsedRealtime）；控制类命令不受影响。 */
@@ -656,6 +659,17 @@ class PumpCommHandler(
         }
 
         var pairingCodeCentralChallenge: AbstractCentralChallengeResponse? = null
+
+        /**
+         * 自动重连期间的「配对码被拒」计数（elapsedRealtime）。
+         *
+         * 长时间分离后链路常在中途抖动，泵端可能回一次拒绝或直接断链；旧逻辑
+         * 第一次拒绝就停服务并跳「配对码无效」，用户被锁在重配页。这里改为：
+         * 只有用户手动配对，或窗口内累计到阈值，才升级到 UI。
+         */
+        private val invalidPairingTimes = ArrayDeque<Long>()
+        private var pairingRequestWasManual = false
+
         override fun onWaitingForPairingCode(
             peripheral: BluetoothPeripheral?,
             centralChallengeResponse: AbstractCentralChallengeResponse?
@@ -681,8 +695,41 @@ class PumpCommHandler(
             peripheral: BluetoothPeripheral?,
             resp: AbstractPumpChallengeResponse?
         ) {
-            DiagMonitor.onAwaitUser("invalid_pairing_code") // DIAG-TEMP
-            callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_INVALID_PAIRING_CODE, "".toByteArray())
+            val now = android.os.SystemClock.elapsedRealtime()
+            val policy = BleLinkPolicy.current(context)
+            val windowMs = policy.pairingInvalidWindowMs
+            while (invalidPairingTimes.isNotEmpty() && now - invalidPairingTimes.first() > windowMs) {
+                invalidPairingTimes.removeFirst()
+            }
+            invalidPairingTimes.addLast(now)
+
+            val manual = pairingRequestWasManual
+            pairingRequestWasManual = false
+            val firstAgeMs = if (invalidPairingTimes.isEmpty()) 0L else now - invalidPairingTimes.first()
+            // 自动重连：既要次数够，也要「首次被拒后已过了冷静期」；只断一次就恢复的不打扰用户。
+            val escalate = manual || (
+                invalidPairingTimes.size >= policy.pairingInvalidEscalateCount &&
+                    firstAgeMs >= policy.pairingInvalidEscalateDelayMs
+                )
+
+            Timber.w(
+                "onInvalidPairingCode: manual=%b count=%d/%d firstAge=%dms delay=%dms bond=%s derivedSecret=%b -> %s",
+                manual, invalidPairingTimes.size, policy.pairingInvalidEscalateCount,
+                firstAgeMs, policy.pairingInvalidEscalateDelayMs,
+                peripheral?.getBondState()?.toString(),
+                !PumpState.getJpakeDerivedSecret(context).isNullOrBlank(),
+                if (escalate) "escalate" else "retry"
+            )
+
+            if (escalate) {
+                DiagMonitor.onAwaitUser("invalid_pairing_code") // DIAG-TEMP
+                callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_INVALID_PAIRING_CODE, "".toByteArray())
+            } else {
+                // 不打断服务：让库按自己的退避节奏再连一次；UI 继续显示「重连中」。
+                // 泵拒绝后不一定会自己断链，主动断开以触发 onDisconnected 的重连调度。
+                Timber.i("onInvalidPairingCode: treated as transient auth rejection, keeping reconnect loop")
+                peripheral?.cancelConnection()
+            }
             super.onInvalidPairingCode(peripheral, resp)
         }
 
@@ -695,6 +742,12 @@ class PumpCommHandler(
                 Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
             }
             Security.addProvider(BouncyCastleProvider())
+
+            // 用户亲手填码的失败要立刻报错；后台自动配对则给链路几次机会。
+            pairingRequestWasManual = manuallyTriggered
+            if (manuallyTriggered) {
+                invalidPairingTimes.clear()
+            }
 
             Timber.i("performPairing manuallyTriggered=$manuallyTriggered")
             var challengeBytes = byteArrayOf()
@@ -752,6 +805,10 @@ class PumpCommHandler(
             val session = PumpSession.open(this, peripheral)
             this@PumpCommHandler.currentSession = session
 
+            // 认证已通过：清空「连续被拒」窗口，避免把很久以前的失败累计到下一次分离后。
+            invalidPairingTimes.clear()
+            pairingRequestWasManual = false
+
             isConnected = true
             Timber.i("service initializeConnection: $this")
             callbacks.sendWearCommMessage(MessagePaths.FROM_PUMP_PUMP_CONNECTED,
@@ -803,6 +860,9 @@ class PumpCommHandler(
 
         override fun onPumpConnected(peripheral: BluetoothPeripheral?) {
             DiagMonitor.onConnected("onPumpConnected") // DIAG-TEMP
+            stopReconnectWatchdog()
+            // 链路已通，清掉断联起点，UI 的分层提示回到正常态。
+            BleLinkClock.markUp(callbacks.getApplicationContext())
             // 新链路：先解除端口断开态并进入静默窗，握手与基线请求期间不放行业务查询。
             // 静默窗时长取 states.connectedSettleMs（当前 8s）；库的 initializeConnection /
             // sendBaseCommands 本身就在占用链路，此时补查是纯叠加。
@@ -840,6 +900,11 @@ class PumpCommHandler(
         ): Boolean {
             DiagMonitor.onDisconnected(status?.name, "callback", "peripheral=${peripheral?.name}") // DIAG-TEMP
             Timber.i("service onPumpDisconnected: isConnected=false status=$status") // DIAG-TEMP
+            // 库侧只会在断开时排一次 immediateConnect，之后靠 autoConnect 空等；
+            // 泵不广播时可能几分钟都不再尝试，这里接管为周期性补连。
+            if (peripheral != null || lastPeripheral != null) startReconnectWatchdog()
+            // 记录断联起点，供 UI 分层提示计算真实已断联时长（界面晚打开也不会从 0 数起）。
+            BleLinkClock.markDown(callbacks.getApplicationContext())
             // 断开的**最早可靠信号**：别等静默超时，立刻让查询侧停表。
             // 依实测，App 层「多久没回包」不能用来判断链路生死，连接回调才是依据。
             queryPort.markLinkDown()
@@ -868,6 +933,90 @@ class PumpCommHandler(
             return super.onPumpDisconnected(peripheral, status)
         }
 
+        /**
+         * 分层提示（全程不反复重试，避免无意义的空转）：
+         * - 断开 [BleLinkPolicy.Values.reconnectWatchdogStartMs]（默认 2 分钟）：仅提示，
+         *   不做任何重连动作——库的 autoConnect 在泵不广播时本来就可能等 122s–928s，
+         *   过早介入会打断它。
+         * - 断开 [BleLinkPolicy.Values.reconnectHintMs]（默认 15 分钟，约等于库实测上限
+         *   928s）：此时 autoConnect 窗口基本走完，补**一次**发现链重挂，并提示用户检查距离。
+         * - 断开 [BleLinkPolicy.Values.reconnectGiveUpMs]（默认 30 分钟）：停止自动尝试，
+         *   UI 转为要求用户干预（拉近距离后点『继续』，必要时开关蓝牙/重启手机）。
+         *
+         * 只补一次而不是周期性 startScan：泵恢复广播后 autoConnect 自己会接上，反复
+         * 重挂只会加剧射频与电量消耗。
+         */
+        private fun startReconnectWatchdog() {
+            stopReconnectWatchdog()
+            val policy = linkPolicy
+            val startAt = policy.reconnectWatchdogStartMs
+            val hintAt = policy.reconnectHintMs
+            val giveUpAt = policy.reconnectGiveUpMs
+            val disconnectedAt = SystemClock.elapsedRealtime()
+
+            fun downMs() = SystemClock.elapsedRealtime() - disconnectedAt
+
+            val hint2m = object : Runnable {
+                override fun run() {
+                    if (isConnected) return
+                    DiagMonitor.onServiceEvent("reconnect_hint", "stage=2m downMs=${downMs()}")
+                    Timber.i("reconnect: 2m without link, still within library autoConnect window")
+                }
+            }
+            val rearm = object : Runnable {
+                override fun run() {
+                    if (isConnected) {
+                        stopReconnectWatchdog()
+                        return
+                    }
+                    DiagMonitor.onServiceEvent("reconnect_hint", "stage=15m downMs=${downMs()} rearm=true")
+                    Timber.i("reconnect: 15m without link, autoConnect window exhausted; re-arming discovery once")
+                    // blessed 2.4 的 BluetoothPeripheral.connect() 是包内可见，App 拿不到；
+                    // 复用库的公开入口：startScan 会在 1s 后重跑 immediateConnectToPeripheral
+                    // （autoConnect + 地址定向扫描），把可能已失效的 autoConnect 重新挂上。
+                    runCatching { tandemBTHandler.startScan() }
+                        .onFailure { Timber.w(it, "reconnect watchdog: startScan failed") }
+                }
+            }
+            val giveUp = object : Runnable {
+                override fun run() {
+                    if (isConnected) {
+                        stopReconnectWatchdog()
+                        return
+                    }
+                    DiagMonitor.onServiceEvent("reconnect_hint", "stage=30m downMs=${downMs()} giveUp=true")
+                    Timber.i("reconnect: 30m without link, stop auto-retry and wait for user action")
+                    stopReconnectWatchdog()
+                }
+            }
+            reconnectWatchdog = rearm
+            watchdogHandler.postDelayed(hint2m, startAt)
+            watchdogHandler.postDelayed(rearm, hintAt)
+            watchdogHandler.postDelayed(giveUp, giveUpAt)
+        }
+
+        /** 用户在「30 分钟无法连接」提示后点『继续』：重新计时并立刻补一次发现链重挂。 */
+        fun restartReconnectFromUser() {
+            if (isConnected) return
+            Timber.i("reconnect: restart requested by user")
+            DiagMonitor.onServiceEvent("reconnect_restart", "by=user")
+            // 用户主动重启这一轮重连，UI 的计时也从此刻重新开始。
+            BleLinkClock.restart(callbacks.getApplicationContext())
+            startReconnectWatchdog()
+            runCatching { tandemBTHandler.startScan() }
+                .onFailure { Timber.w(it, "reconnect restart: startScan failed") }
+        }
+
+        private fun stopReconnectWatchdog() {
+            // 分层提示用了 2m / 15m / 30m 三个定时器，这里一次性清空，
+            // 避免连接成功后还残留 15m/30m 的提示任务。
+            watchdogHandler.removeCallbacksAndMessages(null)
+            reconnectWatchdog = null
+        }
+
+        /** 服务停止时由外层调用，避免看门狗在链路已关停后还去 startScan。 */
+        fun stopReconnectWatchdogForService() = stopReconnectWatchdog()
+
         override fun onPumpCriticalError(peripheral: BluetoothPeripheral?, reason: TandemError?) {
             super.onPumpCriticalError(peripheral, reason)
             Timber.w("onPumpCriticalError $reason")
@@ -892,15 +1041,23 @@ class PumpCommHandler(
                     com.jwoglom.controlx2.shared.util.SendType.STANDARD
                 }
             } ?: com.jwoglom.controlx2.shared.util.SendType.STANDARD
-            reason?.let { callbacks.onPumpCriticalError(it, source = source) }
-            // No toast: pump-critical-errors are surfaced inline by the setup screen, classified
-            // into TRANSIENT/ACTIONABLE/FATAL tiers — see PumpCriticalErrorClassifier.
-            reason?.let { err ->
-                val presentation = PumpCriticalErrorClassifier.classify(err, callbacks.getApplicationContext())
-                callbacks.sendWearCommMessage(
-                    MessagePaths.FROM_PUMP_PUMP_CRITICAL_ERROR,
-                    presentation.toJson().toByteArray()
-                )
+            // 链路濒死时的连接参数更新失败（常与 HCI CONNECTION_TIMEOUT code 8 同时发生）：
+            // 紧随其后必是 pump-disconnected，弹「正在协商蓝牙」只会误导用户。
+            // 仍落 diag，供事后分析，但不进 UI 卡片。
+            val linkSymptom = reason?.name == "CONNECTION_UPDATE_FAILED"
+            if (linkSymptom) {
+                Timber.i("suppressing UI card for link-symptom critical error: %s", reason?.name)
+            } else {
+                reason?.let { callbacks.onPumpCriticalError(it, source = source) }
+                // No toast: pump-critical-errors are surfaced inline by the setup screen, classified
+                // into TRANSIENT/ACTIONABLE/FATAL tiers — see PumpCriticalErrorClassifier.
+                reason?.let { err ->
+                    val presentation = PumpCriticalErrorClassifier.classify(err, callbacks.getApplicationContext())
+                    callbacks.sendWearCommMessage(
+                        MessagePaths.FROM_PUMP_PUMP_CRITICAL_ERROR,
+                        presentation.toJson().toByteArray()
+                    )
+                }
             }
         }
 
@@ -1058,7 +1215,11 @@ class PumpCommHandler(
                 }
             }
             CommServiceCodes.STOP_PUMP_COMM.ordinal -> {
+                if (this::pump.isInitialized) pump.stopReconnectWatchdogForService()
                 tandemBTHandler.stop()
+            }
+            CommServiceCodes.RESTART_PUMP_RECONNECT.ordinal -> {
+                if (this::pump.isInitialized) pump.restartReconnectFromUser()
             }
             CommServiceCodes.CHECK_PUMP_CONNECTED.ordinal -> {
                 if (pumpConnectedPrecondition()) {

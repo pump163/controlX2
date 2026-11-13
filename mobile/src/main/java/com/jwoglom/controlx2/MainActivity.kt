@@ -165,6 +165,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var messageListener: MessageListener
     private val sheetLaunchRequestState = mutableStateOf<SheetLaunchRequest?>(null)
     private var btPermissionsRequestInFlight = false
+    // 蓝牙关闭时只在本次进程内主动请求一次开启。否则用户按 15 分钟提示关掉蓝牙后，
+    // 每次 onResume 都会重新弹系统「请求开启蓝牙」，把层级提示盖住并形成死循环。
+    private var btEnablePromptShown = false
     private var notificationPermissionRequestInFlight = false
 
     private val applicationScope = CoroutineScope(SupervisorJob())
@@ -1247,6 +1250,10 @@ class MainActivity : ComponentActivity() {
 
         if (getBluetoothManager().getAdapter() != null) {
             if (!isBluetoothEnabled()) {
+                if (btEnablePromptShown) {
+                    Timber.i("startBTPermissionsCheck: Bluetooth is off, enable prompt already shown this process")
+                    return
+                }
                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 if (ActivityCompat.checkSelfPermission(
                         this,
@@ -1256,6 +1263,7 @@ class MainActivity : ComponentActivity() {
                     return
                 }
                 val REQUEST_ENABLE_BT = 1
+                btEnablePromptShown = true
                 startActivityForResult(
                     enableBtIntent,
                     REQUEST_ENABLE_BT

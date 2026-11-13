@@ -462,9 +462,8 @@ enum class PumpSetupStage(val step: Int, @StringRes val descriptionRes: Int) {
             return stage
         }
 
-        if (this == PUMPX2_SENDING_PAIRING_CODE && stage == PUMPX2_PUMP_DISCONNECTED) {
-            return PUMPX2_INVALID_PAIRING_CODE
-        }
+        // 注意：发码过程中断链（SENDING + DISCONNECTED）不再判成 INVALID，而是由下面
+        // 的 DISCONNECTED 分支原样返回，交给重连；只有泵明确拒绝（INVALID 事件）才升到第 4 步。
 
         if (this == PUMPX2_INVALID_PAIRING_CODE && stage.ordinal < PUMPX2_INVALID_PAIRING_CODE.ordinal) {
             return this

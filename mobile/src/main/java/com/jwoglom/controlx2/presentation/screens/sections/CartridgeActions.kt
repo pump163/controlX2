@@ -53,7 +53,6 @@ import com.jwoglom.pumpx2.pump.messages.request.control.SuspendPumpingRequest
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.presentation.util.cgmQueryAllowed
-import com.jwoglom.controlx2.presentation.util.isCgmQuery
 import com.pumppan.controlx2.query.PumpQueryService
 import com.pumppan.controlx2.query.PumpTopic
 import com.jwoglom.controlx2.shared.enums.BasalStatus
@@ -102,6 +101,8 @@ fun CartridgeActions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
+    // 型号决定查询集合：LoadStatus(0x14) 是 Mobi 专有，X2 会回 ErrorResponse 并主动断链。
+    val pumpModel = determinePumpModel(deviceName.value ?: "")
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }
@@ -123,7 +124,7 @@ fun CartridgeActions(
     fun fetchDataStoreFields(type: SendType, source: String = "CartridgeActions.other") {
         // 第 0′ 步：只登记「谁在问」，不影响下发内容与顺序
         PumpQueryService.notePageRequest(PumpTopic.CARTRIDGE, source)
-        sendPumpCommands(type, cartridgeActionsCommands)
+        sendPumpCommands(type, cartridgeActionsCommands(pumpModel))
     }
 
     fun refreshNotifications(type: SendType = SendType.STANDARD) = refreshScope.launch {
@@ -142,13 +143,13 @@ fun CartridgeActions(
     }
 
     fun refreshWorkflowState(type: SendType = SendType.STANDARD) {
-        sendPumpCommands(
-            type,
-            listOf(
-                HomeScreenMirrorRequest(),
-                LoadStatusRequest(),
-            ),
-        )
+        // 子流程只可能是 Mobi（X2 的三条动作全禁用），但仍按型号显式分流，
+        // 避免以后入口放开时把 LoadStatus 又带给 X2。
+        val commands = buildList {
+            add(HomeScreenMirrorRequest())
+            if (pumpModel == KnownDeviceModel.MOBI) add(LoadStatusRequest())
+        }
+        sendPumpCommands(type, commands)
     }
 
     fun waitForLoaded() = refreshScope.launch {
@@ -223,7 +224,7 @@ fun CartridgeActions(
         exitFillTubingState = exitFillTubingState.value,
     )
     val menuAvailability = resolveCartridgeMenuAvailability(
-        context, requiredSubScreen, determinePumpModel(deviceName.value ?: "")
+        context, requiredSubScreen, pumpModel
     )
 
     LaunchedEffect(exitFillTubingState.value?.state) {
@@ -233,7 +234,7 @@ fun CartridgeActions(
     }
 
     // pumppan: 进页时 LifecycleStateObserver(onStart) 已经发过同一批
-    // （cartridgeActionsCommands 里已含 HomeScreenMirrorRequest + LoadStatusRequest），
+    // （cartridgeActionsCommands 里已含 HomeScreenMirror/TimeSinceReset，Mobi 另含 LoadStatus），
     // 这里再发一次属于纯重复；2026-11-10 先注释，等查询器统一接管后整体删除。
     // LaunchedEffect(Unit) {
     //     refreshWorkflowState(SendType.BUST_CACHE)
@@ -394,16 +395,17 @@ fun CartridgeActions(
 
 
 // 第 0′ 步：getter 形式，使 CGM 门控按当前 cgmSessionState 求值（val 会被冻结在首次加载时刻）。
-val cartridgeActionsCommands: List<Message>
-    get() = listOf(
-        HomeScreenMirrorRequest(),
-        CGMStatusRequest(),
-        TimeSinceResetRequest(),
-        LoadStatusRequest()
-    ).filter { msg ->
-        // G6/G7 明确「未启动」时剔除 CGMStatusRequest；其余三条照常发。
-        cgmQueryAllowed() || !msg.isCgmQuery()
-    }
+//
+// 2026-11-13 取证（logcat cartridge_repro）：X2 上 LoadStatusRequest(0x14) 收到的是
+//   ErrorResponse[UNDEFINED_ERROR] → 约 90ms 后泵主动断链 REMOTE_USER_TERMINATED_CONNECTION(19)。
+// 因此 0x14 只在 Mobi 下发；X2 保留 HomeScreenMirror / CGMStatus / TimeSinceReset 三条，
+// 这三条在 X2 上都有正常应答（见 docs/feature/换储药-命令取证-20261112.md §2）。
+private fun cartridgeActionsCommands(model: KnownDeviceModel?): List<Message> = listOfNotNull(
+    HomeScreenMirrorRequest(),
+    CGMStatusRequest().takeIf { cgmQueryAllowed() },
+    TimeSinceResetRequest(),
+    LoadStatusRequest().takeIf { model == KnownDeviceModel.MOBI },
+)
 
 fun cartridgeApiVersion(): ApiVersion {
     var apiVersion = PumpState.getPumpAPIVersion()

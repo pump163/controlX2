@@ -7,6 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -32,6 +33,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import com.jwoglom.controlx2.LocalDataStore
 import com.jwoglom.controlx2.Prefs
 import com.jwoglom.controlx2.presentation.screens.PumpSetupStage
+import com.jwoglom.controlx2.pump.BleLinkClock
+import com.jwoglom.controlx2.pump.BleLinkPolicy
 import com.jwoglom.controlx2.pump.ErrorAction
 import com.jwoglom.controlx2.pump.ErrorPresentation
 import com.jwoglom.controlx2.pump.Severity
@@ -79,15 +83,30 @@ fun PumpSetupStageDescription(
     val pumpCriticalError = ds.pumpCriticalError.observeAsState()
 
     var pumpConnectionWaitingSeconds by remember { mutableStateOf(0) }
+    // 断联起始时刻由后台写入（BleLinkClock），切后台、Activity 重建、甚至断联时界面
+    // 还没打开，回来后都能算出真实已断联时长；否则 30 分钟档的「继续」按钮永远不出现。
+    val clockContext = LocalContext.current.applicationContext
+    var pumpDownSinceElapsedMs by rememberSaveable {
+        mutableStateOf(BleLinkClock.downSince(clockContext))
+    }
 
     LaunchedEffect (intervalOf(1)) {
         if (setupStage.value == PumpSetupStage.PUMPX2_PUMP_CONNECTED) {
+            pumpDownSinceElapsedMs = 0L
             if (pumpConnectionWaitingSeconds > 0) {
                 Timber.d("PumpSetupStageProgress pumpConnectionWaitingSeconds=$pumpConnectionWaitingSeconds")
                 pumpConnectionWaitingSeconds = 0
             }
         } else {
-            pumpConnectionWaitingSeconds += 1
+            val persistedDownSince = BleLinkClock.downSince(clockContext)
+            if (persistedDownSince > 0L) {
+                // 以后台记录的断开时刻为准，UI 自己数秒只作为兜底
+                pumpDownSinceElapsedMs = persistedDownSince
+            } else if (pumpDownSinceElapsedMs == 0L) {
+                pumpDownSinceElapsedMs = SystemClock.elapsedRealtime()
+            }
+            pumpConnectionWaitingSeconds =
+                ((SystemClock.elapsedRealtime() - pumpDownSinceElapsedMs) / 1000).toInt()
             if (pumpConnectionWaitingSeconds % 20 == 0) {
                 Timber.d("PumpSetupStageProgress pumpConnectionWaitingSeconds=$pumpConnectionWaitingSeconds")
             }
@@ -336,6 +355,46 @@ fun PumpSetupStageDescription(
     }
 
     if (setupStage.value != PumpSetupStage.PUMPX2_PUMP_CONNECTED) {
+        // 分层重连提示（仅限日常使用，不打扰首次配对流程）：
+        // 2 分钟只告知在自动重连；15 分钟提示距离；30 分钟停止自动尝试，交给用户处理。
+        // 阈值统一来自 BleLinkPolicy（外置 JSON 可调），UI 不另存一份硬编码。
+        val reconnectPolicy = remember { BleLinkPolicy.current(context) }
+        val startSec = (reconnectPolicy.reconnectWatchdogStartMs / 1000).toInt()
+        val hintSec = (reconnectPolicy.reconnectHintMs / 1000).toInt()
+        val giveUpSec = (reconnectPolicy.reconnectGiveUpMs / 1000).toInt()
+        if (!initialSetup) {
+            // 2–15 分钟是库 autoConnect 的正常等待窗口（实测 122s–928s）。
+            // 这一段只做「有进展感」的告知：按分钟刷新，不催用户、不介入连接。
+            val elapsedMin = pumpConnectionWaitingSeconds / 60
+            when {
+                pumpConnectionWaitingSeconds >= giveUpSec -> {
+                    Spacer(Modifier.height(16.dp))
+                    Line(stringResource(R.string.setup_reconnect_give_up, giveUpSec / 60))
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = {
+                        sendMessage?.invoke(
+                            MessagePaths.TO_SERVER_RESTART_PUMP_RECONNECT,
+                            "".toByteArray()
+                        )
+                        // 后端 restartReconnectFromUser() 已重新计时并补挂发现链；
+                        // 这里同步重置 UI 的断联起点，否则按钮点下去仍会停在「自动重试已停止」。
+                        pumpDownSinceElapsedMs = SystemClock.elapsedRealtime()
+                        pumpConnectionWaitingSeconds = 0
+                    }) {
+                        Text(stringResource(R.string.setup_reconnect_continue))
+                    }
+                }
+                pumpConnectionWaitingSeconds >= hintSec -> {
+                    Spacer(Modifier.height(16.dp))
+                    Line(stringResource(R.string.setup_reconnect_15m, hintSec / 60))
+                }
+                pumpConnectionWaitingSeconds >= startSec -> {
+                    Spacer(Modifier.height(16.dp))
+                    Line(stringResource(R.string.setup_reconnect_2m, elapsedMin, hintSec / 60))
+                }
+            }
+        }
+
         val errorState = pumpCriticalError.value
         // Decide visibility per tier. TRANSIENT errors stay hidden until threshold + time gate.
         val shouldShowError = errorState != null && when (errorState.presentation.severity) {
@@ -344,7 +403,10 @@ fun PumpSetupStageDescription(
             Severity.ACTIONABLE, Severity.FATAL -> errorState.occurrences >= errorState.presentation.occurrenceThreshold
         }
 
-        if (pumpConnectionWaitingSeconds > TroubleshootingStepsThresholdSeconds &&
+        // 日常断联场景用上面的分层提示替代通用排障清单，避免同一屏堆两套说法。
+        val suppressGenericTroubleshooting = !initialSetup
+        if (!suppressGenericTroubleshooting &&
+            pumpConnectionWaitingSeconds > TroubleshootingStepsThresholdSeconds &&
             // Suppress the generic troubleshooting list when we already have a tiered card up
             // for an ACTIONABLE/FATAL error — it has its own targeted remediation.
             !(shouldShowError && errorState!!.presentation.severity != Severity.TRANSIENT)) {

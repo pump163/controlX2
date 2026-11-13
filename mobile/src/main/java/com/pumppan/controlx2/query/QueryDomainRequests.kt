@@ -17,7 +17,6 @@ import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HomeScreenMirrorRe
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.HistoryLogStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.InsulinStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LastBolusStatusRequest
-import com.jwoglom.pumpx2.pump.messages.request.currentStatus.LoadStatusRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.PumpGlobalsRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TempRateRequest
 import com.jwoglom.pumpx2.pump.messages.request.currentStatus.TimeSinceResetRequest
@@ -129,14 +128,14 @@ object QueryDomainRequests {
         // 不再由首页每 60s 顺带刷一遍——泵的 ALERT 事件已能触发补查。
         NOTIFICATIONS -> NotificationBundle.allRequests()
 
-        // 耗材/装填：整批保留页面原本的 4 条（LoadStatus 决定菜单可用性，
-        // CGMStatus 决定 CGM 区状态，HomeMirror/TimeSinceReset 供底部状态栏）。
-        // 之后 PUMP_STATE/CGM 域接管时再按「一条请求只归一个域」裁剪。
+        // 耗材/装填：HomeMirror/TimeSinceReset 供底部状态栏，CGMStatus 决定 CGM 区状态。
+        // LoadStatus(0x14) 不进本域：X2 收到它会回 ErrorResponse 并被泵主动断链
+        // （REMOTE_USER_TERMINATED_CONNECTION，2026-11-13 logcat 取证），且这是 Mobi 专有查询。
+        // Mobi 需要时由 CartridgeActions 页面按型号自行补发（见 cartridgeActionsCommands(model)）。
         CARTRIDGE -> listOf(
             HomeScreenMirrorRequest(),
             CGMStatusRequest(),
             TimeSinceResetRequest(),
-            LoadStatusRequest(),
         )
 
         // 安全限制：最大大剂量与基础率上限，设置页可见时查

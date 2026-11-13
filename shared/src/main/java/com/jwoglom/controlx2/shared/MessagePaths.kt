@@ -31,6 +31,7 @@ object MessagePaths {
     const val TO_SERVER_REFRESH_HISTORY_LOG_SYNC = "/to-server/refresh-history-log-sync"
     const val TO_SERVER_REQUEST_SERVICE_STATUS = "/to-server/request-service-status"
     const val TO_SERVER_RESTART_PUMP_FINDER = "/to-server/restart-pump-finder"
+    const val TO_SERVER_RESTART_PUMP_RECONNECT = "/to-server/restart-pump-reconnect"
     const val TO_SERVER_SERVICE_STATUS_ACKNOWLEDGED = "/to-server/service-status-acknowledged"
     const val TO_SERVER_SET_PAIRING_CODE = "/to-server/set-pairing-code"
     const val TO_SERVER_START_COMM = "/to-server/start-comm"

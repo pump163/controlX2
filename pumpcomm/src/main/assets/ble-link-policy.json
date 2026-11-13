@@ -11,5 +11,15 @@
     "windowMs": 10000,
     "cutThreshold": 3,
     "readCooldownMs": 500
+  },
+  "pairingRetry": {
+    "invalidEscalateCount": 2,
+    "invalidWindowMs": 600000,
+    "invalidEscalateDelayMs": 60000
+  },
+  "reconnect": {
+    "watchdogStartMs": 120000,
+    "hintMs": 900000,
+    "giveUpMs": 1800000
   }
 }

@@ -423,6 +423,10 @@ class CommService : Service(), CommServiceCallbacks {
                 Timber.i("force-reload")
                 triggerAppReload(applicationContext)
             }
+            MessagePaths.TO_SERVER_RESTART_PUMP_RECONNECT -> {
+                Timber.i("restart-pump-reconnect")
+                sendRestartPumpReconnect()
+            }
             MessagePaths.TO_SERVER_WIZARD_PEER_RESCUED -> {
                 if (!com.jwoglom.controlx2.shared.FeatureFlag.enabled(
                         applicationContext,
@@ -855,6 +859,14 @@ class CommService : Service(), CommServiceCallbacks {
     private fun sendCheckPumpConnected() {
         pumpCommHandler?.obtainMessage()?.also { msg ->
             msg.what = CommServiceCodes.CHECK_PUMP_CONNECTED.ordinal
+            pumpCommHandler?.sendMessage(msg)
+        }
+    }
+
+    /** 「继续」：用户要求重新开始自动重连（30 分钟提示后的人工干预入口）。 */
+    private fun sendRestartPumpReconnect() {
+        pumpCommHandler?.obtainMessage()?.also { msg ->
+            msg.what = CommServiceCodes.RESTART_PUMP_RECONNECT.ordinal
             pumpCommHandler?.sendMessage(msg)
         }
     }

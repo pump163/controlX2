@@ -43,6 +43,18 @@ object BleLinkPolicy {
         val windowMs: Long,
         val cutThreshold: Int,
         val readCooldownMs: Long,
+        /** 自动重连期间，泵端「配对码无效」在窗口内累计到这个次数才升级到 UI。 */
+        val pairingInvalidEscalateCount: Int,
+        /** 上面那个次数的统计窗口；窗口内成功连上会清零。 */
+        val pairingInvalidWindowMs: Long,
+        /** 距第一次拒绝至少经过这么久仍未成功，才升级；给链路抖动一次自愈机会。 */
+        val pairingInvalidEscalateDelayMs: Long,
+        /** 断开超过这个时长，提示「已 2 分钟无法连接」（仅提示，不介入库的 autoConnect）。 */
+        val reconnectWatchdogStartMs: Long,
+        /** 断开超过这个时长，补一次发现链重挂并提示检查距离（默认 15 分钟，约等于库实测上限 928s）。 */
+        val reconnectHintMs: Long,
+        /** 断开超过这个时长则停止自动尝试，转为提示用户人工干预（默认 30 分钟）。 */
+        val reconnectGiveUpMs: Long,
         val source: String,
         val diagnostics: List<String>,
     )
@@ -55,6 +67,12 @@ object BleLinkPolicy {
         windowMs = 10_000L,
         cutThreshold = 3,
         readCooldownMs = 500L,
+        pairingInvalidEscalateCount = 2,
+        pairingInvalidWindowMs = 600_000L,
+        pairingInvalidEscalateDelayMs = 60_000L,
+        reconnectWatchdogStartMs = 120_000L,
+        reconnectHintMs = 900_000L,
+        reconnectGiveUpMs = 1_800_000L,
         source = "default",
         diagnostics = emptyList(),
     )
@@ -75,6 +93,12 @@ object BleLinkPolicy {
         "writeFailureWindowMs" to values.windowMs,
         "writeFailureCutThreshold" to values.cutThreshold,
         "readCooldownMs" to values.readCooldownMs,
+        "pairingInvalidEscalateCount" to values.pairingInvalidEscalateCount,
+        "pairingInvalidWindowMs" to values.pairingInvalidWindowMs,
+        "pairingInvalidEscalateDelayMs" to values.pairingInvalidEscalateDelayMs,
+        "reconnectWatchdogStartMs" to values.reconnectWatchdogStartMs,
+        "reconnectHintMs" to values.reconnectHintMs,
+        "reconnectGiveUpMs" to values.reconnectGiveUpMs,
         "diagnostics" to values.diagnostics,
     )
 
@@ -155,6 +179,29 @@ object BleLinkPolicy {
             .toInt()
         val cooldown = w.num("writeFailure.readCooldownMs", DEFAULT.readCooldownMs, 0L, 10_000L, "writeFailure", diag)
 
+        // 配对/认证容错：自动重连时泵端可能因链路抖动/远端未开配对窗口而拒绝一次，
+        // 不能当成「用户填错码」立刻打断服务；窗口内累计到阈值才升级。
+        val p = root.optJSONObject("pairingRetry")
+        if (p == null) diag += "pairingRetry:missing"
+        val pairingEscalate = p
+            .num("pairingRetry.invalidEscalateCount", DEFAULT.pairingInvalidEscalateCount.toLong(), 1L, 20L, "pairingRetry", diag)
+            .toInt()
+        val pairingWindow = p
+            .num("pairingRetry.invalidWindowMs", DEFAULT.pairingInvalidWindowMs, 60_000L, 3_600_000L, "pairingRetry", diag)
+        val pairingDelay = p
+            .num("pairingRetry.invalidEscalateDelayMs", DEFAULT.pairingInvalidEscalateDelayMs, 5_000L, 600_000L, "pairingRetry", diag)
+
+        // 重连提示分层：库侧 autoConnect 在泵不广播时会空等数分钟（实测 ≥8 分钟无任何 connect）。
+        // 断开到 start 只提示并补一次重挂，之后不再反复重试；hint 提示检查距离，giveUp 停手交给用户。
+        val rc = root.optJSONObject("reconnect")
+        if (rc == null) diag += "reconnect:missing"
+        val watchdogStart = rc
+            .num("reconnect.watchdogStartMs", DEFAULT.reconnectWatchdogStartMs, 10_000L, 1_800_000L, "reconnect", diag)
+        val hintAt = rc
+            .num("reconnect.hintMs", DEFAULT.reconnectHintMs, 60_000L, 3_600_000L, "reconnect", diag)
+        val giveUpAt = rc
+            .num("reconnect.giveUpMs", DEFAULT.reconnectGiveUpMs, 300_000L, 7_200_000L, "reconnect", diag)
+
         return Values(
             reassertEnabled = enabled,
             driver = driver,
@@ -163,6 +210,12 @@ object BleLinkPolicy {
             windowMs = window,
             cutThreshold = threshold,
             readCooldownMs = cooldown,
+            pairingInvalidEscalateCount = pairingEscalate,
+            pairingInvalidWindowMs = pairingWindow,
+            pairingInvalidEscalateDelayMs = pairingDelay,
+            reconnectWatchdogStartMs = watchdogStart,
+            reconnectHintMs = hintAt,
+            reconnectGiveUpMs = giveUpAt,
             source = source,
             diagnostics = diag,
         )
