@@ -1435,17 +1435,17 @@
     <string name="ledger_bolus_term_plgs">已终止（PLGS）</string>
     <!-- 定时大剂量（实验，默认关闭） -->
     <string name="scheduled_bolus_channel_name">定时大剂量预约</string>
-    <string name="scheduled_bolus_advance">还有 %1$d 分钟：预约大剂量 %2$s U</string>
-    <string name="scheduled_bolus_due">已到预约时间：%1$s U — 请打开应用确认</string>
+    <string name="scheduled_bolus_advance">还有 %1$d 分钟：预约大剂量 %2$s U — 到点需确认，确认前请先查看血糖趋势</string>
+    <string name="scheduled_bolus_due">已到预约时间：%1$s U — 请先查看血糖趋势再确认</string>
     <string name="scheduled_bolus_first_reminder">该输注第一笔：%1$s U</string>
+    <string name="scheduled_bolus_started_title">定时大剂量已发起</string>
+    <string name="scheduled_bolus_started_text">您有一次定时大剂量已发起，详情请在 App 内查看。</string>
     <string name="scheduled_bolus_aborted">预约已作废：%1$s</string>
     <string name="scheduled_bolus_abort_foreign">泵上已开始另一笔输注</string>
     <string name="scheduled_bolus_abort_timeout">未在时限内确认</string>
     <string name="scheduled_bolus_abort_missed">已错过预约时间</string>
     <string name="scheduled_bolus_abort_user">已由您取消</string>
     <string name="scheduled_abort_feature_disabled">定时大剂量已关闭</string>
-    <string name="scheduled_abort_crosses_midnight">整链会跨过 24:00，已终止</string>
-    <string name="scheduled_abort_preflight_failed">执行前检查未通过</string>
     <string name="scheduled_bolus_action_cancel">取消预约</string>
 
     <!-- 定时大剂量：编辑页（Debug 危险指令组） -->
@@ -1473,6 +1473,7 @@
     <string name="scheduled_ui_save">保存预约</string>
     <string name="scheduled_ui_saved">预约已保存</string>
     <string name="scheduled_ui_cancel">取消预约</string>
+    <string name="scheduled_ui_dismiss">完成</string>
     <string name="scheduled_ui_none">当前没有预约。</string>
     <string name="scheduled_ui_state">状态 %1$s，已完成 %2$d / %3$d 笔</string>
     <string name="scheduled_ui_next_due">下一笔 %1$s</string>
@@ -1484,6 +1485,11 @@
     <string name="scheduled_issue_interval_long">第 %1$d 笔距上一笔多于 %2$d 分钟</string>
     <string name="scheduled_issue_first_past">第一笔的时刻已经过去</string>
     <string name="scheduled_tab_title">定时</string>
+    <string name="scheduled_preset_need_values">请先填好第 2 或第 3 笔的间隔与剂量。</string>
+    <string name="scheduled_row_running">输注中</string>
+    <string name="scheduled_row_planned_at">计划 %1$s</string>
+    <string name="scheduled_row_due_at">预计 %1$s</string>
+    <string name="scheduled_row_started_at">已开始 %1$s</string>
     <string name="scheduled_tab_hint">三笔一次填完，下一步统一校验；执行时由本应用发第一笔，之后每笔到点前提醒。</string>
     <string name="scheduled_mode_relative">相对时隔</string>
     <string name="scheduled_mode_absolute">绝对时刻</string>
@@ -1496,7 +1502,12 @@
     <string name="scheduled_point_index">第 %1$d 笔</string>
     <string name="scheduled_run_status">%1$s · 已完成 %2$d / %3$d 笔</string>
     <string name="scheduled_row_done">已输注</string>
+    <string name="scheduled_row_failed">已中止</string>
     <string name="scheduled_row_pending">待输注</string>
+    <string name="scheduled_row_not_sent">未发出</string>
+    <string name="scheduled_cgm_check_title">确认前请先查看血糖趋势</string>
+    <string name="scheduled_cgm_current">当前血糖：%1$s</string>
+    <string name="scheduled_cgm_none">暂无近期血糖读数</string>
     <string name="scheduled_cancel_hint">执行中每输完一笔即锁定；下一笔剂量只在倒数期可改，进入提醒态后锁死。</string>
     <string name="scheduled_exec_started">已发出第一笔，等待泵确认开始</string>
     <string name="scheduled_preflight_link">链路不新鲜：最近没有收到泵的有效回包</string>
@@ -1516,4 +1527,23 @@
     <string name="scheduled_slot_delete">删除</string>
     <string name="scheduled_slot_save_new">＋ 存为新预设</string>
     <string name="scheduled_slot_cancel">取消</string>
+    <string name="scheduled_row_sent_at">已发出 %1$s</string>
+    <string name="scheduled_run_progress">%1$s · 已发出 %2$d / %3$d 笔</string>
+    <string name="scheduled_state_idle">未开始</string>
+    <string name="scheduled_state_counting">倒计时</string>
+    <string name="scheduled_state_notified">已提醒</string>
+    <string name="scheduled_state_alerting">待确认</string>
+    <string name="scheduled_state_warning">请再次确认</string>
+    <string name="scheduled_state_sending">发送中</string>
+    <string name="scheduled_state_active">输注中</string>
+    <string name="scheduled_state_done">已完成</string>
+    <string name="scheduled_state_aborted">已中止</string>
+    <string name="scheduled_abort_user_cancelled">你取消了预约</string>
+    <string name="scheduled_abort_confirm_timeout">确认超时</string>
+    <string name="scheduled_abort_missed">错过了应到时刻</string>
+    <string name="scheduled_abort_link_loss">泵连接中断</string>
+    <string name="scheduled_abort_foreign_bolus">检测到另一笔大剂量</string>
+    <string name="scheduled_abort_pump_aborted">泵中止了这笔</string>
+    <string name="scheduled_abort_send_failed">发送被拒绝</string>
+    <string name="scheduled_abort_send_unknown">发出后没有开始证据</string>
 </resources>

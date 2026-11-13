@@ -114,6 +114,11 @@ object BolusLedger {
 
     fun entries(): List<LedgerEntry> = synchronized(lock) { tracker.snapshot() }
 
+    /** 按 bolusId 取一笔（供链侧把它对到泵侧回执）；没有则 null。 */
+    fun entry(bolusId: Int): LedgerEntry? = synchronized(lock) {
+        tracker.snapshot().firstOrNull { it.bolusId == bolusId }
+    }
+
     fun hasEpisode(bolusId: Int): Boolean = synchronized(lock) { tracker.hasEpisode(bolusId) }
 
     /** 仅供测试/诊断：清空内存。 */

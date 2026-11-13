@@ -61,6 +61,7 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.enums.CGMSessionState
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
@@ -107,7 +108,7 @@ fun CGMActions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
-    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.CGM_MANAGEMENT)
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

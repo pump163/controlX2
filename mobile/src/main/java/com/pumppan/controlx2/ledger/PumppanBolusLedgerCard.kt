@@ -1,5 +1,7 @@
 package com.pumppan.controlx2.ledger
 
+import com.pumppan.controlx2.bolus.BolusTerminalStatus
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -209,11 +211,11 @@ private fun clock(millis: Long): String =
 
 private const val TICK_MS = 1_000L
 
-// BolusStatus 的 id（与 LastBolusStatusAbstractResponse.BolusStatus 一致）。
-private const val TERMINAL_USER = 0
-private const val TERMINAL_ALARM = 1
-private const val TERMINAL_MALFUNCTION = 2
-private const val TERMINAL_COMPLETE = 3
-private const val TERMINAL_WIRELESS = 4
-private const val TERMINAL_REJECTED = 5
-private const val TERMINAL_PLGS = 6
+// BolusStatus 的 id 统一来自共享常量表，界面不再写数字。
+private const val TERMINAL_USER = BolusTerminalStatus.USER_CANCELLED
+private const val TERMINAL_ALARM = BolusTerminalStatus.ALARM
+private const val TERMINAL_MALFUNCTION = BolusTerminalStatus.MALFUNCTION
+private const val TERMINAL_COMPLETE = BolusTerminalStatus.COMPLETE
+private const val TERMINAL_WIRELESS = BolusTerminalStatus.WIRELESS
+private const val TERMINAL_REJECTED = BolusTerminalStatus.REJECTED
+private const val TERMINAL_PLGS = BolusTerminalStatus.PLGS

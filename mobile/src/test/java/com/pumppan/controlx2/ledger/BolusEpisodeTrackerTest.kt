@@ -36,6 +36,19 @@ class BolusEpisodeTrackerTest {
     }
 
     @Test
+    fun `status zero replay with an old bolus id never counts as a start`() {
+        // statusId=0 = ALREADY_DELIVERED_OR_INVALID；泵会拿上一笔的 bolusId 回放，
+        // 这条报文没有「开始」语义，不能触发 onStart（否则链会误判外来大剂量）。
+        val observations = mutableListOf<BolusStartObservation>()
+        val tracker = BolusEpisodeTracker(onStart = { observations.add(it) })
+
+        tracker.onCurrentBolusStatus(0, 6939, 14_000L, 1_000L)
+
+        assertEquals(0, observations.size)
+        assertTrue(tracker.snapshot().isEmpty())
+    }
+
+    @Test
     fun `57 polling samples of one bolus collapse to a single entry`() {
         val tracker = tracker()
         var t = 1_000L

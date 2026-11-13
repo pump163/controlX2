@@ -1,5 +1,7 @@
 package com.pumppan.controlx2.scheduled
 
+import com.pumppan.controlx2.bolus.BolusTerminalStatus
+
 /**
  * 定时大剂量「链」的纯状态机（设计 `定时大剂量-设计.md` §4 / R1–R23）。
  *
@@ -68,6 +70,8 @@ object ScheduledBolusChain {
         val confirmDeadlineAtMillis: Long? = null,
         /** 已登记为 pending 的 bolusId，用于 R17/R22 的白名单判定。 */
         val pendingBolusIds: Set<Int> = emptySet(),
+        /** 链外但已知属于本链历史的 bolusId（首笔）——它的重复回放不算外来大剂量。 */
+        val knownBolusIds: Set<Int> = emptySet(),
         val lastNotifiedAtMillis: Long? = null,
         val abortReason: AbortReason? = null,
         /** 倒数期间是否改过剂量；R23 免确认仅对「未改」生效。 */
@@ -102,6 +106,8 @@ object ScheduledBolusChain {
         anchorAtMillis: Long,
         config: ScheduledBolusConfig,
         now: Long = anchorAtMillis,
+        /** 首笔自己的 bolusId：泵会回放它，登记后不会被当作外来大剂量。 */
+        firstBolusId: Int? = null,
     ): Snapshot {
         require(links.isNotEmpty()) { "链至少需要 1 笔后续预约" }
         // 链长上限含**首笔**（R3：整条链最多 3 笔），因此后续笔最多 maxChainCount - 1。
@@ -117,6 +123,7 @@ object ScheduledBolusChain {
             anchorAtMillis = anchorAtMillis,
             dueAtMillis = anchorAtMillis + first.delayAfterPreviousMs,
             lastNotifiedAtMillis = null,
+            knownBolusIds = firstBolusId?.let { setOf(it) } ?: emptySet(),
         )
     }
 
@@ -222,6 +229,8 @@ object ScheduledBolusChain {
         if (snapshot.isTerminal) return snapshot
         val bolusId = observation.bolusId
         if (bolusId <= 0) return snapshot
+        // 首笔（不在 runs 里）的重复回放：已知、不是外来笔。
+        if (bolusId in snapshot.knownBolusIds) return snapshot
 
         if (bolusId in snapshot.pendingBolusIds) {
             val run = snapshot.currentRun ?: return snapshot
@@ -299,5 +308,5 @@ object ScheduledBolusChain {
         return snapshot
     }
 
-    const val STATUS_COMPLETE = 3
+    const val STATUS_COMPLETE = BolusTerminalStatus.COMPLETE
 }

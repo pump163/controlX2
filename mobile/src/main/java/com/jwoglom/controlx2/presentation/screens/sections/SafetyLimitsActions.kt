@@ -59,6 +59,7 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 
@@ -91,7 +92,7 @@ fun SafetyLimitsActions(
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
     // X2 只能远程操作大剂量，安全限制无法写入（数值仍照常显示）
-    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SET_SAFETY_LIMITS)
 
     val maxBolusSettings = ds.globalMaxBolusSettingsResponse.observeAsState()
     val basalLimitSettings = ds.basalLimitSettingsResponse.observeAsState()

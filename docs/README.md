@@ -24,7 +24,7 @@
 
 | 文档 | 原路径 | 原因 |
 |---|---|---|
-| `feature/泵能力收敛与自建挡板方案_main.md` | `docs/feature/泵能力收敛与自建挡板方案.md` | 建议稿，未实施 |
+| `old/泵能力收敛与自建挡板方案_main.md` | `docs/feature/泵能力收敛与自建挡板方案.md` | 建议稿；结论已被现状推翻，2026-11-13 归档 |
 | `old/UI定制设计_main.md` | `docs/feature/UI定制设计.md` | 旧设计，已过时归档（2026-11-12） |
 | `old/UI迁移清单_main.md` | `docs/feature/UI迁移清单-controlX2-main-zh-to-i18n.md` | 部分完成，已归档（2026-11-12） |
 | `feature/状态索引_main.md` | `docs/feature/README.md` | 状态索引（已完成 / 否决 / 冲突裁决） |

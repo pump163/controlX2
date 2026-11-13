@@ -1,5 +1,8 @@
 package com.pumppan.controlx2.ledger
 
+import com.pumppan.controlx2.bolus.BolusDeliveryEvidence
+import com.pumppan.controlx2.bolus.bolusDeliveryEvidence
+
 /** 流水条目类型。第一刀只有大剂量，报警消除条目留待下一轮。 */
 enum class LedgerKind {
     BOLUS,
@@ -66,4 +69,18 @@ data class LedgerEntry(
     /** 排序用时刻：已终态按终态时刻，进行中按最近一次上报。 */
     val sortAtMillis: Long
         get() = terminalAtMillis ?: lastSeenAtMillis
+}
+
+/**
+ * 流水条目 → 交付证据。**判定只在** [bolusDeliveryEvidence] 一处做；
+ * 这里只负责把「流水相位」翻译成该函数的输入，避免界面各自解释终态。
+ */
+fun LedgerEntry.deliveryEvidence(): BolusDeliveryEvidence = when (phase) {
+    BolusLedgerPhase.FINISHED -> bolusDeliveryEvidence(
+        activeStatusId = null,
+        terminalStatusId = terminalStatusId,
+        hasSendRecord = true,
+    )
+    BolusLedgerPhase.DELIVERING, BolusLedgerPhase.REQUESTING -> BolusDeliveryEvidence.DELIVERING
+    BolusLedgerPhase.UNKNOWN -> BolusDeliveryEvidence.SENT
 }

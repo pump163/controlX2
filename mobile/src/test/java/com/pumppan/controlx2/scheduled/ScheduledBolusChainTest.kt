@@ -77,6 +77,24 @@ class ScheduledBolusChainTest {
     }
 
     @Test
+    fun `replay of the first bolus after the chain started is not foreign`() {
+        // 首笔打完 → 链按它的开始时刻起算；泵之后还会回放首笔状态，
+        // 这个回放不能被判成「外来大剂量」把整链作废（2026-11-13 真机问题的回归）。
+        val chain = ScheduledBolusChain.start(
+            chainId = "c2",
+            links = listOf(ScheduledBolusChain.Link(1_000L, 600_000L)),
+            anchorAtMillis = 10_000L,
+            config = config,
+            firstBolusId = 6939,
+        )
+        assertEquals(ScheduledBolusChain.State.COUNTING, chain.state)
+
+        val after = ScheduledBolusChain.onStartObservation(chain, started(6939, 20_000L))
+        assertEquals(ScheduledBolusChain.State.COUNTING, after.state)
+        assertNull(after.abortReason)
+    }
+
+    @Test
     fun `two step confirm sends, and start evidence advances to next link anchored at start time`() {
         var chain = ScheduledBolusChain.tick(chainOfTwo(), 610_000L, config)
         assertEquals(ScheduledBolusChain.State.ALERTING, chain.state)

@@ -68,6 +68,7 @@ import com.jwoglom.controlx2.presentation.screens.LandingSection
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.pumppan.controlx2.ui.NavigationRow
@@ -102,7 +103,7 @@ fun ControlIQSettingsActions(
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
     // X2 只能远程操作大剂量，Control-IQ 设置与睡眠时段无法写入
-    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SET_CONTROL_IQ)
 
     val controlIQEnabled = ds.controlIQEnabled.observeAsState()
     val controlIQWeight = ds.controlIQWeight.observeAsState()

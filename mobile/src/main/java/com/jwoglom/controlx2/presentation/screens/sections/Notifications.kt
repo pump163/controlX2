@@ -56,6 +56,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.Notificati
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
@@ -90,7 +91,7 @@ fun Notifications(
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
     // X2 只能远程操作大剂量，无法远程消除泵上通知（真机验证）
-    val canDismissNotifications = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canDismissNotifications = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.NOTIFICATION_DISMISS)
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

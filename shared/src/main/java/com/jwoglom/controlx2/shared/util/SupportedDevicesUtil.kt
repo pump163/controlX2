@@ -1,7 +1,10 @@
 package com.jwoglom.controlx2.shared.util
 
+import com.jwoglom.controlx2.shared.capability.Capability
+import com.jwoglom.controlx2.shared.capability.CapabilityTable
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.annotations.MessageProps
+import com.jwoglom.pumpx2.pump.messages.models.ApiVersion
 import com.jwoglom.pumpx2.pump.messages.models.KnownDeviceModel
 
 /**
@@ -25,3 +28,24 @@ fun canControlPump(model: KnownDeviceModel?): Boolean = model == KnownDeviceMode
 
 fun canControlPump(model: KnownDeviceModel?, messageClass: Class<out Message>): Boolean =
     canControlPump(model) && supportsDevice(model, messageClass)
+
+/**
+ * 能力表版重载：总闸（`model == MOBI`）&& 能力表 && 库声明（可选）。
+ *
+ * 迁移口径：把「这个页面/这个动作能不能控制」改成「这台泵允不允许这类能力」，
+ * 判断逻辑收进 [CapabilityTable]，调用点只选能力名。行为与迁移前一致：
+ * X2 全禁、Mobi 按现状放开；后续放开/收紧只改表。
+ *
+ * @param messageClass 传入时叠加 pumpx2 `@MessageProps.supportedDevices` 的二次收窄
+ * @param apiVersion 连接初期可能为 null；首版不参与判定，保留给按版本分档
+ */
+fun canControlPump(
+    model: KnownDeviceModel?,
+    capability: Capability,
+    messageClass: Class<out Message>? = null,
+    apiVersion: ApiVersion? = null,
+): Boolean {
+    if (!canControlPump(model)) return false
+    if (!CapabilityTable.allows(model, apiVersion, capability)) return false
+    return messageClass?.let { supportsDevice(model, it) } ?: true
+}

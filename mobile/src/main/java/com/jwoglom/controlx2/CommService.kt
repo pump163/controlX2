@@ -46,6 +46,7 @@ import com.jwoglom.controlx2.pump.PumpHistoryLogFetcher
 import com.jwoglom.controlx2.pump.PumpHistoryLogSyncWorker
 import com.jwoglom.controlx2.pump.PumpSession
 import com.jwoglom.controlx2.shared.enums.GlucoseUnit
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.sync.nightscout.NightscoutSyncWorker
 import com.jwoglom.controlx2.sync.xdrip.XdripMessageDispatcher
@@ -1098,6 +1099,7 @@ class CommService : Service(), CommServiceCallbacks {
         // 临时基础率只有 Mobi 能远程操作（X2 控制页只能看），X2 上不显示按钮
         val canTempRate = canControlPump(
             Prefs(applicationContext).pumpModelName()?.let { determinePumpModel(it) },
+            Capability.SET_TEMP_RATE,
             SetTempRateRequest::class.java
         )
         if (Prefs(applicationContext).showTempRateNotificationButton() && canTempRate) {

@@ -59,6 +59,7 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
@@ -86,7 +87,7 @@ fun QuickBolusSettingsActions(
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
     // X2 只能远程操作大剂量，快速大剂量设置无法写入
-    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.QUICK_BOLUS_SETTINGS)
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

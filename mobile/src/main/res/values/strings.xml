@@ -1440,9 +1440,11 @@
     <string name="ledger_bolus_term_plgs">Terminated (PLGS)</string>
     <!-- 定时大剂量（实验，默认关闭） -->
     <string name="scheduled_bolus_channel_name">Scheduled bolus</string>
-    <string name="scheduled_bolus_advance">In %1$d min: scheduled bolus %2$s U</string>
-    <string name="scheduled_bolus_due">Scheduled now: %1$s U — open the app to confirm</string>
+    <string name="scheduled_bolus_advance">In %1$d min: scheduled bolus %2$s U — check your glucose trend before confirming</string>
+    <string name="scheduled_bolus_due">Scheduled now: %1$s U — check your glucose trend before confirming</string>
     <string name="scheduled_bolus_first_reminder">Time to deliver the first bolus: %1$s U</string>
+    <string name="scheduled_bolus_started_title">Timed bolus started</string>
+    <string name="scheduled_bolus_started_text">A timed bolus has started. Open the app for details.</string>
     <string name="scheduled_bolus_aborted">Appointment cancelled: %1$s</string>
     <string name="scheduled_bolus_abort_foreign">another bolus started on the pump</string>
     <string name="scheduled_bolus_abort_timeout">not confirmed in time</string>
@@ -1478,6 +1480,7 @@
     <string name="scheduled_ui_save">Save appointment</string>
     <string name="scheduled_ui_saved">Appointment saved</string>
     <string name="scheduled_ui_cancel">Cancel appointment</string>
+    <string name="scheduled_ui_dismiss">Done</string>
     <string name="scheduled_ui_none">No appointment saved.</string>
     <string name="scheduled_ui_state">State %1$s, %2$d of %3$d done</string>
     <string name="scheduled_ui_next_due">Next bolus at %1$s</string>
@@ -1488,7 +1491,12 @@
     <string name="scheduled_issue_interval_short">Bolus %1$d is less than %2$d min after the previous one</string>
     <string name="scheduled_issue_interval_long">Bolus %1$d is more than %2$d min after the previous one</string>
     <string name="scheduled_issue_first_past">The first bolus time has already passed</string>
-    <string name="scheduled_tab_title">Scheduled</string>
+    <string name="scheduled_tab_title">Timed</string>
+    <string name="scheduled_preset_need_values">Fill in Bolus 2 or 3 with a gap and dose first.</string>
+    <string name="scheduled_row_running">Delivering</string>
+    <string name="scheduled_row_planned_at">Planned %1$s</string>
+    <string name="scheduled_row_due_at">Due %1$s</string>
+    <string name="scheduled_row_started_at">Started %1$s</string>
     <string name="scheduled_tab_hint">Fill all three rows, then Next validates them together. The app sends the first bolus; later ones are reminded before their time.</string>
     <string name="scheduled_mode_relative">Relative interval</string>
     <string name="scheduled_mode_absolute">Absolute time</string>
@@ -1501,7 +1509,12 @@
     <string name="scheduled_point_index">Bolus %1$d</string>
     <string name="scheduled_run_status">%1$s · delivered %2$d / %3$d</string>
     <string name="scheduled_row_done">Delivered</string>
+    <string name="scheduled_row_failed">Aborted</string>
     <string name="scheduled_row_pending">Pending</string>
+    <string name="scheduled_row_not_sent">Not sent</string>
+    <string name="scheduled_cgm_check_title">Check your glucose trend before confirming</string>
+    <string name="scheduled_cgm_current">Current CGM: %1$s</string>
+    <string name="scheduled_cgm_none">No recent CGM reading</string>
     <string name="scheduled_cancel_hint">Each delivered bolus locks immediately. The next dose is editable only during the countdown; it locks at the advance reminder.</string>
     <string name="scheduled_exec_started">First bolus sent, waiting for pump confirmation</string>
     <string name="scheduled_preflight_link">Link is stale: no valid response from the pump recently</string>
@@ -1521,4 +1534,23 @@
     <string name="scheduled_slot_delete">Delete</string>
     <string name="scheduled_slot_save_new">+ Save as new preset</string>
     <string name="scheduled_slot_cancel">Cancel</string>
+    <string name="scheduled_row_sent_at">Sent %1$s</string>
+    <string name="scheduled_run_progress">%1$s · sent %2$d / %3$d</string>
+    <string name="scheduled_state_idle">Not started</string>
+    <string name="scheduled_state_counting">Waiting</string>
+    <string name="scheduled_state_notified">Reminder sent</string>
+    <string name="scheduled_state_alerting">Waiting for confirmation</string>
+    <string name="scheduled_state_warning">Confirm again</string>
+    <string name="scheduled_state_sending">Sending</string>
+    <string name="scheduled_state_active">Delivering</string>
+    <string name="scheduled_state_done">Done</string>
+    <string name="scheduled_state_aborted">Aborted</string>
+    <string name="scheduled_abort_user_cancelled">Cancelled by you</string>
+    <string name="scheduled_abort_confirm_timeout">Confirmation timed out</string>
+    <string name="scheduled_abort_missed">Due time was missed</string>
+    <string name="scheduled_abort_link_loss">Pump link was lost</string>
+    <string name="scheduled_abort_foreign_bolus">Another bolus started</string>
+    <string name="scheduled_abort_pump_aborted">Pump stopped this bolus</string>
+    <string name="scheduled_abort_send_failed">Send was rejected</string>
+    <string name="scheduled_abort_send_unknown">No start evidence after send</string>
 </resources>

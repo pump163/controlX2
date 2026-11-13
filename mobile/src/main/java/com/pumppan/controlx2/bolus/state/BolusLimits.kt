@@ -16,6 +16,18 @@ enum class CiqVersion { V1, V2 }
 fun BolusLimits.canStartRemoteExtended(): Boolean = remoteExtendedBolusStart
 
 /**
+ * 用泵侧 Max Bolus（`GlobalMaxBolusSettingsResponse.maxBolus`，毫单位）收紧上限。
+ * 档案默认（25U）比泵实际设置（如 20U）宽时，必须在输入/校验阶段就按泵值拦，
+ * 不能等到泵在输注时拒绝。取不到（null/<=0）时回落档案值。
+ */
+fun BolusLimits.withPumpMaxBolus(pumpMaxMilliunits: Int?): BolusLimits =
+    if (pumpMaxMilliunits != null && pumpMaxMilliunits > 0) {
+        copy(maxBolusMilliunits = minOf(maxBolusMilliunits, pumpMaxMilliunits))
+    } else {
+        this
+    }
+
+/**
  * 大剂量相关阈值的统一视图。数值实际来自 `assets/pump-capabilities.json`
  * （经 [PumpCapabilities] 加载），本文件的常量只作兜底与默认值。
  */

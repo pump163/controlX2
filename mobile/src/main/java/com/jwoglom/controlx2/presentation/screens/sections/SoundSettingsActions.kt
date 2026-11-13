@@ -66,6 +66,7 @@ import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.presentation.intervalOf
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.canControlPump
 import com.jwoglom.controlx2.shared.util.determinePumpModel
@@ -100,7 +101,7 @@ fun SoundSettingsActions(
 
     // X2 泵会拒绝 SetPumpSoundsRequest，故仅 MOBI 允许写入；其它型号页面只读展示当前值。
     val model = determinePumpModel(deviceName.value ?: "")
-    val canControl = canControlPump(model)
+    val canControl = canControlPump(model, Capability.SET_SOUNDS)
 
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(true) }

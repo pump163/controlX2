@@ -76,6 +76,7 @@ import com.jwoglom.controlx2.presentation.screens.sections.components.dialogs.Ed
 import com.jwoglom.controlx2.presentation.screens.setUpPreviewState
 import com.jwoglom.controlx2.presentation.theme.ControlX2Theme
 import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
@@ -119,7 +120,7 @@ fun ProfileActions(
     val context = LocalContext.current
     val ds = LocalDataStore.current
     val deviceName = ds.setupDeviceName.observeAsState()
-    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""))
+    val canControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.PROFILE_EDIT)
     val readonlyReason = if (!canControl) {
         determinePumpModel(deviceName.value ?: "")?.let {
             stringResource(R.string.pumppan_model_unsupported_setting, pumpModelDisplayName(it))

@@ -1,5 +1,7 @@
 package com.pumppan.controlx2.ledger
 
+import com.pumppan.controlx2.bolus.BolusTerminalStatus
+
 /**
  * 大剂量「笔级状态机」。
  *
@@ -48,11 +50,23 @@ class BolusEpisodeTracker(
             return
         }
 
-        val phase = when (statusId) {
+        val phase: BolusLedgerPhase? = when (statusId) {
             STATUS_REQUESTING -> BolusLedgerPhase.REQUESTING
             STATUS_DELIVERING -> BolusLedgerPhase.DELIVERING
-            // 未知 id 只当作「有活动大剂量」，不猜语义。
-            else -> BolusLedgerPhase.DELIVERING
+            else -> null
+        }
+
+        // statusId = 0（ALREADY_DELIVERED_OR_INVALID）：泵在输注期间会**持续回放上一笔的
+        // COMPLETE**，报文 bolusId 非 0 却没有「开始」语义。它绝不能当作新笔的开始证据——
+        // 否则定时大剂量链会拿上一笔的剂量去比对首笔计划，误判 FOREIGN_BOLUS 整链作废。
+        if (phase == null) {
+            val replay = episodes[bolusId] ?: return
+            episodes[bolusId] = replay.copy(
+                lastSeenAtMillis = now,
+                requestedMilliUnits = replay.requestedMilliUnits
+                    ?: requestedMilliUnits.takeIf { it > 0 },
+            )
+            return
         }
 
         val existing = episodes[bolusId]
@@ -223,7 +237,7 @@ class BolusEpisodeTracker(
         const val STATUS_REQUESTING = 2
 
         /** `BolusStatus` 的全部已知终态。 */
-        val KNOWN_TERMINALS = 0..6
+        val KNOWN_TERMINALS = BolusTerminalStatus.USER_CANCELLED..BolusTerminalStatus.PLGS
 
         /** 空态→终态的实测值：20 s（6 U）与 35 s（14 U）；60 s 留两倍余量。 */
         const val DEFAULT_TERMINAL_GRACE_MS = 60_000L

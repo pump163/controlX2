@@ -1,5 +1,8 @@
 package com.pumppan.controlx2.scheduled
 
+import com.pumppan.controlx2.bolus.CURRENT_BOLUS_DELIVERING
+import com.pumppan.controlx2.bolus.CURRENT_BOLUS_REQUESTING
+
 import android.content.Context
 import com.jwoglom.controlx2.R
 import com.jwoglom.controlx2.presentation.DataStore
@@ -80,7 +83,7 @@ object ScheduledBolusSender {
         val status = statusSeen ?: dataStore.bolusCurrentResponse.value
         // 1 = DELIVERING，2 = REQUESTING；0 = 没有进行中的大剂量（可能回放上一笔的 id）。
         val foreign = status != null && status.bolusId > 0 &&
-            (status.statusId == 1 || status.statusId == 2)
+            (status.statusId == CURRENT_BOLUS_DELIVERING || status.statusId == CURRENT_BOLUS_REQUESTING)
 
         // 延展：泵侧只维护「是否有延展在跑」+ 更新时间；更新了才算查询成功。
         val active = extendedSeen && dataStore.extendedBolusActive.value == true

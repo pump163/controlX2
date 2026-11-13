@@ -90,6 +90,7 @@ import com.jwoglom.controlx2.presentation.util.LifecycleStateObserver
 import com.jwoglom.controlx2.shared.enums.BasalStatus
 import com.jwoglom.controlx2.shared.enums.UserMode
 import com.jwoglom.controlx2.shared.presentation.intervalOf
+import com.jwoglom.controlx2.shared.capability.Capability
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.controlx2.shared.util.determinePumpModel
 import com.pumppan.controlx2.pumpModelDisplayName
@@ -169,7 +170,7 @@ fun Actions(
     fun requestResumeLoadStatusCheck() {
         // 0x14 是 Mobi 专有：X2 会回 ErrorResponse 并被泵主动断链（2026-11-13 logcat 取证）。
         // 该行在 X2 上本已 readOnly，这里再挡一层，防止误触或以后放开。
-        if (!canControlPump(pumpModel, ResumePumpingRequest::class.java)) return
+        if (!canControlPump(pumpModel, Capability.SUSPEND_RESUME, ResumePumpingRequest::class.java)) return
         checkingResumeLoadStatus = true
         ds.loadStatusResponse.value = null
         sendPumpCommands(SendType.BUST_CACHE, listOf(LoadStatusRequest()))
@@ -278,7 +279,7 @@ fun Actions(
 
                 item {
                     val basalStatus = ds.basalStatus.observeAsState()
-                    val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), SuspendPumpingRequest::class.java)
+                    val canPumpControl = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SUSPEND_RESUME, SuspendPumpingRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -428,7 +429,7 @@ fun Actions(
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
-                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), SetModesRequest::class.java)
+                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SET_MODES, SetModesRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -503,7 +504,7 @@ fun Actions(
 
                 item {
                     val controlIQMode = ds.controlIQMode.observeAsState()
-                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), SetModesRequest::class.java)
+                    val canSetModes = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SET_MODES, SetModesRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -577,7 +578,7 @@ fun Actions(
                 item {
                     val tempRateActive = ds.tempRateActive.observeAsState()
                     val tempRateDetails = ds.tempRateDetails.observeAsState()
-                    val canTempRate = canControlPump(determinePumpModel(deviceName.value ?: ""), SetTempRateRequest::class.java)
+                    val canTempRate = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.SET_TEMP_RATE, SetTempRateRequest::class.java)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -759,7 +760,7 @@ fun Actions(
                 item { GroupBoundary() }
 
                 // X2 只能远程操作大剂量，泵设置类动作（改时钟/让泵响）在 X2 上不可触发
-                val canPumpSettings = canControlPump(determinePumpModel(deviceName.value ?: ""))
+                val canPumpSettings = canControlPump(determinePumpModel(deviceName.value ?: ""), Capability.PUMP_SETTINGS)
 
                 item {
                     ActionRow(

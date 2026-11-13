@@ -50,7 +50,7 @@
 4. **蓝牙断连**：看门狗 / 变主动 / 指数退避 / UI 快捷开关四条方向见 `docs/old/bug-蓝牙断连.md`（`57bc4c5`；2026-11-12 阶段完成 · 待细化并归档），是否动 `pumpcomm` 待拍板；真机已确认今日断联为手机端 BLE、泵侧零异常（2026-11-05），可优先按此定向。
 5. **术语遗留**：`app_no_debug_logs_are_available_to_share` / `app_debug_logs_found` 仍用「调试记录」；建议未来重命名 3 个 key（`debug_view_history_log_mess`、`debug_no_history_log_entries_present_in_cache`、`debug_database_and_cache_cleared`）。原「两个同名入口」已解决：缓存查看器改叫「缓存查看器 / Cache Viewer」（用户定调：调试页不必严格套术语表，取短），拉取入口仍为「查看历史记录」。
 6. **真机待验三项**：清空缓存后重拉、充电图标暗色可读性、~~声音页 X2 只读表现~~（2026-11-04 已验证：X2 不能远程改声音，Mobi-only 门控正确，见 WORKLOG §79）。
-7. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（方案文档为 `docs/feature/泵能力收敛与自建挡板方案_main.md`，来自 main 树）；是否每周巡检 pumpx2 主线 + tag。
+7. **能力表 / 巡检**：`shared` 侧 `CapabilityRegistry` 只读骨架（原方案文档已归档：`docs/old/泵能力收敛与自建挡板方案_main.md`，结论过时、仅作追溯）；是否每周巡检 pumpx2 主线 + tag。现状：`canControlPump` 仍是 `model == MOBI` 单规则，18 处调用点各自判断。
 
 > 以上细节与「已改 / 没改 / 要改」三态清单统一见 `docs/old/工作清单-2026-11-02至04.md`（内容已并入 lab `i18n/WORKLOG.md` §78），HANDOFF 不再重复维护。
 

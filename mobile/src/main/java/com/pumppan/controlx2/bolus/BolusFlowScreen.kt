@@ -37,6 +37,7 @@ import com.jwoglom.controlx2.shared.PumpMessageSerializer
 import com.jwoglom.controlx2.shared.util.SendType
 import com.jwoglom.pumpx2.pump.messages.Message
 import com.jwoglom.pumpx2.pump.messages.request.control.BolusPermissionRequest
+import com.jwoglom.pumpx2.pump.messages.request.currentStatus.GlobalMaxBolusSettingsRequest
 import com.jwoglom.pumpx2.pump.messages.response.control.BolusPermissionResponse
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV1Response
 import com.jwoglom.pumpx2.pump.messages.response.currentStatus.ControlIQInfoV2Response
@@ -54,6 +55,7 @@ import com.pumppan.controlx2.bolus.state.BolusError
 import com.pumppan.controlx2.bolus.state.BolusFlowState
 import com.pumppan.controlx2.bolus.state.BolusFlowStep
 import com.pumppan.controlx2.bolus.state.BolusLimits
+import com.pumppan.controlx2.bolus.state.withPumpMaxBolus
 import com.pumppan.controlx2.bolus.state.BolusOutcome
 import com.pumppan.controlx2.bolus.state.BolusSessionMeta
 import com.pumppan.controlx2.bolus.state.BolusShape
@@ -104,16 +106,26 @@ fun BolusFlowScreen(
     // 当前输注会话（泵真相层，含泵上发起的那一笔）：
     // 第二步校验必须区分「立即段在打」与「只剩延展段在跑」，两种情形的允许范围不同。
     val runningDelivery = BolusRuntime.coordinator?.sessionState?.value
+    // 泵侧 Max Bolus（如 20U）才是硬上限：与能力档案取较小值，输入/确认阶段就拦，
+    // 不能等泵在输注时拒绝。取不到响应时回落能力档案。
+    val maxBolusSettings by dataStore.globalMaxBolusSettingsResponse.observeAsState()
+    val pumpMaxBolus = maxBolusSettings?.maxBolus
+    val hardLimits = remember(limits, pumpMaxBolus) {
+        limits.withPumpMaxBolus(pumpMaxBolus)
+
+    }
+    LaunchedEffect(maxBolusSettings) {
+        if (maxBolusSettings == null) {
+            sendPumpCommands(SendType.STANDARD, listOf(GlobalMaxBolusSettingsRequest()))
+        }
+    }
     val errors = if (state.step == BolusFlowStep.SHAPE) {
-        state.validationErrors(ciqEnabled, limits, ciqVersion, runningDelivery)
+        state.validationErrors(ciqEnabled, hardLimits, ciqVersion, runningDelivery)
     } else {
         emptyList()
     }
-    // §7.5：泵的 Max Bolus 设置只做提示不硬拦；取不到响应时不做任何提示。
-    val maxBolusSettings by dataStore.globalMaxBolusSettingsResponse.observeAsState()
-    val maxBolusMilliunits = maxBolusSettings?.maxBolus
     val overMaxBolus = state.step == BolusFlowStep.CONFIRM &&
-        maxBolusMilliunits != null && state.totalMilliunits > maxBolusMilliunits
+        state.totalMilliunits > hardLimits.maxBolusMilliunits
 
     // 第 2 页「+」：把当前输入值存为预设（追加末尾、自动命名）。
     val context = LocalContext.current
@@ -160,12 +172,12 @@ fun BolusFlowScreen(
     // 小总量变形（立即段不足一步 → 实际只发纯方波）需用户确认后才进确认页。
     var smallImmediateConfirm by remember { mutableStateOf(false) }
     val sendErrorText: String? =
-        sendErrors.firstOrNull()?.let { errorText(it, ciqEnabled, ciqVersion, limits) }
+        sendErrors.firstOrNull()?.let { errorText(it, ciqEnabled, ciqVersion, hardLimits) }
             ?: sendFailureRes?.let { stringResource(it) }
 
     // 发送前二次校验：即使按钮被绕过，也必须在 BolusSender 里再查一次能力。
     val deliver: () -> Unit = {
-        when (val prep = BolusSender.prepare(state.draft(), ciqEnabled, limits, profile, ciqVersion)) {
+        when (val prep = BolusSender.prepare(state.draft(), ciqEnabled, hardLimits, profile, ciqVersion)) {
             is BolusPrepareResult.Blocked -> {
                 sendFailureRes = null
                 sendErrors = prep.errors
@@ -255,7 +267,7 @@ fun BolusFlowScreen(
                 TextButton(
                     onClick = {
                         smallImmediateConfirm = false
-                        when (val result = state.advance(ciqEnabled, limits, ciqVersion, runningDelivery)) {
+                        when (val result = state.advance(ciqEnabled, hardLimits, ciqVersion, runningDelivery)) {
                             is BolusAdvance.Ok -> onStateChange(result.state)
                             is BolusAdvance.Invalid -> Unit
                         }
@@ -325,7 +337,7 @@ fun BolusFlowScreen(
                     state = state,
                     errors = errors,
                     ciqEnabled = ciqEnabled,
-                    limits = limits,
+                    limits = hardLimits,
                     ciqVersion = ciqVersion,
                     onChange = onStateChange,
                     // 延展大剂量在输注时直接禁用「扩展」开关：泵只接受立即大剂量。
@@ -334,13 +346,13 @@ fun BolusFlowScreen(
 
                 BolusFlowStep.CONFIRM -> BolusConfirmPanel(
                     state = state,
-                    limits = limits,
+                    limits = hardLimits,
                     experimental = state.shape != BolusShape.NORMAL && !limits.remoteExtendedBolusVerified,
                     overMaxBolus = overMaxBolus,
-                    maxBolusText = maxBolusMilliunits?.let { formatDose(it, limits.bolusIncrementMilliunits) },
+                    maxBolusText = pumpMaxBolus?.let { formatDose(hardLimits.maxBolusMilliunits, limits.bolusIncrementMilliunits) },
                     inProgressHint = inProgressHint,
                     errorText = sendErrorText,
-                    deliverEnabled = pendingPlan == null,
+                    deliverEnabled = pendingPlan == null && !overMaxBolus,
                     onDeliver = deliver,
                     onBack = { onStateChange(state.back()) },
                     showActions = false,
@@ -354,7 +366,7 @@ fun BolusFlowScreen(
             BolusFlowStep.SHAPE -> {
                 // §4.6.7：三枚按钮（返回 / 「+」存预设 / 下一步），固定在页面底部。
                 val canSavePreset =
-                    errors.isEmpty() && state.advance(ciqEnabled, limits, ciqVersion, runningDelivery) is BolusAdvance.Ok
+                    errors.isEmpty() && state.advance(ciqEnabled, hardLimits, ciqVersion, runningDelivery) is BolusAdvance.Ok
                 BolusBottomBar {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = onExit, modifier = Modifier.weight(1f)) {
@@ -388,7 +400,7 @@ fun BolusFlowScreen(
                                 if (needsSmallImmediateConfirm(state)) {
                                     smallImmediateConfirm = true
                                 } else {
-                                    when (val result = state.advance(ciqEnabled, limits, ciqVersion, runningDelivery)) {
+                                    when (val result = state.advance(ciqEnabled, hardLimits, ciqVersion, runningDelivery)) {
                                         is BolusAdvance.Ok -> onStateChange(result.state)
                                         is BolusAdvance.Invalid -> Unit // 就地错误已展示，不前进
                                     }
